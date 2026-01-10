@@ -45,6 +45,44 @@ cd frontend && pnpm test:e2e               # E2E tests
 git checkout -b feat/{name}                # Start feature
 gh pr create --base main                   # Create PR
 ```
+---
+
+## Top-Level Principles
+
+Work doggedly. Your goal is to be autonomous as long as possible. If you know the user's overall goal, and there is still progress you can make towards that goal, continue working until you can no longer make progress. Whenever you stop working, be prepared to justify why.
+
+Work smart. When debugging, take a step back and think deeply about what might be going wrong. When something is not working as intended, add logging to check your assumptions.
+
+Check your work. If you write a chunk of code, try to find a way to run it and make sure it does what you expect. If you kick off a long process, wait 30 seconds then check the logs to make sure it is running as expected.
+
+Be cautious with terminal commands. Before every terminal command, consider carefully whether it can be expected to exit on its own, or if it will run indefinitely (e.g. launching a web server). For processes that run indefinitely, always launch them in a new process (e.g. nohup).
+
+---
+
+## Core Design Philosophy
+
+### Simplicity First
+- **Brutal simplicity** is preferred over clever or complex solutions
+- **KISS principle** (Keep It Stupid Simple) - everything should be straightforward to understand
+- Avoid over-engineering and unnecessary abstractions
+- Only add complexity when truly required by the problem domain
+
+### Composition Over Inheritance
+- Prefer composition to inheritance - inheritance should be rare and strictly necessary
+- Default to composition patterns for code reuse
+- Avoid deep inheritance hierarchies
+
+### Immutability Preference
+- Favor immutable data structures and objects
+- Only introduce mutability when strictly necessary for performance or design requirements
+
+### DRY Principle
+- Do not repeat code - if something appears twice, it should be extracted into a function
+- The DRY principle naturally uncovers beautiful, maintainable code patterns
+
+### Code Reuse Over Recreation
+- **Always check if a utility exists before creating new code**
+- Common utilities are constantly evolving, understand them before reaching for new solutions
 
 ---
 
