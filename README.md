@@ -4,20 +4,25 @@
 
 Based on Boris Cherny's (Claude Code creator) workflow and Anthropic's official best practices.
 
+**Repository:** https://github.com/pablomarin/claude-code-templates
+
 ---
 
 ## Table of Contents
 
 1. [Prerequisites](#prerequisites)
-2. [Quick Start (Automated)](#quick-start-automated)
-3. [Manual Setup](#manual-setup)
-4. [Workflow Overview](#workflow-overview)
-5. [Commands Reference](#commands-reference)
-6. [What's Automated](#whats-automated)
-7. [File Structure](#file-structure)
-8. [Troubleshooting](#troubleshooting)
-9. [Security](#security)
-10. [Token Optimization](#token-optimization)
+2. [One-Time Setup (Per Machine)](#one-time-setup-per-machine)
+3. [Setup Scenarios](#setup-scenarios)
+   - [Scenario A: New Project](#scenario-a-new-project)
+   - [Scenario B: Existing Project WITHOUT Claude Code](#scenario-b-existing-project-without-claude-code)
+   - [Scenario C: Existing Project WITH Claude Code](#scenario-c-existing-project-with-claude-code)
+4. [After Setup: Customize Your Project](#after-setup-customize-your-project)
+5. [Workflow Overview](#workflow-overview)
+6. [Commands Reference](#commands-reference)
+7. [What's Automated](#whats-automated)
+8. [File Structure](#file-structure)
+9. [Troubleshooting](#troubleshooting)
+10. [Security](#security)
 
 ---
 
@@ -34,168 +39,252 @@ Before starting, ensure you have:
 
 ---
 
-## Quick Start (Automated)
+## One-Time Setup (Per Machine)
 
-### Option A: Using Setup Script
-
-```bash
-# Clone the templates repository (or copy to your machine)
-git clone <company-templates-repo> ~/claude-code-templates
-
-# Navigate to your project
-cd /path/to/your/project
-
-# Run setup script
-~/claude-code-templates/setup.sh
-
-# Or with options:
-~/claude-code-templates/setup.sh -p "My Project" -t fullstack
-```
-
-### Option B: One-Liner
+**Do this once on each developer's machine:**
 
 ```bash
-# From your project root:
-curl -sSL <company-templates-url>/setup.sh | bash -s -- -p "My Project"
+# Clone the templates repo to your home directory
+git clone https://github.com/pablomarin/claude-code-templates.git ~/claude-code-templates
+
+# Make setup script executable
+chmod +x ~/claude-code-templates/setup.sh
 ```
 
-After running the setup script, continue to [Step 5: Install Plugins](#step-5-install-plugins).
+To update templates later:
+```bash
+cd ~/claude-code-templates && git pull
+```
 
 ---
 
-## Manual Setup
+## Setup Scenarios
 
-### Step 1: Create Directory Structure
+### Scenario A: New Project
 
-```bash
-cd /path/to/your/project
-
-# Create required directories
-mkdir -p .claude/hooks
-mkdir -p .claude/rules
-mkdir -p .claude/commands/prd
-mkdir -p .claude/agents
-mkdir -p docs/prds
-mkdir -p docs/plans
-```
-
-### Step 2: Copy Core Configuration Files
+Starting a brand new project with no existing files.
 
 ```bash
-# From company templates (adjust path as needed)
-TEMPLATES=~/claude-code-templates
+# 1. Create and enter your project
+mkdir my-new-project
+cd my-new-project
+git init
 
-# Core files
-cp $TEMPLATES/CLAUDE-base.md ./CLAUDE.md
-cp $TEMPLATES/CONTINUITY-template.md ./CONTINUITY.md
-cp $TEMPLATES/settings/settings-template.json ./.claude/settings.json
-cp $TEMPLATES/hooks/check-state-updated.sh ./.claude/hooks/
+# 2. Run setup
+~/claude-code-templates/setup.sh -p "My New Project"
 
-# Make hook executable
-chmod +x .claude/hooks/check-state-updated.sh
-```
-
-### Step 3: Copy Rules, Commands, and Agents
-
-```bash
-# Rules (coding standards)
-cp $TEMPLATES/rules/*.md ./.claude/rules/
-
-# Commands (custom slash commands)
-cp -r $TEMPLATES/commands/prd ./.claude/commands/
-cp $TEMPLATES/commands/handoff.md ./.claude/commands/
-
-# Agents (subagents for specialized tasks)
-cp $TEMPLATES/agents/*.md ./.claude/agents/
-```
-
-### Step 4: Create CHANGELOG
-
-```bash
-cat > docs/CHANGELOG.md << 'EOF'
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-## [Unreleased]
-
-### Added
-- Initial project setup
-
-### Changed
-
-### Fixed
-
-### Removed
-
----
-
-## Format
-
-Each entry should include:
-- Date (YYYY-MM-DD)
-- Brief description
-- Related issue/PR if applicable
-EOF
-```
-
-### Step 5: Install Plugins
-
-Start Claude Code and install required plugins:
-
-```bash
-# Start Claude Code
+# 3. Start Claude Code and install plugins
 claude
+```
 
-# In Claude Code session:
-
-# 1. Superpowers (design → plan → execute workflow)
+Then run these commands inside Claude Code:
+```
 /plugin marketplace add obra/superpowers-marketplace
 /plugin install superpowers@superpowers-marketplace
-
-# 2. Compound Engineering (review → compound learnings)
 /plugin marketplace add EveryInc/compound-engineering-plugin
 /plugin install compound-engineering@compound-engineering-plugin
-
-# 3. Code Simplifier (official Anthropic plugin - cleans up code)
 /plugin install code-simplifier
-
-# 4. Verify installation
-/help
 ```
 
-You should see these commands available:
-- `/superpowers:brainstorm`, `/superpowers:write-plan`, `/superpowers:execute-plan`
-- `/workflows:review`, `/workflows:compound`, `/changelog`
-- `/prd:discuss`, `/prd:create` (custom commands)
+**Done!** Now [customize your project](#after-setup-customize-your-project).
 
-### Step 6: Customize for Your Project
+---
 
-Edit `CLAUDE.md` to add:
-- Project description
-- Tech stack
-- Project-specific commands
-- Any project-specific rules
+### Scenario B: Existing Project WITHOUT Claude Code
 
-Edit `CONTINUITY.md` to add:
-- Project goal
-- Constraints/assumptions
-- Initial state (Done/Now/Next)
-
-### Step 7: Verify Setup
+You have a project but haven't set up Claude Code automation yet.
 
 ```bash
-# Restart Claude Code to load new settings
-exit
+# 1. Go to your project
+cd /path/to/your/existing/project
+
+# 2. Run setup
+~/claude-code-templates/setup.sh -p "My Project Name"
+
+# 3. Start Claude Code and install plugins
+claude
+```
+
+Then run these commands inside Claude Code:
+```
+/plugin marketplace add obra/superpowers-marketplace
+/plugin install superpowers@superpowers-marketplace
+/plugin marketplace add EveryInc/compound-engineering-plugin
+/plugin install compound-engineering@compound-engineering-plugin
+/plugin install code-simplifier
+```
+
+```bash
+# 4. Commit the new files
+git add .claude/ CLAUDE.md CONTINUITY.md docs/
+git commit -m "chore: add Claude Code automation setup"
+git push
+```
+
+**Done!** Now [customize your project](#after-setup-customize-your-project).
+
+---
+
+### Scenario C: Existing Project WITH Claude Code
+
+You already have `.claude/settings.json` or `CLAUDE.md` from a previous setup.
+
+#### What the Script Does (Safe by Default)
+
+The setup script **will NOT override your existing files**. It checks each file:
+
+| If file exists... | What happens |
+|-------------------|--------------|
+| `.claude/settings.json` | **Skipped** - your settings preserved |
+| `CLAUDE.md` | **Skipped** - your file preserved |
+| `CONTINUITY.md` | **Skipped** - your file preserved |
+| `.claude/agents/verify-app.md` | Created (likely new for you) |
+
+You'll see output like:
+```
+  ○ .claude/settings.json already exists (use -f to overwrite)
+  ○ CLAUDE.md already exists (use -f to overwrite)
+  ✓ Created .claude/agents/verify-app.md
+```
+
+#### Option 1: Add Only What's Missing (Recommended)
+
+```bash
+# 1. Go to your project
+cd /path/to/your/project
+
+# 2. Run setup - only creates files that don't exist
+~/claude-code-templates/setup.sh -p "My Project"
+
+# 3. Manually add new features to your existing settings.json
+```
+
+**New features to add manually to your `.claude/settings.json`:**
+
+```json
+{
+  "hooks": {
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Evaluate the subagent's output quality. Did it complete its task? Is output useful? Respond 'accept' if good, 'reject' with explanation if issues."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**New plugin to install:**
+```
+/plugin install code-simplifier
+```
+
+#### Option 2: Backup and Replace Everything
+
+If you want to fully adopt the new templates:
+
+```bash
+# 1. Backup your current setup
+cp -r .claude .claude-backup
+cp CLAUDE.md CLAUDE.md.backup
+cp CONTINUITY.md CONTINUITY.md.backup 2>/dev/null
+
+# 2. Force overwrite with new templates
+~/claude-code-templates/setup.sh -p "My Project" -f
+
+# 3. Manually merge back any project-specific content from backups
+# Compare: diff CLAUDE.md.backup CLAUDE.md
+```
+
+#### Option 3: Just Get the New Stuff
+
+If you only want the new agents and commands:
+
+```bash
+# Copy just the new agent
+cp ~/claude-code-templates/agents/verify-app.md .claude/agents/
+
+# Copy the PRD commands if you don't have them
+cp -r ~/claude-code-templates/commands/prd .claude/commands/
+
+# Install the new plugin
+claude
+/plugin install code-simplifier
+```
+
+#### What's New That You Probably Don't Have
+
+| File/Feature | What it does | Priority |
+|--------------|--------------|----------|
+| `.claude/agents/verify-app.md` | Runs all tests, reports pass/fail | **High** |
+| `code-simplifier` plugin | Cleans up code after review | **High** |
+| `SubagentStop` hook | Validates subagent output | Medium |
+| Prompt-based `Stop` hook | Intelligent completion check | Medium |
+| `/prd:discuss` command | Refine user stories | Medium |
+| `/prd:create` command | Generate structured PRD | Medium |
+
+---
+
+## After Setup: Customize Your Project
+
+### 1. Edit CLAUDE.md
+
+Add your project-specific content:
+
+```markdown
+## Project
+My Awesome App - Description of what it does
+
+## Tech Stack
+- **Backend:** Python 3.12+ / FastAPI
+- **Frontend:** Next.js 15 / React
+- **Database:** PostgreSQL
+
+## Commands
+# Add your actual project commands
+cd src && uv run pytest              # Run tests
+cd frontend && pnpm build            # Build frontend
+```
+
+### 2. Edit CONTINUITY.md
+
+Set your current project state:
+
+```markdown
+## Goal
+Build MVP of feature X by end of Q1
+
+## State
+
+### Done
+- Initial project setup
+
+### Now
+Working on user authentication
+
+### Next
+- API endpoints
+- Frontend pages
+```
+
+### 3. Verify Setup
+
+```bash
+# Restart Claude Code
 claude
 
 # Check hooks loaded
 /hooks
 # Should show: SessionStart, Stop, SubagentStop, PostToolUse
 
-# Check permissions
-/permissions
-# Should show pre-allowed commands
+# Check plugins
+/help
+# Should show: /superpowers:*, /workflows:*, /prd:*
 
 # Test SessionStart hook
 /clear
@@ -286,13 +375,6 @@ claude
 Based on Boris Cherny's key insight:
 
 > "Probably the most important thing to get great results out of Claude Code — **give Claude a way to verify its work**. If Claude has that feedback loop, it will **2-3x the quality** of the final result."
-
-The workflow ensures:
-1. **Clear requirements** (PRD phase prevents scope creep)
-2. **Thoughtful design** (Superpowers brainstorm before coding)
-3. **Quality code** (TDD + review + simplify)
-4. **Verified results** (verify-app agent)
-5. **Continuous improvement** (compound learnings)
 
 ---
 
@@ -422,28 +504,13 @@ your-project/
 └── ...
 ```
 
-### Files Checklist
-
-After setup, verify you have:
-
-- [ ] `CLAUDE.md` in project root (customized for your project)
-- [ ] `CONTINUITY.md` in project root (with goal and initial state)
-- [ ] `docs/CHANGELOG.md` exists
-- [ ] `docs/prds/` directory exists
-- [ ] `.claude/settings.json` with permissions + hooks
-- [ ] `.claude/hooks/check-state-updated.sh` (executable)
-- [ ] `.claude/agents/verify-app.md`
-- [ ] `.claude/commands/prd/discuss.md`
-- [ ] `.claude/commands/prd/create.md`
-- [ ] `.claude/rules/*.md` files
-- [ ] Superpowers plugin installed
-- [ ] Compound Engineering plugin installed
-- [ ] code-simplifier plugin installed
-- [ ] jq installed on system
-
 ---
 
 ## Troubleshooting
+
+### Setup script says files already exist
+
+This is expected if you already have Claude Code set up. See [Scenario C](#scenario-c-existing-project-with-claude-code) for options.
 
 ### Hooks not running?
 
@@ -484,32 +551,15 @@ After setup, verify you have:
 ### Plugins not showing in /help?
 
 1. **Verify plugin installed:**
-   ```bash
+   ```
    /plugin list
    ```
 
 2. **Try reinstalling:**
-   ```bash
+   ```
    /plugin uninstall superpowers@superpowers-marketplace
    /plugin install superpowers@superpowers-marketplace
    ```
-
-3. **Check marketplace added:**
-   ```bash
-   /plugin marketplace list
-   ```
-
-### Stop hook not blocking?
-
-The Stop hook has two layers:
-1. **Prompt-based** (intelligent evaluation)
-2. **Script backup** (checks CONTINUITY.md modified)
-
-The script only blocks if:
-- There ARE uncommitted changes
-- CONTINUITY.md was NOT modified
-
-If no uncommitted changes, hook allows stop (nothing to save).
 
 ### code-simplifier not working?
 
@@ -520,18 +570,6 @@ If no uncommitted changes, hook allows stop (nothing to save).
 
 # Use it explicitly
 "Use the code-simplifier agent on src/services/my_service.py"
-```
-
-### verify-app agent not found?
-
-Check the agent file exists:
-```bash
-cat .claude/agents/verify-app.md
-```
-
-If missing, copy from templates:
-```bash
-cp $TEMPLATES/agents/verify-app.md .claude/agents/
 ```
 
 ---
@@ -558,51 +596,23 @@ cp $TEMPLATES/agents/verify-app.md .claude/agents/
 | `gh pr merge` | Merging to main |
 | `rm -rf` with path | Destructive operation |
 
-### To Add More Protection
-
-Edit `.claude/settings.json`:
-
-```json
-{
-  "permissions": {
-    "deny": [
-      "Bash(curl:*)",           // Block network calls
-      "Read(src/config/*)",     // Protect config files
-      "Write(migrations/*)"     // Protect migrations
-    ]
-  }
-}
-```
-
----
-
-## Token Optimization
-
-This setup is optimized for minimal token usage:
-
-| Component | Tokens | Loaded When |
-|-----------|--------|-------------|
-| CLAUDE.md | ~1,500 | Every session (auto) |
-| CONTINUITY.md | ~500 | Every session (via SessionStart hook) |
-| Rules files | ~200 each | Only when Claude needs them |
-| Superpowers skills | ~2,000 | When activated by pattern |
-| Agents | ~500 each | When explicitly invoked |
-
-**Typical baseline:** ~2,000-2,500 tokens/session
-
-### Tips for Token Efficiency
-
-1. **Keep CLAUDE.md concise** - Remove verbose explanations
-2. **Keep CONTINUITY.md focused** - Just state, not history
-3. **Use `/clear` strategically** - Resets context, reloads essentials
-4. **Use agents for specialized tasks** - They have separate context windows
-
 ---
 
 ## Quick Reference Card
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
+│ FIRST TIME SETUP (once per machine)                         │
+├─────────────────────────────────────────────────────────────┤
+│ git clone https://github.com/pablomarin/claude-code-templates.git ~/claude-code-templates
+│ chmod +x ~/claude-code-templates/setup.sh                  │
+├─────────────────────────────────────────────────────────────┤
+│ ADD TO ANY PROJECT                                          │
+├─────────────────────────────────────────────────────────────┤
+│ cd /your/project                                           │
+│ ~/claude-code-templates/setup.sh -p "Project Name"         │
+│ # Then install plugins in Claude Code (see above)          │
+├─────────────────────────────────────────────────────────────┤
 │ DAILY WORKFLOW                                              │
 ├─────────────────────────────────────────────────────────────┤
 │ START:                                                      │
@@ -636,18 +646,6 @@ This setup is optimized for minimal token usage:
 │ /clear     → Fresh context (reloads CONTINUITY.md)         │
 │ /cost      → Check token usage                             │
 │ Escape     → Interrupt Claude                              │
-├─────────────────────────────────────────────────────────────┤
-│ AGENTS                                                      │
-├─────────────────────────────────────────────────────────────┤
-│ code-simplifier → "Use code-simplifier on [files]"         │
-│ verify-app      → "Use verify-app agent"                   │
-├─────────────────────────────────────────────────────────────┤
-│ BRANCH NAMING                                               │
-├─────────────────────────────────────────────────────────────┤
-│ feat/{name}     → New features                             │
-│ fix/{name}      → Bug fixes                                │
-│ refactor/{name} → Refactoring                              │
-│ docs/{name}     → Documentation                            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -666,5 +664,5 @@ This setup is optimized for minimal token usage:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 2.0 | 2026-01-10 | Added code-simplifier, verify-app agent, SubagentStop hook, prompt-based Stop hook, project-agnostic templates |
+| 2.0 | 2026-01-10 | Added code-simplifier, verify-app agent, SubagentStop hook, prompt-based Stop hook, project-agnostic templates, clear setup scenarios |
 | 1.0 | 2026-01-02 | Initial setup with Superpowers + Compound Engineering |
