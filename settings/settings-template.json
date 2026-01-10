@@ -1,0 +1,126 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(echo:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(touch:*)",
+      "Bash(pwd)",
+      "Bash(which:*)",
+      "Bash(uv:*)",
+      "Bash(pnpm:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(node:*)",
+      "Bash(git:*)",
+      "Bash(alembic:*)",
+      "Bash(docker:*)",
+      "Bash(kubectl:*)",
+      "Bash(helm:*)",
+      "Bash(jq:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(gh issue:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr status:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf .)",
+      "Bash(sudo:*)",
+      "Bash(chmod 777:*)",
+      "Bash(> /dev/sda:*)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/.ssh/**)",
+      "Read(**/credentials*)",
+      "Write(.env)",
+      "Write(.env.*)"
+    ],
+    "ask": [
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(rm -rf:*)",
+      "Bash(rm -r:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat CONTINUITY.md 2>/dev/null || echo 'No CONTINUITY.md found in project root. Create one to track project state.'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Evaluate if Claude should stop. Review the session and check:\n\n1. **Code Changes:** Were there code changes in this session?\n   - If yes: Was CONTINUITY.md updated with Done/Now/Next reflecting the work?\n   - If yes: Were tests run and passing?\n   - If yes: Was /workflows:review run?\n   - If yes: Was code-simplifier used on modified files?\n\n2. **Significant Changes:** If more than 3 files were modified:\n   - Was CHANGELOG.md updated?\n\n3. **Quality Gates:**\n   - Are there uncommitted changes that should be committed?\n   - Is the work in a good stopping point?\n\nRespond with ONE of:\n- 'allow' - All critical items complete, safe to stop\n- 'block' - Critical items missing, explain what needs to be done before stopping\n\nBe pragmatic: minor documentation updates don't need full review cycle."
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-state-updated.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Evaluate the subagent's output quality. Consider:\n\n1. **Task Completion:** Did the subagent complete its assigned task?\n2. **Output Quality:** Is the output useful and actionable?\n3. **Errors:** Were there any errors or issues reported?\n4. **Next Steps:** Is it clear what should happen next?\n\nRespond with ONE of:\n- 'accept' - Subagent completed task successfully, output is useful\n- 'reject' - Issues found, explain what went wrong and what to fix\n\nBe specific in rejection reasons so the main agent can address them."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | while read file_path; do case \"$file_path\" in *.py) cd src 2>/dev/null && uv run ruff format \"$file_path\" 2>/dev/null || true ;; *.ts|*.tsx|*.js|*.jsx) npx prettier --write \"$file_path\" 2>/dev/null || true ;; *.json) npx prettier --write \"$file_path\" 2>/dev/null || true ;; *.md) npx prettier --write \"$file_path\" 2>/dev/null || true ;; esac; done"
+          }
+        ]
+      }
+    ]
+  },
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "env": {}
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    }
+  }
+}
