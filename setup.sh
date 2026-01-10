@@ -13,9 +13,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Script directory (where templates live)
+# Script directory (where templates live - same directory as this script)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATE_DIR="${SCRIPT_DIR}/templates"
 
 # Usage
 usage() {
@@ -145,24 +144,24 @@ copy_file() {
 # Copy templates
 echo -e "${YELLOW}Copying configuration files...${NC}"
 
-# Main files
-copy_file "$TEMPLATE_DIR/CLAUDE-base.md" "CLAUDE.md" "CLAUDE.md"
-copy_file "$TEMPLATE_DIR/CONTINUITY-template.md" "CONTINUITY.md" "CONTINUITY.md"
+# Main files (directly in SCRIPT_DIR, not in templates subfolder)
+copy_file "$SCRIPT_DIR/CLAUDE-base.md" "CLAUDE.md" "CLAUDE.md"
+copy_file "$SCRIPT_DIR/CONTINUITY-template.md" "CONTINUITY.md" "CONTINUITY.md"
 
 # Settings
-copy_file "$TEMPLATE_DIR/settings/settings-template.json" ".claude/settings.json" ".claude/settings.json"
+copy_file "$SCRIPT_DIR/settings/settings-template.json" ".claude/settings.json" ".claude/settings.json"
 
 # Hooks
-copy_file "$TEMPLATE_DIR/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh"
+copy_file "$SCRIPT_DIR/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh"
 chmod +x .claude/hooks/check-state-updated.sh 2>/dev/null || true
 
 # Agents
-copy_file "$TEMPLATE_DIR/agents/verify-app.md" ".claude/agents/verify-app.md" ".claude/agents/verify-app.md"
+copy_file "$SCRIPT_DIR/agents/verify-app.md" ".claude/agents/verify-app.md" ".claude/agents/verify-app.md"
 
 # Commands
-copy_file "$TEMPLATE_DIR/commands/prd/discuss.md" ".claude/commands/prd/discuss.md" ".claude/commands/prd/discuss.md"
-copy_file "$TEMPLATE_DIR/commands/prd/create.md" ".claude/commands/prd/create.md" ".claude/commands/prd/create.md"
-copy_file "$TEMPLATE_DIR/commands/handoff.md" ".claude/commands/handoff.md" ".claude/commands/handoff.md"
+copy_file "$SCRIPT_DIR/commands/prd/discuss.md" ".claude/commands/prd/discuss.md" ".claude/commands/prd/discuss.md"
+copy_file "$SCRIPT_DIR/commands/prd/create.md" ".claude/commands/prd/create.md" ".claude/commands/prd/create.md"
+copy_file "$SCRIPT_DIR/commands/handoff.md" ".claude/commands/handoff.md" ".claude/commands/handoff.md"
 
 # Rules based on tech stack
 echo ""
@@ -171,29 +170,29 @@ echo -e "${YELLOW}Copying rules for ${TECH_STACK}...${NC}"
 # Common rules
 common_rules=("security.md" "api-design.md" "testing.md")
 for rule in "${common_rules[@]}"; do
-    copy_file "$TEMPLATE_DIR/rules/$rule" ".claude/rules/$rule" ".claude/rules/$rule"
+    copy_file "$SCRIPT_DIR/rules/$rule" ".claude/rules/$rule" ".claude/rules/$rule"
 done
 
 # Tech-specific rules
 case $TECH_STACK in
     python)
-        copy_file "$TEMPLATE_DIR/rules/python-style.md" ".claude/rules/python-style.md" ".claude/rules/python-style.md"
-        copy_file "$TEMPLATE_DIR/rules/database.md" ".claude/rules/database.md" ".claude/rules/database.md"
+        copy_file "$SCRIPT_DIR/rules/python-style.md" ".claude/rules/python-style.md" ".claude/rules/python-style.md"
+        copy_file "$SCRIPT_DIR/rules/database.md" ".claude/rules/database.md" ".claude/rules/database.md"
         ;;
     typescript)
-        copy_file "$TEMPLATE_DIR/rules/typescript-style.md" ".claude/rules/typescript-style.md" ".claude/rules/typescript-style.md"
+        copy_file "$SCRIPT_DIR/rules/typescript-style.md" ".claude/rules/typescript-style.md" ".claude/rules/typescript-style.md"
         ;;
     fullstack|*)
-        copy_file "$TEMPLATE_DIR/rules/python-style.md" ".claude/rules/python-style.md" ".claude/rules/python-style.md"
-        copy_file "$TEMPLATE_DIR/rules/typescript-style.md" ".claude/rules/typescript-style.md" ".claude/rules/typescript-style.md"
-        copy_file "$TEMPLATE_DIR/rules/database.md" ".claude/rules/database.md" ".claude/rules/database.md"
+        copy_file "$SCRIPT_DIR/rules/python-style.md" ".claude/rules/python-style.md" ".claude/rules/python-style.md"
+        copy_file "$SCRIPT_DIR/rules/typescript-style.md" ".claude/rules/typescript-style.md" ".claude/rules/typescript-style.md"
+        copy_file "$SCRIPT_DIR/rules/database.md" ".claude/rules/database.md" ".claude/rules/database.md"
         ;;
 esac
 
 echo ""
 
 # Create CHANGELOG if it doesn't exist
-if [[ ! -f "docs/CHANGELOG.md" ]]; then
+if [[ ! -f "docs/CHANGELOG.md" ]] || [[ "$FORCE" == true ]]; then
     echo -e "${YELLOW}Creating docs/CHANGELOG.md...${NC}"
     cat > docs/CHANGELOG.md << EOF
 # Changelog
@@ -221,6 +220,8 @@ Each entry should include:
 - Related issue/PR if applicable
 EOF
     echo -e "  ${GREEN}✓${NC} Created docs/CHANGELOG.md"
+else
+    echo -e "  ${BLUE}○${NC} docs/CHANGELOG.md already exists"
 fi
 
 # Update CLAUDE.md with project name
@@ -241,8 +242,9 @@ echo ""
 echo -e "${YELLOW}Next steps:${NC}"
 echo ""
 echo "1. ${BLUE}Edit CLAUDE.md${NC} to add:"
-echo "   - Project description"
+echo "   - Project description (What Is This?)"
 echo "   - Tech stack details"
+echo "   - File structure"
 echo "   - Project-specific commands"
 echo ""
 echo "2. ${BLUE}Edit CONTINUITY.md${NC} to add:"
@@ -267,5 +269,10 @@ echo "4. ${BLUE}Verify setup${NC}:"
 echo "   /hooks      # Should show SessionStart, Stop, SubagentStop, PostToolUse"
 echo "   /permissions # Should show pre-allowed commands"
 echo "   /help       # Should show /superpowers:*, /workflows:*, /prd:*"
+echo ""
+echo "5. ${BLUE}Commit the new files${NC}:"
+echo "   git add .claude/ CLAUDE.md CONTINUITY.md docs/"
+echo "   git commit -m \"chore: add Claude Code automation setup\""
+echo "   git push"
 echo ""
 echo -e "${GREEN}Happy coding with Claude!${NC}"
