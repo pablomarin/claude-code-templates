@@ -3,10 +3,10 @@
 ## REST Conventions
 
 ### URL Structure
-- Use plural nouns for resources: `/api/v1/servers`, `/api/v1/skills`
-- Nested resources for relationships: `/api/v1/servers/{id}/tools`
+- Use plural nouns for resources: `/api/v1/users`, `/api/v1/orders`
+- Nested resources for relationships: `/api/v1/users/{id}/orders`
 - Version APIs: `/api/v1/...`
-- Use kebab-case for multi-word paths: `/api/v1/tool-calls`
+- Use kebab-case for multi-word paths: `/api/v1/order-items`
 
 ### HTTP Methods
 | Method | Purpose | Response |
@@ -31,42 +31,17 @@
 | 422 | Unprocessable entity (semantic error) |
 | 500 | Internal server error |
 
-## MCP Gateway Specific APIs
-
-### Two-Function Interface (adapted from Gate22)
-```
-POST /api/v1/search
-POST /api/v1/execute
-```
-
-### Registry API (adapted from Obot)
-```
-GET    /api/v1/servers
-POST   /api/v1/servers
-GET    /api/v1/servers/{id}
-PUT    /api/v1/servers/{id}
-DELETE /api/v1/servers/{id}
-POST   /api/v1/servers/{id}/sync
-```
-
-### Skills API (Fresh implementation)
-```
-GET    /api/v1/skills
-POST   /api/v1/skills
-GET    /api/v1/skills/{id}
-DELETE /api/v1/skills/{id}
-POST   /api/v1/skills/generate  # SSE streaming
-```
-
-### Generation API (Fresh implementation)
-```
-POST   /api/v1/generate         # SSE streaming
-GET    /api/v1/generate/{id}
-POST   /api/v1/generate/{id}/approve
-DELETE /api/v1/generate/{id}
-```
-
 ## Request/Response Patterns
+
+### Single Resource Response
+```json
+{
+  "id": "uuid",
+  "name": "Example",
+  "created_at": "2025-01-10T12:00:00Z",
+  "updated_at": "2025-01-10T12:00:00Z"
+}
+```
 
 ### List Response (Pagination)
 ```json
@@ -84,24 +59,24 @@ DELETE /api/v1/generate/{id}
 {
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "Invalid server configuration",
+    "message": "Invalid request data",
     "details": [
-      {"field": "url", "message": "URL is required for remote servers"}
+      {"field": "email", "message": "Invalid email format"}
     ]
   }
 }
 ```
 
-### SSE Streaming (for AI generation)
+### SSE Streaming (for long-running operations)
 ```
 event: progress
-data: {"phase": "analyzing", "percent": 25, "message": "Parsing API spec..."}
+data: {"phase": "processing", "percent": 25, "message": "Processing..."}
 
 event: complete
-data: {"server_id": "uuid", "tools_count": 15}
+data: {"result_id": "uuid", "status": "success"}
 
 event: error
-data: {"code": "GENERATION_FAILED", "message": "..."}
+data: {"code": "PROCESSING_FAILED", "message": "..."}
 ```
 
 ## FastAPI Implementation
@@ -109,16 +84,59 @@ data: {"code": "GENERATION_FAILED", "message": "..."}
 ### Router Structure
 ```python
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(prefix="/api/v1/servers", tags=["servers"])
+router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
-@router.get("", response_model=ServerListResponse)
-async def list_servers(
+@router.get("", response_model=UserListResponse)
+async def list_users(
     skip: int = 0,
     limit: int = 20,
     session: AsyncSession = Depends(get_session),
-) -> ServerListResponse:
-    ...
+) -> UserListResponse:
+    repo = UserRepository(session)
+    users = await repo.list(skip=skip, limit=limit)
+    total = await repo.count()
+    return UserListResponse(
+        items=users,
+        total=total,
+        page=skip // limit + 1,
+        page_size=limit,
+        has_next=skip + limit < total,
+    )
+
+@router.get("/{id}", response_model=UserResponse)
+async def get_user(
+    id: UUID,
+    session: AsyncSession = Depends(get_session),
+) -> UserResponse:
+    repo = UserRepository(session)
+    user = await repo.get_by_id(id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user(
+    data: UserCreate,
+    session: AsyncSession = Depends(get_session),
+) -> UserResponse:
+    repo = UserRepository(session)
+    user = await repo.create(User(**data.model_dump()))
+    await session.commit()
+    return user
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    id: UUID,
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    repo = UserRepository(session)
+    user = await repo.get_by_id(id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await repo.delete(user)
+    await session.commit()
 ```
 
 ### Dependency Injection
@@ -126,19 +144,73 @@ async def list_servers(
 - Create service factories as dependencies
 - Keep route handlers thin — delegate to services
 
-### Validation
+```python
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    session: AsyncSession = Depends(get_session),
+) -> User:
+    user = await verify_token(token, session)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return user
+
+@router.get("/me")
+async def get_me(user: User = Depends(get_current_user)) -> UserResponse:
+    return user
+```
+
+### Validation with Pydantic
 - Use Pydantic models for request/response validation
 - Define separate Create, Update, Response schemas
 - Use `Field()` for constraints and documentation
 
 ```python
-class ServerCreate(BaseModel):
+from pydantic import BaseModel, Field, EmailStr
+
+class UserCreate(BaseModel):
+    email: EmailStr
     name: str = Field(..., min_length=1, max_length=255)
-    url: str | None = Field(None, pattern=r"^https?://")
-    type: ServerType = Field(default=ServerType.REMOTE)
+    
+class UserUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=255)
+    
+class UserResponse(BaseModel):
+    id: UUID
+    email: str
+    name: str
+    created_at: datetime
+    
+    model_config = {"from_attributes": True}
 ```
 
-## Reference
-- Gate22 bundle API: `../gate22-main/backend/aci/server/`
-- Obot registry API: `../obot-main/pkg/api/`
-- Context Forge REST-to-MCP: `../mcp-context-forge-main/src/api/`
+## Query Parameters
+
+### Filtering
+```
+GET /api/v1/orders?status=pending&user_id=uuid
+```
+
+### Sorting
+```
+GET /api/v1/orders?sort_by=created_at&sort_order=desc
+```
+
+### Pagination
+```
+GET /api/v1/orders?page=1&page_size=20
+# or offset-based
+GET /api/v1/orders?skip=0&limit=20
+```
+
+### Search
+```
+GET /api/v1/users?search=john
+```
+
+## Critical Rules
+- **Always version your API** (`/api/v1/...`)
+- **Use consistent response formats** across all endpoints
+- **Return appropriate status codes** — don't always use 200
+- **Validate all input** — never trust client data
+- **Document with OpenAPI** — FastAPI does this automatically
+- **Use async for I/O operations** — database, external APIs

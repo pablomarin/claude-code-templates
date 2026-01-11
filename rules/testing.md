@@ -3,18 +3,19 @@
 ## Framework
 - Backend: `pytest` with `pytest-asyncio`
 - Frontend: `vitest` with `jsdom`
+- E2E: Playwright
 
 ## Test Structure
 
 ### Arrange-Act-Assert Pattern
 ```python
-async def test_create_server():
+async def test_create_user():
     # Arrange
-    server_data = ServerCreate(name="test", url="http://localhost:8000")
-    repo = MCPServerRepository(session)
+    user_data = UserCreate(name="test", email="test@example.com")
+    repo = UserRepository(session)
     
     # Act
-    result = await repo.create(server_data)
+    result = await repo.create(user_data)
     
     # Assert
     assert result.id is not None
@@ -29,17 +30,17 @@ tests/
 │   ├── test_repositories.py
 │   └── test_services.py
 ├── integration/    # Tests with real DB
-│   ├── test_api_servers.py
-│   └── test_api_search.py
+│   ├── test_api_users.py
+│   └── test_api_resources.py
 ├── e2e/            # Full system tests
-│   └── test_generation_flow.py
+│   └── test_user_flows.py
 └── conftest.py     # Shared fixtures
 ```
 
 ### Naming Convention
 - Test files: `test_{module}.py`
 - Test functions: `test_{method}_{scenario}_{expected}`
-- Example: `test_create_server_with_invalid_url_raises_validation_error`
+- Example: `test_create_user_with_invalid_email_raises_validation_error`
 
 ## Fixtures (conftest.py)
 
@@ -55,20 +56,19 @@ async def session() -> AsyncGenerator[AsyncSession, None]:
         await session.rollback()
 
 @pytest.fixture
-def sample_server() -> MCPServer:
-    """Provide a sample server for tests."""
-    return MCPServer(
+def sample_user() -> User:
+    """Provide a sample user for tests."""
+    return User(
         id=uuid4(),
-        name="test-server",
-        type=ServerType.REMOTE,
-        url="http://localhost:8000",
+        name="test-user",
+        email="test@example.com",
     )
 ```
 
 ## Mocking
 
 ### When to Mock
-- External APIs (OpenAI, Anthropic)
+- External APIs (OpenAI, Stripe, etc.)
 - File system operations
 - Network requests
 - Time-dependent operations
@@ -81,16 +81,15 @@ def sample_server() -> MCPServer:
 ```python
 from unittest.mock import AsyncMock, patch
 
-@patch("services.embeddings.OpenAI")
-async def test_generate_embeddings(mock_openai):
-    mock_openai.return_value.embeddings.create = AsyncMock(
-        return_value={"data": [{"embedding": [0.1] * 1536}]}
-    )
+@patch("services.email.EmailClient")
+async def test_send_notification(mock_email):
+    mock_email.return_value.send = AsyncMock(return_value=True)
     
-    service = EmbeddingsService()
-    result = await service.embed("test")
+    service = NotificationService()
+    result = await service.notify("test@example.com", "Hello")
     
-    assert len(result) == 1536
+    assert result is True
+    mock_email.return_value.send.assert_called_once()
 ```
 
 ## TDD Workflow (Mandatory)
@@ -105,19 +104,19 @@ async def test_generate_embeddings(mock_openai):
 
 ```bash
 # Run all tests
-cd src && uv run pytest
+pytest
 
 # Run with coverage
-cd src && uv run pytest --cov=mcpgateway --cov-report=html
+pytest --cov=src --cov-report=html
 
 # Run specific test file
-cd src && uv run pytest tests/unit/test_repositories.py
+pytest tests/unit/test_repositories.py
 
 # Run tests matching pattern
-cd src && uv run pytest -k "test_create"
+pytest -k "test_create"
 
 # Run with verbose output
-cd src && uv run pytest -v
+pytest -v
 
 # Frontend unit tests
 cd frontend && pnpm test
@@ -132,27 +131,14 @@ cd frontend && pnpm test:e2e
 
 > **Every feature MUST have E2E tests before merging to main.**
 
-### E2E Test Priority
-
-1. **Claude Chrome Extension** (first choice)
-   - Use browser automation via Claude Chrome extension
-   - Navigate actual UI, click buttons, fill forms
-   - Verify visual state and data persistence
-
-2. **Playwright MCP Server** (fallback)
-   - Use the `playwright` MCP server from Compound Engineering
-   - Configured in `.claude/settings.json`
-   - Write tests in `frontend/e2e/` or `tests/e2e/`
-
 ### E2E Test Structure
 
 ```
 frontend/
 ├── e2e/
-│   ├── servers.spec.ts        # MCP server management flows
-│   ├── tools.spec.ts          # Tool search and execute flows
-│   ├── generation.spec.ts     # AI generation flows
-│   ├── settings.spec.ts       # Settings configuration flows
+│   ├── auth.spec.ts           # Authentication flows
+│   ├── dashboard.spec.ts      # Dashboard features
+│   ├── settings.spec.ts       # Settings configuration
 │   └── fixtures/
 │       └── test-data.json     # Shared test data
 ```
@@ -170,57 +156,43 @@ For EACH feature, E2E tests must verify:
 ### E2E Test Example (Playwright)
 
 ```typescript
-// frontend/e2e/servers.spec.ts
+// frontend/e2e/users.spec.ts
 import { test, expect } from '@playwright/test';
 
-test.describe('MCP Server Management', () => {
-  test('should create a new MCP server', async ({ page }) => {
-    // Navigate to servers page
-    await page.goto('/servers');
+test.describe('User Management', () => {
+  test('should create a new user', async ({ page }) => {
+    // Navigate to users page
+    await page.goto('/users');
     
-    // Click "Add Server" button
-    await page.click('[data-testid="add-server-btn"]');
+    // Click "Add User" button
+    await page.click('[data-testid="add-user-btn"]');
     
     // Fill form
-    await page.fill('[data-testid="server-name"]', 'Test Server');
-    await page.fill('[data-testid="server-url"]', 'http://localhost:8080');
+    await page.fill('[data-testid="user-name"]', 'Test User');
+    await page.fill('[data-testid="user-email"]', 'test@example.com');
     
     // Submit
-    await page.click('[data-testid="save-server-btn"]');
+    await page.click('[data-testid="save-user-btn"]');
     
-    // Verify server appears in list
-    await expect(page.locator('[data-testid="server-list"]')).toContainText('Test Server');
+    // Verify user appears in list
+    await expect(page.locator('[data-testid="user-list"]')).toContainText('Test User');
     
     // Verify persistence - refresh and check
     await page.reload();
-    await expect(page.locator('[data-testid="server-list"]')).toContainText('Test Server');
+    await expect(page.locator('[data-testid="user-list"]')).toContainText('Test User');
   });
 
-  test('should show error for invalid URL', async ({ page }) => {
-    await page.goto('/servers');
-    await page.click('[data-testid="add-server-btn"]');
-    await page.fill('[data-testid="server-name"]', 'Test');
-    await page.fill('[data-testid="server-url"]', 'not-a-url');
-    await page.click('[data-testid="save-server-btn"]');
+  test('should show error for invalid email', async ({ page }) => {
+    await page.goto('/users');
+    await page.click('[data-testid="add-user-btn"]');
+    await page.fill('[data-testid="user-name"]', 'Test');
+    await page.fill('[data-testid="user-email"]', 'not-an-email');
+    await page.click('[data-testid="save-user-btn"]');
     
     // Verify error message
     await expect(page.locator('[data-testid="error-message"]')).toBeVisible();
   });
 });
-```
-
-### E2E Test Example (Chrome Extension)
-
-When using Claude Chrome extension for E2E:
-
-```
-1. Navigate to http://localhost:3000/servers
-2. Click the "Add Server" button
-3. Fill in "Test Server" for name and "http://localhost:8080" for URL
-4. Click "Save"
-5. Verify "Test Server" appears in the server list
-6. Refresh the page
-7. Verify "Test Server" still appears (data persisted)
 ```
 
 ### Playwright Configuration
@@ -262,21 +234,8 @@ export default defineConfig({
 - Critical paths (auth, payments, security): 95%+
 - New code: Must include tests
 
-## Port Competitor Tests
-When adapting competitor features:
-1. Find their test files
-2. Port test cases to our structure
-3. Add additional edge cases
-
-```
-Gate22 tests: ../gate22-main/backend/tests/
-Obot tests: ../obot-main/pkg/*_test.go
-Context Forge tests: ../mcp-context-forge-main/tests/
-Lasso tests: ../mcp-gateway-main/tests/
-```
-
 ## Critical Rules
-- **Never merge to main without E2E tests passing**
+- **Never merge to main without tests passing**
 - **Never delete test files**
 - **Never commit with failing tests**
 - **Never use mocks in e2e/final validation**

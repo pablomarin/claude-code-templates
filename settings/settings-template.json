@@ -4,9 +4,9 @@
       "Read",
       "Edit",
       "Write",
-      "Bash(*)",
+      "Bash",
       "Skill(*)",
-      "WebFetch(*)",
+      "WebFetch",
       "WebSearch",
       "mcp__*"
     ],

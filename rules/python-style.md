@@ -79,13 +79,44 @@ def process(items: list | None = None):
 - Use `async def` for I/O-bound operations
 - Always `await` async calls (don't block with sync code)
 - Use `asyncio.gather()` for concurrent operations
-- Database calls via `asyncpg` / SQLAlchemy async
+- Use async database drivers (asyncpg, aiosqlite)
+
+## Error Handling
+```python
+# Good - specific exceptions
+try:
+    result = await fetch_data(url)
+except httpx.TimeoutException:
+    logger.warning(f"Timeout fetching {url}")
+    return None
+except httpx.HTTPStatusError as e:
+    logger.error(f"HTTP error: {e.response.status_code}")
+    raise
+
+# Bad - bare except
+try:
+    result = await fetch_data(url)
+except:
+    pass
+```
 
 ## Comments
 - Add explanatory comments for complex logic
-- Reference competitor code when adapting:
-  ```python
-  # Adapted from Gate22: ../gate22/src/search/semantic.py
-  ```
 - Keep comments up-to-date with code changes
 - Delete commented-out code — don't commit it
+- Use TODO/FIXME sparingly and include ticket numbers
+
+## Quality Commands
+```bash
+# Format
+ruff format .
+
+# Lint
+ruff check .
+
+# Type check
+mypy --strict src/
+
+# All checks
+ruff format . && ruff check . && mypy --strict src/
+```

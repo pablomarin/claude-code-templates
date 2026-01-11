@@ -171,7 +171,7 @@ src/
 ├── lib/              # Utility functions
 ├── types/            # TypeScript types
 ├── services/         # API services
-└── app/              # Next.js app router
+└── app/              # Next.js app router (or pages/)
 ```
 
 ## Testing
@@ -179,3 +179,18 @@ src/
 - Use `describe` blocks to group related tests
 - Test behavior, not implementation
 - Mock external dependencies, not internal logic
+
+## Quality Commands
+```bash
+# Type check
+pnpm tsc --noEmit
+
+# Lint
+pnpm eslint .
+
+# Format
+pnpm prettier --write .
+
+# All checks
+pnpm tsc --noEmit && pnpm eslint . && pnpm prettier --check .
+```
