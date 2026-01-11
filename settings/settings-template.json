@@ -4,6 +4,7 @@
       "Read",
       "Edit",
       "Write",
+      "mcp__*",
       "Bash(cd:*)",
       "Bash(ls:*)",
       "Bash(cat:*)",
@@ -20,6 +21,7 @@
       "Bash(pwd)",
       "Bash(which:*)",
       "Bash(uv:*)",
+      "Bash(echo:*)",
       "Bash(pnpm:*)",
       "Bash(npm:*)",
       "Bash(npx:*)",
@@ -34,6 +36,7 @@
       "Bash(jq:*)",
       "Bash(curl:*)",
       "Bash(wget:*)",
+      "Bash(docker:*)",
       "Bash(gh issue:*)",
       "Bash(gh pr list:*)",
       "Bash(gh pr view:*)",
@@ -115,7 +118,10 @@
     "playwright": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest"],
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ],
       "env": {}
     },
     "context7": {
