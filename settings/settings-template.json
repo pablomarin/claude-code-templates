@@ -4,62 +4,25 @@
       "Read",
       "Edit",
       "Write",
-      "mcp__*",
-      "Bash(cd:*)",
-      "Bash(ls:*)",
-      "Bash(cat:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(grep:*)",
-      "Bash(find:*)",
-      "Bash(wc:*)",
-      "Bash(echo:*)",
-      "Bash(mkdir:*)",
-      "Bash(cp:*)",
-      "Bash(mv:*)",
-      "Bash(touch:*)",
-      "Bash(pwd)",
-      "Bash(which:*)",
-      "Bash(uv:*)",
-      "Bash(echo:*)",
-      "Bash(pnpm:*)",
-      "Bash(npm:*)",
-      "Bash(npx:*)",
-      "Bash(python:*)",
-      "Bash(python3:*)",
-      "Bash(node:*)",
-      "Bash(git:*)",
-      "Bash(alembic:*)",
-      "Bash(docker:*)",
-      "Bash(kubectl:*)",
-      "Bash(helm:*)",
-      "Bash(jq:*)",
-      "Bash(curl:*)",
-      "Bash(wget:*)",
-      "Bash(docker:*)",
-      "Bash(gh issue:*)",
-      "Bash(gh pr list:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh pr status:*)"
+      "Bash(*)",
+      "Skill(*)",
+      "WebFetch(*)",
+      "WebSearch",
+      "mcp__*"
     ],
     "deny": [
-      "Bash(rm -rf /)",
-      "Bash(rm -rf ~)",
-      "Bash(rm -rf .)",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
       "Bash(sudo:*)",
+      "Bash(su:*)",
       "Bash(chmod 777:*)",
-      "Bash(> /dev/sda:*)",
-      "Read(.env)",
-      "Read(.env.*)",
-      "Read(**/secrets/**)",
-      "Read(**/.ssh/**)",
-      "Read(**/credentials*)",
-      "Write(.env)",
-      "Write(.env.*)"
+      "Bash(dd:*)",
+      "Bash(mkfs:*)"
     ],
     "ask": [
       "Bash(gh pr create:*)",
       "Bash(gh pr merge:*)",
+      "Bash(npm publish:*)",
       "Bash(rm -rf:*)",
       "Bash(rm -r:*)"
     ]
@@ -71,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cat CONTINUITY.md 2>/dev/null || echo 'No CONTINUITY.md found in project root. Create one to track project state.'"
+            "command": "echo '=== Current Branch ===' && git branch --show-current && echo '' &cat CONTINUITY.md 2>/dev/null || echo 'No CONTINUITY.md found in project root. Create one to track project state.'"
           }
         ]
       }
