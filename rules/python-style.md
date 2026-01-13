@@ -1,122 +1,61 @@
-# Python Style Rules
+# Python Style
 
-## General
-- PEP 8 compliant, enforced via `ruff`
-- 4 spaces for indentation (never tabs)
-- Line length: 88 characters (ruff default)
+## Tooling
+Use `ruff` (lint + format), `mypy --strict`, `uv` (packages). Line length: 100.
 
-## Naming Conventions
-- `snake_case` for functions and variables
-- `PascalCase` for classes
-- `UPPER_CASE` for constants
-- Private: prefix with `_` (e.g., `_internal_method`)
-
-## Type Hints (Mandatory)
-- All function signatures must have type hints (parameters and return values)
-- Never use `Any` unless absolutely necessary
-- Use `T | None` for nullable types (Python 3.10+ syntax)
-- Run `mypy --strict` and resolve all errors
+## Type Hints
+ALWAYS type all function parameters and return values.
 
 ```python
-# Good
-def get_user(user_id: int) -> User | None:
-    ...
-
-# Bad
-def get_user(user_id):
-    ...
+def get(id: int) -> User | None: ...          # Correct
+async def fetch(ids: list[int]) -> list[Item]: ...  # Correct
+def get(id): ...                               # WRONG: missing types
 ```
 
-## Import Order
-Organize imports in this order, separated by blank lines:
-1. Standard library
-2. Third-party packages
-3. Local imports
+Use modern syntax: `str | None` not `Optional[str]`, `list[int]` not `List[int]`.
 
-Let `ruff` auto-sort via isort rules.
+## Patterns
 
-## Docstrings (Mandatory for Public APIs)
+**Early returns** — avoid nesting:
 ```python
-def calculate_total(items: list[dict], tax_rate: float = 0.0) -> float:
-    """Calculate the total cost of items including tax.
-
-    Args:
-        items: List of item dictionaries with 'price' keys.
-        tax_rate: Tax rate as decimal (e.g., 0.08 for 8%).
-
-    Returns:
-        Total cost including tax.
-
-    Raises:
-        ValueError: If items is empty or tax_rate is negative.
-    """
+def process(x: Order | None) -> Result:
+    if not x: return Error("missing")
+    if not x.valid: return Error("invalid")
+    return execute(x)
 ```
 
-## Functions
-- Single responsibility — one function, one job
-- ≤5 parameters — if more needed, use a config object or dataclass
-- Return early to reduce nesting
-- Never use mutable defaults
-
+**No mutable defaults**:
 ```python
-# Bad
-def process(items: list = []):
-    ...
-
-# Good
-def process(items: list | None = None):
-    items = items or []
-    ...
+def f(items: list[int] | None = None): ...  # Correct
+def f(items: list[int] = []): ...           # WRONG: shared mutable
 ```
 
-## Classes
-- Keep `__init__` simple — no complex logic
-- Use `dataclasses` for simple data containers
-- Prefer composition over inheritance
-- Use `@property` for computed attributes
-
-## Async/Await
-- Use `async def` for I/O-bound operations
-- Always `await` async calls (don't block with sync code)
-- Use `asyncio.gather()` for concurrent operations
-- Use async database drivers (asyncpg, aiosqlite)
-
-## Error Handling
+**Specific exceptions**:
 ```python
-# Good - specific exceptions
-try:
-    result = await fetch_data(url)
-except httpx.TimeoutException:
-    logger.warning(f"Timeout fetching {url}")
-    return None
-except httpx.HTTPStatusError as e:
-    logger.error(f"HTTP error: {e.response.status_code}")
-    raise
-
-# Bad - bare except
-try:
-    result = await fetch_data(url)
-except:
-    pass
+except httpx.TimeoutException: ...  # Correct
+except Exception: ...               # WRONG: too broad
+except: ...                         # WRONG: bare except
 ```
 
-## Comments
-- Add explanatory comments for complex logic
-- Keep comments up-to-date with code changes
-- Delete commented-out code — don't commit it
-- Use TODO/FIXME sparingly and include ticket numbers
-
-## Quality Commands
-```bash
-# Format
-ruff format .
-
-# Lint
-ruff check .
-
-# Type check
-mypy --strict src/
-
-# All checks
-ruff format . && ruff check . && mypy --strict src/
+**Async — never block**:
+```python
+await asyncio.sleep(5)  # Correct
+time.sleep(5)           # WRONG: blocks event loop
 ```
+
+**Concurrent I/O**:
+```python
+a, b, c = await asyncio.gather(fetch_a(), fetch_b(), fetch_c())
+```
+
+## Data Structures
+- `@dataclass` for internal data containers
+- `pydantic.BaseModel` for external input validation
+
+## Rules
+1. ALWAYS add complete type hints
+2. ALWAYS run `ruff` and `mypy --strict` before commit
+3. NEVER use mutable default arguments
+4. NEVER use bare `except:` or broad `except Exception:`
+5. NEVER block the event loop with sync calls
+6. PREFER early returns over nested conditionals

@@ -91,12 +91,19 @@ Be cautious with terminal commands. Before every terminal command, consider care
 > **CRITICAL:** This workflow is MANDATORY. Skills activate automatically and enforce it.
 
 ### Session Start (Automated via Hook)
-The `SessionStart` hook automatically loads CONTINUITY.md into context. You will see:
-- Current goal and constraints
-- Done/Now/Next state
-- Active plans and artifacts
+The `SessionStart` hook automatically:
+1. Shows current git branch
+2. Loads CONTINUITY.md into context
 
-**Your first action:** Confirm you've read the state and ask what to work on.
+**Your first actions:**
+1. **CHECK THE BRANCH** - If on `main`, STOP and create a feature branch immediately
+2. Confirm you've read the state
+3. Ask what to work on
+
+**⚠️ IF ON MAIN:** Do not proceed with any code changes. First:
+```bash
+git checkout -b feat/   # or fix/
+```
 
 ### Full Workflow
 
@@ -151,6 +158,7 @@ FINISH          → Update CONTINUITY.md → Commit → PR (prompts) → Merge (
 
 | Scenario | Action |
 |----------|--------|
+| **Session start on main branch** | **Create feature branch immediately** (ask user for name) |
 | Starting new feature | **Create feature branch** (no prompt) |
 | Code within stated goal | **Proceed** |
 | Committing to feature branch | **Proceed** (no prompt) |
@@ -161,7 +169,8 @@ FINISH          → Update CONTINUITY.md → Commit → PR (prompts) → Merge (
 | Skipping tests | **Never** |
 
 ## Critical Rules
-- **Never commit directly to main** - always use feature branches
+- **CHECK BRANCH FIRST** - If on main, create feature branch before ANY code changes
+- **Never commit directly to main** - always use feature branche
 - **Never merge without tests passing**
 - **Never skip the verify step** - use verify-app agent
 - **TDD is mandatory** - Superpowers enforces RED-GREEN-REFACTOR

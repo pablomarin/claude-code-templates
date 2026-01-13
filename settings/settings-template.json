@@ -34,7 +34,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '=== Current Branch ===' && git branch --show-current && echo '' &cat CONTINUITY.md 2>/dev/null || echo 'No CONTINUITY.md found in project root. Create one to track project state.'"
+            "command": "echo '=== Current Branch ===' && git branch --show-current && echo '' && cat  CONTINUITY.md 2>/dev/null || echo 'No CONTINUITY.md found in project root. Create one to track project state.'"
+          },
+          {
+            "type": "prompt",
+            "prompt": "Check the current branch shown above. If on 'main', you MUST create a feature branch before making ANY code changes. Remind the user: 'We're on main. What feature are we working on? I'll create a branch: git checkout -b feat/<name>'"
           }
         ]
       }

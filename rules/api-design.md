@@ -1,216 +1,74 @@
-# API Design Rules
+# API Design
 
-## REST Conventions
+## URL Structure
+```
+GET    /api/v1/users          # List
+GET    /api/v1/users/{id}     # Get one
+POST   /api/v1/users          # Create
+PATCH  /api/v1/users/{id}     # Partial update
+DELETE /api/v1/users/{id}     # Delete
+```
 
-### URL Structure
-- Use plural nouns for resources: `/api/v1/users`, `/api/v1/orders`
-- Nested resources for relationships: `/api/v1/users/{id}/orders`
-- Version APIs: `/api/v1/...`
-- Use kebab-case for multi-word paths: `/api/v1/order-items`
+Use plural nouns, kebab-case for multi-word (`/order-items`), always version (`/api/v1/`).
 
-### HTTP Methods
-| Method | Purpose | Response |
-|--------|---------|----------|
-| GET | Read resource(s) | 200 + data |
-| POST | Create resource | 201 + created resource |
-| PUT | Full update | 200 + updated resource |
-| PATCH | Partial update | 200 + updated resource |
-| DELETE | Remove resource | 204 (no content) |
-
-### Status Codes
+## Status Codes
 | Code | When |
 |------|------|
-| 200 | Success (GET, PUT, PATCH) |
-| 201 | Created (POST) |
-| 204 | No content (DELETE) |
-| 400 | Bad request (validation error) |
-| 401 | Unauthorized (no/invalid auth) |
-| 403 | Forbidden (insufficient permissions) |
-| 404 | Not found |
+| 200 | Success (GET, PATCH, PUT) |
+| 201 | Created (POST) — include `Location` header |
+| 204 | Deleted (DELETE) — no body |
+| 400 | Malformed request syntax |
+| 401 | Missing/invalid authentication |
+| 403 | Authenticated but not authorized |
+| 404 | Resource not found |
 | 409 | Conflict (duplicate, state conflict) |
-| 422 | Unprocessable entity (semantic error) |
-| 500 | Internal server error |
+| 422 | Valid syntax but semantic error (validation) |
+| 429 | Rate limited — include `Retry-After` header |
 
-## Request/Response Patterns
-
-### Single Resource Response
-```json
-{
-  "id": "uuid",
-  "name": "Example",
-  "created_at": "2025-01-10T12:00:00Z",
-  "updated_at": "2025-01-10T12:00:00Z"
-}
-```
-
-### List Response (Pagination)
-```json
-{
-  "items": [...],
-  "total": 100,
-  "page": 1,
-  "page_size": 20,
-  "has_next": true
-}
-```
-
-### Error Response
+## Error Response Format
 ```json
 {
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "Invalid request data",
-    "details": [
-      {"field": "email", "message": "Invalid email format"}
-    ]
+    "message": "Request validation failed",
+    "details": [{"field": "email", "message": "Invalid format"}],
+    "request_id": "req_abc123"
   }
 }
 ```
 
-### SSE Streaming (for long-running operations)
-```
-event: progress
-data: {"phase": "processing", "percent": 25, "message": "Processing..."}
-
-event: complete
-data: {"result_id": "uuid", "status": "success"}
-
-event: error
-data: {"code": "PROCESSING_FAILED", "message": "..."}
+## Pagination Response
+```json
+{
+  "items": [...],
+  "total": 150,
+  "page": 1,
+  "page_size": 20
+}
 ```
 
-## FastAPI Implementation
-
-### Router Structure
+## Schema Separation
+Create separate schemas for different operations:
 ```python
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
-router = APIRouter(prefix="/api/v1/users", tags=["users"])
-
-@router.get("", response_model=UserListResponse)
-async def list_users(
-    skip: int = 0,
-    limit: int = 20,
-    session: AsyncSession = Depends(get_session),
-) -> UserListResponse:
-    repo = UserRepository(session)
-    users = await repo.list(skip=skip, limit=limit)
-    total = await repo.count()
-    return UserListResponse(
-        items=users,
-        total=total,
-        page=skip // limit + 1,
-        page_size=limit,
-        has_next=skip + limit < total,
-    )
-
-@router.get("/{id}", response_model=UserResponse)
-async def get_user(
-    id: UUID,
-    session: AsyncSession = Depends(get_session),
-) -> UserResponse:
-    repo = UserRepository(session)
-    user = await repo.get_by_id(id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(
-    data: UserCreate,
-    session: AsyncSession = Depends(get_session),
-) -> UserResponse:
-    repo = UserRepository(session)
-    user = await repo.create(User(**data.model_dump()))
-    await session.commit()
-    return user
-
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(
-    id: UUID,
-    session: AsyncSession = Depends(get_session),
-) -> None:
-    repo = UserRepository(session)
-    user = await repo.get_by_id(id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    await repo.delete(user)
-    await session.commit()
-```
-
-### Dependency Injection
-- Use `Depends()` for session, auth, services
-- Create service factories as dependencies
-- Keep route handlers thin — delegate to services
-
-```python
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    session: AsyncSession = Depends(get_session),
-) -> User:
-    user = await verify_token(token, session)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return user
-
-@router.get("/me")
-async def get_me(user: User = Depends(get_current_user)) -> UserResponse:
-    return user
-```
-
-### Validation with Pydantic
-- Use Pydantic models for request/response validation
-- Define separate Create, Update, Response schemas
-- Use `Field()` for constraints and documentation
-
-```python
-from pydantic import BaseModel, Field, EmailStr
-
-class UserCreate(BaseModel):
+class UserCreate(BaseModel):   # POST body
     email: EmailStr
-    name: str = Field(..., min_length=1, max_length=255)
-    
-class UserUpdate(BaseModel):
-    name: str | None = Field(None, min_length=1, max_length=255)
-    
-class UserResponse(BaseModel):
+    password: str
+
+class UserUpdate(BaseModel):   # PATCH body — all optional
+    name: str | None = None
+
+class UserResponse(BaseModel): # Response — no sensitive fields
     id: UUID
     email: str
-    name: str
     created_at: datetime
-    
-    model_config = {"from_attributes": True}
 ```
 
-## Query Parameters
-
-### Filtering
-```
-GET /api/v1/orders?status=pending&user_id=uuid
-```
-
-### Sorting
-```
-GET /api/v1/orders?sort_by=created_at&sort_order=desc
-```
-
-### Pagination
-```
-GET /api/v1/orders?page=1&page_size=20
-# or offset-based
-GET /api/v1/orders?skip=0&limit=20
-```
-
-### Search
-```
-GET /api/v1/users?search=john
-```
-
-## Critical Rules
-- **Always version your API** (`/api/v1/...`)
-- **Use consistent response formats** across all endpoints
-- **Return appropriate status codes** — don't always use 200
-- **Validate all input** — never trust client data
-- **Document with OpenAPI** — FastAPI does this automatically
-- **Use async for I/O operations** — database, external APIs
+## Rules
+1. ALWAYS version APIs (`/api/v1/`)
+2. ALWAYS use consistent error format with `request_id`
+3. ALWAYS validate input with Pydantic
+4. ALWAYS return 201 + Location header for POST
+5. NEVER expose internal errors to clients
+6. NEVER return password or sensitive fields in responses
+7. PREFER 422 for validation errors, 400 for malformed syntax
+8. PREFER PATCH (partial update) over PUT (full replacement)
