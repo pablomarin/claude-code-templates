@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Evaluate if Claude should stop. Review the session and check:\n\n1. **Code Changes:** Were there code changes in this session?\n   - If yes: Was CONTINUITY.md updated with Done/Now/Next reflecting the work?\n   - If yes: Were tests run and passing?\n   - If yes: Was /workflows:review run?\n   - If yes: Was code-simplifier used on modified files?\n\n2. **Significant Changes:** If more than 3 files were modified:\n   - Was CHANGELOG.md updated?\n\n3. **Quality Gates:**\n   - Are there uncommitted changes that should be committed?\n   - Is the work in a good stopping point?\n\nRespond with ONE of:\n- 'allow' - All critical items complete, safe to stop\n- 'block' - Critical items missing, explain what needs to be done before stopping\n\nBe pragmatic: minor documentation updates don't need full review cycle."
+            "prompt": "STOP. Do NOT respond until you complete this checklist IN ORDER:\n\n1. `/workflows:review` — Run if code changes made\n2. `code-simplifier` — Use on modified files\n3. Tests — Verify passing\n4. `/workflows:compound` — Capture learnings (bugs found, patterns discovered)\n5. CONTINUITY.md — Update Done/Now/Next\n6. docs/CHANGELOG.md — Update if 3+ files changed\n7. Commit and push\n\nThe hook will BLOCK if items 5-6 are incomplete. Do not skip 1-4.\n\nMinor docs-only changes can skip items 1-4."
           },
           {
             "type": "command",

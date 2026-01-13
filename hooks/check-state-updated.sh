@@ -7,50 +7,38 @@
 # Install jq: brew install jq (macOS) or apt install jq (Linux)
 
 set -e
-
-# Read the hook input from stdin
 INPUT=$(cat)
-
-# Check if stop_hook_active to prevent infinite loops
 STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false')
-if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
-    # Already in a stop hook loop, don't block again
-    exit 0
-fi
+[ "$STOP_HOOK_ACTIVE" = "true" ] && exit 0
 
-# Check for uncommitted changes (trim whitespace)
+# Uncommitted changes
 UNCOMMITTED=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 
-# Check if CONTINUITY.md was modified in this session (trim whitespace)
+# Files modified (uncommitted)
 CONTINUITY_MODIFIED=$(git status --porcelain CONTINUITY.md 2>/dev/null | wc -l | tr -d ' ')
-
-# Build response
-ISSUES=""
-
-if [ "$UNCOMMITTED" -gt 0 ] && [ "$CONTINUITY_MODIFIED" -eq 0 ]; then
-    ISSUES="You have uncommitted changes but CONTINUITY.md hasn't been updated. Please update the Done/Now/Next sections to reflect the current state before finishing."
-fi
-
-# Check if CHANGELOG should be updated (if there are significant changes)
 CHANGELOG_MODIFIED=$(git status --porcelain docs/CHANGELOG.md 2>/dev/null | wc -l | tr -d ' ')
 
-# Count changed files (more robust parsing)
-CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null | wc -l | tr -d ' ')
+# Total files changed on branch (committed + uncommitted) vs main
+BRANCH_BASE=$(git merge-base main HEAD 2>/dev/null || echo "HEAD~10")
+BRANCH_CHANGED=$(git diff --name-only "$BRANCH_BASE" HEAD 2>/dev/null | wc -l | tr -d ' ')
+UNCOMMITTED_FILES=$(git diff --name-only 2>/dev/null | wc -l | tr -d ' ')
+TOTAL_CHANGED=$((BRANCH_CHANGED + UNCOMMITTED_FILES))
 
-if [ "$CHANGED_FILES" -gt 3 ] && [ "$CHANGELOG_MODIFIED" -eq 0 ]; then
-    if [ -n "$ISSUES" ]; then
-        ISSUES="$ISSUES Also, consider updating docs/CHANGELOG.md for the significant changes made ($CHANGED_FILES files changed)."
-    else
-        ISSUES="Consider updating docs/CHANGELOG.md for the significant changes made ($CHANGED_FILES files changed)."
-    fi
+# Check if CHANGELOG was updated anywhere on branch
+CHANGELOG_IN_BRANCH=$(git diff --name-only "$BRANCH_BASE" HEAD 2>/dev/null | grep -c "CHANGELOG.md" || echo "0")
+
+ISSUES=""
+
+# Block: uncommitted changes but CONTINUITY.md not updated
+if [ "$UNCOMMITTED" -gt 0 ] && [ "$CONTINUITY_MODIFIED" -eq 0 ]; then
+    ISSUES="Update CONTINUITY.md Done/Now/Next sections."
 fi
 
-# If there are issues, block and ask Claude to continue
-if [ -n "$ISSUES" ]; then
-    # Output JSON that tells Claude to continue working
-    echo "{\"decision\": \"block\", \"reason\": \"$ISSUES\"}"
-    exit 0
+# Block: 3+ files changed on branch but CHANGELOG.md never updated
+if [ "$TOTAL_CHANGED" -gt 3 ] && [ "$CHANGELOG_IN_BRANCH" -eq 0 ] && [ "$CHANGELOG_MODIFIED" -eq 0 ]; then
+    ISSUES="${ISSUES:+$ISSUES }Update docs/CHANGELOG.md ($TOTAL_CHANGED files changed this session)."
 fi
 
+[ -n "$ISSUES" ] && echo "{\"decision\": \"block\", \"reason\": \"$ISSUES\"}" && exit 0
 # All good, allow stop
 exit 0
