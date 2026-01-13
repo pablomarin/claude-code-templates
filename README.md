@@ -30,6 +30,7 @@ Based on Boris Cherny's (Claude Code creator) workflow and Anthropic's official 
 
 Before starting, ensure you have:
 
+### macOS / Linux
 - [ ] **Claude Code** installed and working (`claude --version`)
 - [ ] **jq** installed (required for hooks): `brew install jq` (macOS) or `apt install jq` (Linux)
 - [ ] **Node.js 18+** (for npx commands)
@@ -37,11 +38,23 @@ Before starting, ensure you have:
 - [ ] **Python 3.12+** with `uv` (if Python project)
 - [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
 
+### Windows
+- [ ] **Claude Code** installed and working (`claude --version`)
+- [ ] **PowerShell 5.1+** (included with Windows 10/11)
+- [ ] **Node.js 18+** (for npx commands)
+- [ ] **Git** initialized in your project
+- [ ] **Python 3.12+** with `uv` (if Python project)
+- [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
+
+> **Note:** Windows does NOT require `jq` - PowerShell has native JSON support via `ConvertFrom-Json`.
+
 ---
 
 ## One-Time Setup (Per Machine)
 
 **Do this once on each developer's machine:**
+
+### macOS / Linux
 
 ```bash
 # Clone the templates repo to your home directory
@@ -56,6 +69,23 @@ To update templates later:
 cd ~/claude-code-templates && git pull
 ```
 
+### Windows (PowerShell)
+
+```powershell
+# Clone the templates repo to your home directory
+git clone https://github.com/pablomarin/claude-code-templates.git $HOME\claude-code-templates
+```
+
+To update templates later:
+```powershell
+cd $HOME\claude-code-templates; git pull
+```
+
+> **Note:** If you get an execution policy error when running `setup.ps1`, run:
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
+
 ---
 
 ## Setup Scenarios
@@ -64,6 +94,7 @@ cd ~/claude-code-templates && git pull
 
 Starting a brand new project with no existing files.
 
+**macOS / Linux:**
 ```bash
 # 1. Create and enter your project
 mkdir my-new-project
@@ -72,6 +103,20 @@ git init
 
 # 2. Run setup
 ~/claude-code-templates/setup.sh -p "My New Project"
+
+# 3. Start Claude Code and install plugins
+claude
+```
+
+**Windows (PowerShell):**
+```powershell
+# 1. Create and enter your project
+mkdir my-new-project
+cd my-new-project
+git init
+
+# 2. Run setup
+& $HOME\claude-code-templates\setup.ps1 -p "My New Project"
 
 # 3. Start Claude Code and install plugins
 claude
@@ -94,12 +139,25 @@ Then run these commands inside Claude Code:
 
 You have a project but haven't set up Claude Code automation yet.
 
+**macOS / Linux:**
 ```bash
 # 1. Go to your project
 cd /path/to/your/existing/project
 
 # 2. Run setup
 ~/claude-code-templates/setup.sh -p "My Project Name"
+
+# 3. Start Claude Code and install plugins
+claude
+```
+
+**Windows (PowerShell):**
+```powershell
+# 1. Go to your project
+cd C:\path\to\your\existing\project
+
+# 2. Run setup
+& $HOME\claude-code-templates\setup.ps1 -p "My Project Name"
 
 # 3. Start Claude Code and install plugins
 claude
@@ -486,7 +544,10 @@ your-project/
 ├── .claude/
 │   ├── settings.json                  # Permissions + Hooks + MCP servers
 │   ├── hooks/
-│   │   └── check-state-updated.sh     # Stop hook backup script
+│   │   ├── check-state-updated.sh     # Stop hook script (macOS/Linux)
+│   │   ├── check-state-updated.ps1    # Stop hook script (Windows)
+│   │   ├── post-tool-format.sh        # Auto-formatter hook (macOS/Linux)
+│   │   └── post-tool-format.ps1       # Auto-formatter hook (Windows)
 │   ├── agents/                        # Custom subagents
 │   │   └── verify-app.md              # Test verification agent
 │   ├── commands/                      # Custom slash commands
@@ -514,6 +575,8 @@ This is expected if you already have Claude Code set up. See [Scenario C](#scena
 
 ### Hooks not running?
 
+#### macOS / Linux
+
 1. **Check jq is installed:**
    ```bash
    which jq
@@ -533,6 +596,36 @@ This is expected if you already have Claude Code set up. See [Scenario C](#scena
    ```
 
 4. **Restart Claude Code** - Hooks snapshot at session start
+
+#### Windows
+
+1. **Check PowerShell execution policy:**
+   ```powershell
+   Get-ExecutionPolicy
+   # If "Restricted", run:
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
+
+2. **Check hook scripts exist:**
+   ```powershell
+   Test-Path .claude\hooks\check-state-updated.ps1
+   Test-Path .claude\hooks\post-tool-format.ps1
+   # Both should return True
+   ```
+
+3. **Test hook script manually:**
+   ```powershell
+   echo '{"stop_hook_active": false}' | powershell -File .claude\hooks\check-state-updated.ps1
+   # Should run without errors
+   ```
+
+4. **Check settings.json is valid:**
+   ```powershell
+   Get-Content .claude\settings.json | ConvertFrom-Json
+   # Should parse without errors
+   ```
+
+5. **Restart Claude Code** - Hooks snapshot at session start
 
 ### Permissions still prompting?
 
@@ -604,13 +697,23 @@ This is expected if you already have Claude Code set up. See [Scenario C](#scena
 ┌─────────────────────────────────────────────────────────────┐
 │ FIRST TIME SETUP (once per machine)                         │
 ├─────────────────────────────────────────────────────────────┤
-│ git clone https://github.com/pablomarin/claude-code-templates.git ~/claude-code-templates
-│ chmod +x ~/claude-code-templates/setup.sh                  │
+│ macOS/Linux:                                                │
+│   git clone https://github.com/pablomarin/claude-code-templates.git ~/claude-code-templates
+│   chmod +x ~/claude-code-templates/setup.sh                │
+│                                                             │
+│ Windows (PowerShell):                                       │
+│   git clone https://github.com/pablomarin/claude-code-templates.git $HOME\claude-code-templates
 ├─────────────────────────────────────────────────────────────┤
 │ ADD TO ANY PROJECT                                          │
 ├─────────────────────────────────────────────────────────────┤
-│ cd /your/project                                           │
-│ ~/claude-code-templates/setup.sh -p "Project Name"         │
+│ macOS/Linux:                                                │
+│   cd /your/project                                         │
+│   ~/claude-code-templates/setup.sh -p "Project Name"       │
+│                                                             │
+│ Windows (PowerShell):                                       │
+│   cd C:\your\project                                       │
+│   & $HOME\claude-code-templates\setup.ps1 -p "Project Name"│
+│                                                             │
 │ # Then install plugins in Claude Code (see above)          │
 ├─────────────────────────────────────────────────────────────┤
 │ DAILY WORKFLOW                                              │
@@ -664,5 +767,6 @@ This is expected if you already have Claude Code set up. See [Scenario C](#scena
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.1 | 2026-01-11 | Added native Windows/PowerShell support - hooks now work without jq on Windows, platform-specific settings templates |
 | 2.0 | 2026-01-10 | Added code-simplifier, verify-app agent, SubagentStop hook, prompt-based Stop hook, project-agnostic templates, clear setup scenarios |
 | 1.0 | 2026-01-02 | Initial setup with Superpowers + Compound Engineering |

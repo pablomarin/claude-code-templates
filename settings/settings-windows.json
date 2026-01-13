@@ -17,14 +17,17 @@
       "Bash(su:*)",
       "Bash(chmod 777:*)",
       "Bash(dd:*)",
-      "Bash(mkfs:*)"
+      "Bash(mkfs:*)",
+      "Bash(Remove-Item -Recurse -Force C:\\:*)",
+      "Bash(Remove-Item -Recurse -Force $env:USERPROFILE:*)"
     ],
     "ask": [
       "Bash(gh pr create:*)",
       "Bash(gh pr merge:*)",
       "Bash(npm publish:*)",
       "Bash(rm -rf:*)",
-      "Bash(rm -r:*)"
+      "Bash(rm -r:*)",
+      "Bash(Remove-Item -Recurse:*)"
     ]
   },
   "hooks": {
@@ -34,11 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '=== Current Branch ===' && git branch --show-current && echo '' && cat  CONTINUITY.md 2>/dev/null || echo 'No CONTINUITY.md found in project root. Create one to track project state.'"
-          },
-          {
-            "type": "prompt",
-            "prompt": "Check the current branch shown above. If on 'main', you MUST create a feature branch before making ANY code changes. Remind the user: 'We're on main. What feature are we working on? I'll create a branch: git checkout -b feat/<name>'"
+            "command": "powershell -Command \"Write-Output '=== Current Branch ===' ; git branch --show-current ; Write-Output '' ; if (Test-Path CONTINUITY.md) { Get-Content CONTINUITY.md } else { Write-Output 'No CONTINUITY.md found in project root. Create one to track project state.' }\""
           }
         ]
       }
@@ -53,7 +52,7 @@
           },
           {
             "type": "command",
-            "command": ".claude/hooks/check-state-updated.sh"
+            "command": "powershell -ExecutionPolicy Bypass -File .\\.claude\\hooks\\check-state-updated.ps1"
           }
         ]
       }
@@ -75,7 +74,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/post-tool-format.sh"
+            "command": "powershell -ExecutionPolicy Bypass -File .\\.claude\\hooks\\post-tool-format.ps1"
           }
         ]
       }
