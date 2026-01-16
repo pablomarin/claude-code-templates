@@ -5,7 +5,7 @@
       "Edit",
       "Write",
       "Bash",
-      "Skill(*)",
+      "Skill",
       "WebFetch",
       "WebSearch",
       "mcp__*"
@@ -75,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/post-tool-format.sh"
+            "command": "jq -r '.tool_input.file_path // empty' | while read file_path; do case \"$file_path\" in *.py) cd src 2>/dev/null && uv run ruff format \"$file_path\" 2>/dev/null || true ;; *.ts|*.tsx|*.js|*.jsx) npx prettier --write \"$file_path\" 2>/dev/null || true ;; *.json) npx prettier --write \"$file_path\" 2>/dev/null || true ;; *.md) npx prettier --write \"$file_path\" 2>/dev/null || true ;; esac; done"
           }
         ]
       }
