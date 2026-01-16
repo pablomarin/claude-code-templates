@@ -10,6 +10,13 @@ Generate a structured PRD from the refined understanding captured in `/prd:discu
 
 ## Instructions
 
+### Step 0: Research Current Best Practices
+
+Before generating the PRD:
+1. Use WebSearch to verify current best practices for the feature type
+2. Use WebFetch/Context7 to check current library documentation if specific tech is involved
+3. Ensure recommendations reflect up-to-date patterns, not outdated approaches
+
 ### Step 1: Load Context
 
 1. Read `docs/prds/{feature-name}-discussion.md`

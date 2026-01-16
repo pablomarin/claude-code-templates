@@ -57,6 +57,8 @@ Check your work. If you write a chunk of code, try to find a way to run it and m
 
 Be cautious with terminal commands. Before every terminal command, consider carefully whether it can be expected to exit on its own, or if it will run indefinitely (e.g. launching a web server). For processes that run indefinitely, always launch them in a new process (e.g. nohup).
 
+Research before implementing. AI knowledge has a cutoff date. ALWAYS use WebSearch and WebFetch tools to research current documentation, best practices, and library versions BEFORE implementing. Libraries and frameworks evolve rapidly—never assume your training data is current.
+
 ---
 
 ## Core Design Philosophy
@@ -110,17 +112,19 @@ git checkout -b feat/   # or fix/
 ```
 START           → git checkout -b feat/{feature-name}
                         │
-PRD PHASE       → /prd:discuss → /prd:create
+RESEARCH        → WebSearch/WebFetch for current docs, best practices, libraries
+                        │
+PRD PHASE       → /prd:discuss → /prd:create (includes web research)
                         │
 DESIGN          → /superpowers:brainstorm → /superpowers:write-plan
                         │
 EXECUTE         → /superpowers:execute-plan (TDD enforced)
                         │
-REVIEW          → /workflows:review (14 agents)
+REVIEW          → /workflows:review (14 agents from Compound Engineering)
                         │
-SIMPLIFY        → "Use the code-simplifier agent on modified files"
+SIMPLIFY        → Use code-simplifier agent from PR Review Toolkit (NOT Compound Engineering)
                         │
-VERIFY          → "Use the verify-app agent"
+VERIFY          → "Use the verify-app agent" (unit tests, E2E, migration check, lint, types)
                         │
 COMPOUND        → /workflows:compound (if learnings)
                         │
@@ -131,9 +135,9 @@ FINISH          → Update CONTINUITY.md → Commit → PR (prompts) → Merge (
 
 > **These steps are NOT optional.** Complete them IN ORDER before saying "done".
 
-1. **Review** - `/workflows:review` (14 agents, fix issues found)
-2. **Simplify** - "Use the code-simplifier agent on modified files"
-3. **Verify** - "Use the verify-app agent" OR run all tests manually
+1. **Review** - `/workflows:review` (14 agents from Compound Engineering, fix issues found)
+2. **Simplify** - Use the `code-simplifier` agent from **PR Review Toolkit** on modified files
+3. **Verify** - "Use the verify-app agent" (runs unit tests, E2E browser tests, migration check, lint, types)
 4. **Compound** - `/workflows:compound` (if bugs fixed or patterns learned)
 5. **Update CONTINUITY.md** - Move items to Done, update Now/Next
 6. **Update CHANGELOG.md** - If significant work
@@ -170,12 +174,15 @@ FINISH          → Update CONTINUITY.md → Commit → PR (prompts) → Merge (
 
 ## Critical Rules
 - **CHECK BRANCH FIRST** - If on main, create feature branch before ANY code changes
-- **Never commit directly to main** - always use feature branche
+- **RESEARCH BEFORE IMPLEMENTING** - Use WebSearch/WebFetch for current docs and best practices
+- **Never commit directly to main** - always use feature branches
 - **Never merge without tests passing**
+- **Never skip E2E tests** - if project has frontend, run E2E via Chrome Extension or Playwright MCP
 - **Never skip the verify step** - use verify-app agent
+- **Always check for migrations** - if models/schema changed, create migration
 - **TDD is mandatory** - Superpowers enforces RED-GREEN-REFACTOR
 - **Update CONTINUITY.md before finishing** - Stop hook enforces this
-- **Use code-simplifier after review** - clean code ships
+- **Use code-simplifier from PR Review Toolkit** - NOT from Compound Engineering
 - **Challenge me when there's a better way** - don't blindly agree
 
 ## Detailed Rules
@@ -186,6 +193,27 @@ See `.claude/rules/` for:
 - `api-design.md` - REST API patterns
 - `security.md` - Security requirements
 - `testing.md` - Testing patterns
+
+---
+
+## Web Research
+
+**Always research before implementing.** Use WebSearch/WebFetch/Context7 to verify:
+- Current library versions and breaking changes
+- Up-to-date documentation and best practices
+- Known issues and security advisories
+
+---
+
+## E2E Testing
+
+**Every user-facing change needs E2E verification.** The verify-app agent handles this automatically using Chrome Extension MCP (preferred) or Playwright MCP.
+
+---
+
+## Migration Check
+
+**If you changed models/schema, you need a migration.** The verify-app agent checks for pending migrations automatically.
 
 ---
 

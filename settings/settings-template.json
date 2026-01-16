@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "STOP. Do NOT respond until you complete this checklist IN ORDER:\n\n1. `/workflows:review` — Run if code changes made\n2. `code-simplifier` — Use on modified files\n3. Tests — Verify passing\n4. `/workflows:compound` — Capture learnings (bugs found, patterns discovered)\n5. CONTINUITY.md — Update Done/Now/Next\n6. docs/CHANGELOG.md — Update if 3+ files changed\n7. Commit and push\n\nThe hook will BLOCK if items 5-6 are incomplete. Do not skip 1-4.\n\nMinor docs-only changes can skip items 1-4."
+            "prompt": "STOP. Complete this checklist IN ORDER:\n\n1. `/workflows:review` — Code review (14 agents from Compound Engineering)\n2. `code-simplifier` — Use PR Review Toolkit agent on modified files\n3. `verify-app` agent — Runs unit tests, E2E browser tests, migration check, lint, types\n4. `/workflows:compound` — Capture learnings if bugs fixed\n5. CONTINUITY.md — Update Done/Now/Next\n6. docs/CHANGELOG.md — Update if 3+ files changed\n7. Commit and push\n\nThe hook will BLOCK if items 5-6 are incomplete.\n\nMinor docs-only changes can skip items 1-4."
           },
           {
             "type": "command",

@@ -8,6 +8,15 @@ User stories are often incomplete. This command ensures we understand requiremen
 
 ## Instructions
 
+### Phase 0: Research
+
+**Before analyzing user stories, research the problem space:**
+1. Use WebSearch to find industry best practices for this type of feature
+2. Use WebFetch to read relevant documentation if specific technologies are mentioned
+3. Look for competitor implementations or established patterns
+
+This research informs better questions and identifies requirements the user may not have considered.
+
 ### Phase 1: Initial Analysis
 
 1. Read user stories from:

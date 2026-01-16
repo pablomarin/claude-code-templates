@@ -363,21 +363,28 @@ claude
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 2. PRD PHASE (Custom Commands)                              │
+│ 2. RESEARCH (WebSearch/WebFetch/Context7)                   │
+│    → Current library docs and best practices               │
+│    → Breaking changes since AI knowledge cutoff            │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. PRD PHASE (Custom Commands)                              │
 │    /prd:discuss {feature}  → Refine user stories           │
 │    /prd:create {feature}   → Generate structured PRD       │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 3. DESIGN (Superpowers Plugin)                              │
+│ 4. DESIGN (Superpowers Plugin)                              │
 │    /superpowers:brainstorm → Interactive design            │
 │    /superpowers:write-plan → Detailed TDD tasks            │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. EXECUTE (Superpowers Plugin)                             │
+│ 5. EXECUTE (Superpowers Plugin)                             │
 │    /superpowers:execute-plan                               │
 │    → TDD enforced (RED-GREEN-REFACTOR)                     │
 │    → Subagents handle individual tasks                     │
@@ -386,45 +393,43 @@ claude
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. REVIEW (Compound Engineering Plugin)                     │
+│ 6. REVIEW (Compound Engineering Plugin)                     │
 │    /workflows:review → 14 parallel review agents           │
 │    → Fix any issues found                                  │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 6. CODE SIMPLIFY (Official Anthropic Plugin)                │
+│ 7. CODE SIMPLIFY (PR Review Toolkit)                        │
 │    "Use the code-simplifier agent on modified files"       │
 │    → Cleans up architecture                                │
 │    → Improves readability                                  │
-│    → Preserves functionality                               │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 7. VERIFY (Custom Agent)                                    │
+│ 8. VERIFY (Custom Agent)                                    │
 │    "Use the verify-app agent"                              │
-│    → Runs ALL tests (unit + integration + E2E)             │
-│    → Type check + lint                                     │
-│    → Provides pass/fail verdict                            │
+│    → Unit tests + type check + lint                        │
+│    → E2E browser tests (Chrome Extension or Playwright)    │
+│    → Migration check (Alembic/Prisma/Django)               │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 8. COMPOUND (Compound Engineering Plugin)                   │
+│ 9. COMPOUND (Compound Engineering Plugin)                   │
 │    /workflows:compound (if bugs fixed or patterns learned) │
 │    → Captures learnings in CLAUDE.md                       │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 9. FINISH                                                   │
+│ 10. FINISH                                                  │
 │    → Update CONTINUITY.md (Done/Now/Next)                  │
 │    → Update docs/CHANGELOG.md (if significant)             │
 │    → Commit + Push feature branch (no prompt)              │
 │    → Create PR (PROMPTS for permission)                    │
 │    → Merge PR (PROMPTS for permission)                     │
-│    → Clean up feature branch                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -465,8 +470,8 @@ Based on Boris Cherny's key insight:
 
 | Agent | How to Use | Purpose |
 |-------|------------|---------|
-| code-simplifier | "Use the code-simplifier agent on [files]" | Clean up code after review |
-| verify-app | "Use the verify-app agent" | Run all tests, report results |
+| code-simplifier | "Use the code-simplifier agent on [files]" | Clean up code (PR Review Toolkit) |
+| verify-app | "Use the verify-app agent" | Unit tests, E2E browser tests, migration check, lint, types |
 
 ### Built-in Commands
 
@@ -733,8 +738,8 @@ This is expected if you already have Claude Code set up. See [Scenario C](#scena
 │                                                             │
 │ QUALITY:                                                    │
 │   /workflows:review                    ← 14 agents review  │
-│   "Use code-simplifier agent"          ← Clean up          │
-│   "Use verify-app agent"               ← Verify all tests  │
+│   "Use code-simplifier agent"          ← PR Review Toolkit │
+│   "Use verify-app agent"               ← Tests + E2E + migrations │
 │                                                             │
 │ FINISH:                                                     │
 │   /workflows:compound                  ← If learnings      │
