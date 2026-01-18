@@ -33,20 +33,18 @@ Before starting, ensure you have:
 ### macOS / Linux
 - [ ] **Claude Code** installed and working (`claude --version`)
 - [ ] **jq** installed (required for hooks): `brew install jq` (macOS) or `apt install jq` (Linux)
-- [ ] **Node.js 18+** (for npx commands)
+- [ ] **Node.js 18+** (for npx commands and Playwright MCP)
 - [ ] **Git** initialized in your project
 - [ ] **Python 3.12+** with `uv` (if Python project)
 - [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
-- [ ] **agent-browser** (for E2E testing): `npm install -g agent-browser && agent-browser install`
 
 ### Windows
 - [ ] **Claude Code** installed and working (`claude --version`)
 - [ ] **PowerShell 5.1+** (included with Windows 10/11)
-- [ ] **Node.js 18+** (for npx commands)
+- [ ] **Node.js 18+** (for npx commands and Playwright MCP)
 - [ ] **Git** initialized in your project
 - [ ] **Python 3.12+** with `uv` (if Python project)
 - [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
-- [ ] **agent-browser** (for E2E testing): `npm install -g agent-browser && agent-browser install`
 
 > **Note:** Windows does NOT require `jq` - PowerShell has native JSON support via `ConvertFrom-Json`.
 
@@ -432,9 +430,9 @@ claude
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 10. E2E TESTING (Compound Engineering Plugin)               │
-│    /test-browser (if UI/API changed)                       │
+│    /playwright-test (if UI/API changed)                       │
 │    → Auto-detects affected routes from git diff            │
-│    → Uses agent-browser for headless testing               │
+│    → Uses Playwright MCP for headless testing              │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -464,6 +462,16 @@ Based on Boris Cherny's key insight:
 
 ## Commands Reference
 
+### Workflow Commands (ENFORCED - Start Here)
+
+| Command | Purpose | Notes |
+|---------|---------|-------|
+| `/new-feature <name>` | Full feature workflow | Research → PRD → Brainstorm → Plan → Execute → Review → Finish |
+| `/fix-bug <name>` | Bug fix workflow | Search solutions → Systematic debugging → Fix → Review → Compound |
+| `/quick-fix <name>` | Trivial changes only | < 3 files, no arch impact, still requires verify |
+
+**Hooks enforce these commands.** SessionStart prompts for task type, PreToolUse blocks code without workflow.
+
 ### PRD Commands (Requirements)
 
 | Command | Purpose | Output |
@@ -488,7 +496,7 @@ Based on Boris Cherny's key insight:
 |---------|---------|-------|
 | `/workflows:review` | 14-agent parallel code review | Run before commit |
 | `/workflows:compound` | Capture learnings | Creates files in `docs/solutions/` |
-| `/test-browser` | E2E browser tests | Auto-detects routes from git diff, uses agent-browser |
+| `/playwright-test` | E2E browser tests | Auto-detects routes from git diff, uses Playwright MCP |
 | `/deepen-plan` | Enhance plan with parallel research | Run after write-plan |
 | `/changelog` | Generate changelog summary (output only) | For reference when updating CHANGELOG.md |
 | `/resolve_parallel` | Resolve all TODOs in parallel | Speed up cleanup |
@@ -500,7 +508,7 @@ Based on Boris Cherny's key insight:
 | Agent | How to Use | Purpose |
 |-------|------------|---------|
 | code-simplifier | "Use the code-simplifier agent on [files]" | Clean up code (PR Review Toolkit) |
-| verify-app | "Use the verify-app agent" | Unit tests, migration check, lint, types (E2E via `/test-browser`) |
+| verify-app | "Use the verify-app agent" | Unit tests, migration check, lint, types (E2E via `/playwright-test`) |
 
 ### Built-in Commands
 
@@ -522,7 +530,8 @@ Based on Boris Cherny's key insight:
 
 | Hook | Trigger | What Happens |
 |------|---------|--------------|
-| `SessionStart` | New session, `/clear`, compact | CONTINUITY.md loaded into context |
+| `SessionStart` | New session, `/clear`, compact | Loads CONTINUITY.md, prompts for task type |
+| `PreToolUse` | Before Edit/Write | Blocks code without workflow command |
 | `Stop` | Claude finishes responding | Validates work complete (prompt + script) |
 | `SubagentStop` | Subagent finishes | Validates subagent output quality |
 | `PostToolUse` | After Edit/Write on code files | Auto-formats with ruff/prettier |
@@ -597,11 +606,13 @@ your-project/
 │   │   └── post-tool-format.ps1       # Auto-formatter hook (Windows)
 │   ├── agents/                        # Custom subagents
 │   │   └── verify-app.md              # Test verification agent
-│   ├── commands/                      # Custom slash commands
-│   │   ├── prd/
-│   │   │   ├── discuss.md             # /prd:discuss command
-│   │   │   └── create.md              # /prd:create command
-│   │   └── handoff.md                 # /handoff command
+│   ├── commands/                      # Custom slash commands (ENFORCED)
+│   │   ├── new-feature.md             # /new-feature - Full feature workflow
+│   │   ├── fix-bug.md                 # /fix-bug - Bug fix workflow
+│   │   ├── quick-fix.md               # /quick-fix - Trivial changes only
+│   │   └── prd/
+│   │       ├── discuss.md             # /prd:discuss command
+│   │       └── create.md              # /prd:create command
 │   └── rules/                         # Coding standards
 │       ├── python-style.md
 │       ├── typescript-style.md
@@ -782,33 +793,28 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 │                                                             │
 │ # Then install plugins in Claude Code (see above)          │
 ├─────────────────────────────────────────────────────────────┤
-│ DAILY WORKFLOW                                              │
+│ DAILY WORKFLOW (Hooks enforce this!)                        │
 ├─────────────────────────────────────────────────────────────┤
 │ START:                                                      │
-│   git checkout -b feat/{feature-name}  ← ALWAYS FIRST      │
 │   claude                               ← CONTINUITY loads   │
+│   Answer: "What type of task?"         ← SessionStart asks  │
 │                                                             │
-│ PRD PHASE (new features):                                   │
-│   /prd:discuss "feature-name"          ← Refine stories    │
-│   /prd:create "feature-name"           ← Generate PRD      │
+│ THEN RUN ONE OF THESE COMMANDS:                             │
+│   /new-feature <name>  ← Full workflow (Research→PRD→Plan) │
+│   /fix-bug <name>      ← Debugging workflow (Systematic)   │
+│   /quick-fix <name>    ← Trivial only (< 3 files)          │
 │                                                             │
-│ DESIGN & EXECUTE:                                           │
-│   /superpowers:brainstorm              ← Design            │
-│   /superpowers:write-plan              ← Plan              │
-│   /superpowers:execute-plan            ← Build (TDD)       │
-│                                                             │
-│ QUALITY:                                                    │
-│   /workflows:review                    ← 14 agents review  │
-│   "Use code-simplifier agent"          ← Simplify code     │
-│   /superpowers:verification-before-completion ← Evidence   │
-│   "Use verify-app agent"               ← Tests + migrations │
-│   /test-browser                        ← E2E browser tests │
-│                                                             │
-│ FINISH:                                                     │
-│   /workflows:compound                  ← If learnings      │
-│   Update CONTINUITY.md                 ← Done/Now/Next     │
-│   Update CHANGELOG.md                  ← If 3+ files       │
-│   /superpowers:finishing-a-development-branch ← Structured │
+│ THE COMMAND GUIDES YOU THROUGH:                             │
+│   ✓ Branch creation (if needed)                            │
+│   ✓ Research phase                                         │
+│   ✓ PRD/Design/Planning                                    │
+│   ✓ TDD execution                                          │
+│   ✓ Code review (14 agents)                                │
+│   ✓ Verification (tests, lint, types)                      │
+│   ✓ E2E testing (/playwright-test)                         │
+│   ✓ Knowledge compounding                                  │
+│   ✓ State updates (CONTINUITY.md, CHANGELOG.md)            │
+│   ✓ Branch completion                                      │
 ├─────────────────────────────────────────────────────────────┤
 │ SHORTCUTS                                                   │
 ├─────────────────────────────────────────────────────────────┤
@@ -834,9 +840,10 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 3.0 | 2026-01-18 | **WORKFLOW ENFORCEMENT**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Added PreToolUse hook to block code without workflow. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E now uses `/playwright-test` with Playwright MCP. |
 | 2.7 | 2026-01-18 | Simplified CONTINUITY.md: Done section keeps only 2-3 recent items, removed redundant sections (Working Set, Test Status, Active Artifacts). Leaner template. |
 | 2.6 | 2026-01-18 | Hooks follow Anthropic best practices: path traversal protection, sensitive file skip, `$CLAUDE_PROJECT_DIR` for absolute paths. Added external post-tool-format.sh script. |
-| 2.5 | 2026-01-17 | E2E testing via `/test-browser` (uses agent-browser). Removed E2E from verify-app agent. Added agent-browser to prerequisites. |
+| 2.5 | 2026-01-17 | E2E testing via `/playwright-test` (uses Playwright MCP). Removed E2E from verify-app agent. |
 | 2.4 | 2026-01-17 | Knowledge compounding now uses `docs/solutions/` instead of inline CLAUDE.md learnings. Searchable files with YAML frontmatter, auto-categorized by problem type. |
 | 2.3 | 2026-01-17 | Enhanced workflow with Superpowers skills: systematic-debugging, verification-before-completion, finishing-a-development-branch. Added /deepen-plan, /resolve_parallel from Compound Engineering. Updated Stop hook checklist. |
 | 2.2 | 2026-01-17 | Fixed MCP permissions - wildcards don't work, use explicit server names (`mcp__plugin_compound-engineering_context7`) |

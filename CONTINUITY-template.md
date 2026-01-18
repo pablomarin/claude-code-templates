@@ -36,6 +36,8 @@ Ready for first task
 
 ## Update Rules
 
+> **IMPORTANT:** You (Claude) are responsible for updating this file. The Stop hook will remind you, but YOU must make the edits.
+
 **On task completion:**
 1. Add to Done (keep only 2-3 recent items)
 2. Move top of Next → Now

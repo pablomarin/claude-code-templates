@@ -170,10 +170,14 @@ chmod +x .claude/hooks/post-tool-format.sh 2>/dev/null || true
 # Agents
 copy_file "$SCRIPT_DIR/agents/verify-app.md" ".claude/agents/verify-app.md" ".claude/agents/verify-app.md"
 
-# Commands
+# Commands - Workflow (ENFORCED)
+copy_file "$SCRIPT_DIR/commands/new-feature.md" ".claude/commands/new-feature.md" ".claude/commands/new-feature.md"
+copy_file "$SCRIPT_DIR/commands/fix-bug.md" ".claude/commands/fix-bug.md" ".claude/commands/fix-bug.md"
+copy_file "$SCRIPT_DIR/commands/quick-fix.md" ".claude/commands/quick-fix.md" ".claude/commands/quick-fix.md"
+
+# Commands - PRD
 copy_file "$SCRIPT_DIR/commands/prd/discuss.md" ".claude/commands/prd/discuss.md" ".claude/commands/prd/discuss.md"
 copy_file "$SCRIPT_DIR/commands/prd/create.md" ".claude/commands/prd/create.md" ".claude/commands/prd/create.md"
-copy_file "$SCRIPT_DIR/commands/handoff.md" ".claude/commands/handoff.md" ".claude/commands/handoff.md"
 
 # Rules based on tech stack
 echo ""
@@ -277,11 +281,8 @@ echo "   /plugin install compound-engineering@compound-engineering-plugin"
 echo ""
 echo "   /plugin install code-simplifier"
 echo ""
-echo "   # Install E2E testing tool (outside Claude Code):"
-echo "   npm install -g agent-browser && agent-browser install"
-echo ""
 echo "4. ${BLUE}Verify setup${NC}:"
-echo "   /hooks      # Should show SessionStart, Stop, SubagentStop, PostToolUse"
+echo "   /hooks      # Should show SessionStart, PreToolUse, Stop, SubagentStop, PostToolUse"
 echo "   /permissions # Should show pre-allowed commands"
 echo "   /help       # Should show /superpowers:*, /workflows:*, /prd:*"
 echo ""

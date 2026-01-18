@@ -171,10 +171,14 @@ Copy-TemplateFile "$ScriptDir\hooks\post-tool-format.ps1" ".claude\hooks\post-to
 # Agents
 Copy-TemplateFile "$ScriptDir\agents\verify-app.md" ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
 
-# Commands
+# Commands - Workflow (ENFORCED)
+Copy-TemplateFile "$ScriptDir\commands\new-feature.md" ".claude\commands\new-feature.md" ".claude\commands\new-feature.md"
+Copy-TemplateFile "$ScriptDir\commands\fix-bug.md" ".claude\commands\fix-bug.md" ".claude\commands\fix-bug.md"
+Copy-TemplateFile "$ScriptDir\commands\quick-fix.md" ".claude\commands\quick-fix.md" ".claude\commands\quick-fix.md"
+
+# Commands - PRD
 Copy-TemplateFile "$ScriptDir\commands\prd\discuss.md" ".claude\commands\prd\discuss.md" ".claude\commands\prd\discuss.md"
 Copy-TemplateFile "$ScriptDir\commands\prd\create.md" ".claude\commands\prd\create.md" ".claude\commands\prd\create.md"
-Copy-TemplateFile "$ScriptDir\commands\handoff.md" ".claude\commands\handoff.md" ".claude\commands\handoff.md"
 
 # Rules based on tech stack
 Write-Host ""
@@ -294,13 +298,10 @@ Write-Host "   /plugin install compound-engineering@compound-engineering-plugin"
 Write-Host ""
 Write-Host "   /plugin install code-simplifier"
 Write-Host ""
-Write-Host "   # Install E2E testing tool (outside Claude Code):"
-Write-Host "   npm install -g agent-browser && agent-browser install"
-Write-Host ""
 Write-Host "4. " -NoNewline
 Write-Color "Verify setup" "Blue"
 Write-Host ":"
-Write-Host "   /hooks      # Should show SessionStart, Stop, SubagentStop, PostToolUse"
+Write-Host "   /hooks      # Should show SessionStart, PreToolUse, Stop, SubagentStop, PostToolUse"
 Write-Host "   /permissions # Should show pre-allowed commands"
 Write-Host "   /help       # Should show /superpowers:*, /workflows:*, /prd:*"
 Write-Host ""
