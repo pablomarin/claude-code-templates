@@ -37,6 +37,7 @@ Before starting, ensure you have:
 - [ ] **Git** initialized in your project
 - [ ] **Python 3.12+** with `uv` (if Python project)
 - [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
+- [ ] **agent-browser** (for E2E testing): `npm install -g agent-browser && agent-browser install`
 
 ### Windows
 - [ ] **Claude Code** installed and working (`claude --version`)
@@ -45,6 +46,7 @@ Before starting, ensure you have:
 - [ ] **Git** initialized in your project
 - [ ] **Python 3.12+** with `uv` (if Python project)
 - [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
+- [ ] **agent-browser** (for E2E testing): `npm install -g agent-browser && agent-browser install`
 
 > **Note:** Windows does NOT require `jq` - PowerShell has native JSON support via `ConvertFrom-Json`.
 
@@ -384,7 +386,14 @@ claude
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. EXECUTE (Superpowers Plugin)                             │
+│ 5. ENHANCE PLAN (Compound Engineering)                      │
+│    /deepen-plan → Parallel research agents add depth       │
+│    → Best practices, implementation details per section    │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 6. EXECUTE (Superpowers Plugin)                             │
 │    /superpowers:execute-plan                               │
 │    → TDD enforced (RED-GREEN-REFACTOR)                     │
 │    → Subagents handle individual tasks                     │
@@ -393,43 +402,55 @@ claude
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 6. REVIEW (Compound Engineering Plugin)                     │
+│ 6b. DEBUG (if bugs encountered)                             │
+│    /superpowers:systematic-debugging                       │
+│    → 4-phase root cause analysis                           │
+│    → NO fixes without investigation first                  │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 7. REVIEW (Compound Engineering Plugin)                     │
 │    /workflows:review → 14 parallel review agents           │
 │    → Fix any issues found                                  │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 7. CODE SIMPLIFY (PR Review Toolkit)                        │
+│ 8. CODE SIMPLIFY                                            │
 │    "Use the code-simplifier agent on modified files"       │
-│    → Cleans up architecture                                │
-│    → Improves readability                                  │
+│    → Cleans up architecture, improves readability          │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 8. VERIFY (Custom Agent)                                    │
+│ 9. VERIFY.                                                 │
 │    "Use the verify-app agent"                              │
-│    → Unit tests + type check + lint                        │
-│    → E2E browser tests (Chrome Extension or Playwright)    │
-│    → Migration check (Alembic/Prisma/Django)               │
+│    → Unit tests + migrations + lint + types                │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 9. COMPOUND (Compound Engineering Plugin)                   │
+│ 10. E2E TESTING (Compound Engineering Plugin)               │
+│    /test-browser (if UI/API changed)                       │
+│    → Auto-detects affected routes from git diff            │
+│    → Uses agent-browser for headless testing               │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 11. COMPOUND (Compound Engineering Plugin)                  │
 │    /workflows:compound (if bugs fixed or patterns learned) │
-│    → Captures learnings in CLAUDE.md                       │
+│    → Captures learnings in docs/solutions/                 │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 10. FINISH                                                  │
+│ 12. FINISH (Structured)                                     │
 │    → Update CONTINUITY.md (Done/Now/Next)                  │
-│    → Update docs/CHANGELOG.md (if significant)             │
-│    → Commit + Push feature branch (no prompt)              │
-│    → Create PR (PROMPTS for permission)                    │
-│    → Merge PR (PROMPTS for permission)                     │
+│    → Update docs/CHANGELOG.md (if 3+ files changed)        │
+│    → /superpowers:finishing-a-development-branch           │
+│      (merge local, create PR, keep, or discard)            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -450,28 +471,36 @@ Based on Boris Cherny's key insight:
 | `/prd:discuss {feature}` | Interactive user story refinement | `docs/prds/{feature}-discussion.md` |
 | `/prd:create {feature}` | Generate structured PRD | `docs/prds/{feature}.md` |
 
-### Superpowers Commands (Design → Execute)
+### Superpowers Commands (Design → Execute → Verify → Finish)
 
 | Command | Purpose | Notes |
 |---------|---------|-------|
 | `/superpowers:brainstorm` | Interactive design refinement | Uses PRD context |
 | `/superpowers:write-plan` | Create detailed implementation plan | TDD tasks |
 | `/superpowers:execute-plan` | Execute plan with subagents | TDD enforced |
+| `/superpowers:systematic-debugging` | 4-phase root cause analysis | Before ANY bug fix |
+| `/superpowers:verification-before-completion` | Evidence-based completion check | Catches "should work" claims |
+| `/superpowers:finishing-a-development-branch` | Structured branch completion | 4 options with safeguards |
 
-### Compound Engineering Commands (Review → Learn)
+### Compound Engineering Commands (Review → Learn → E2E → Utility)
 
 | Command | Purpose | Notes |
 |---------|---------|-------|
 | `/workflows:review` | 14-agent parallel code review | Run before commit |
-| `/workflows:compound` | Capture learnings | Updates CLAUDE.md |
-| `/changelog` | Generate changelog draft | From git history |
+| `/workflows:compound` | Capture learnings | Creates files in `docs/solutions/` |
+| `/test-browser` | E2E browser tests | Auto-detects routes from git diff, uses agent-browser |
+| `/deepen-plan` | Enhance plan with parallel research | Run after write-plan |
+| `/changelog` | Generate changelog summary (output only) | For reference when updating CHANGELOG.md |
+| `/resolve_parallel` | Resolve all TODOs in parallel | Speed up cleanup |
+| `/resolve_pr_parallel` | Address all PR comments in parallel | Speed up PR fixes |
+| `/reproduce-bug` | Systematically reproduce bugs | Before fixing |
 
 ### Custom Agents
 
 | Agent | How to Use | Purpose |
 |-------|------------|---------|
 | code-simplifier | "Use the code-simplifier agent on [files]" | Clean up code (PR Review Toolkit) |
-| verify-app | "Use the verify-app agent" | Unit tests, E2E browser tests, migration check, lint, types |
+| verify-app | "Use the verify-app agent" | Unit tests, migration check, lint, types (E2E via `/test-browser`) |
 
 ### Built-in Commands
 
@@ -507,6 +536,8 @@ Based on Boris Cherny's key insight:
 | Run tests (pytest, pnpm test) | ❌ No | Allowed |
 | Run linters (mypy, ruff) | ❌ No | Allowed |
 | Git operations (commit, push) | ❌ No | Allowed on feature branch |
+| Context7 MCP tools | ❌ No | Auto-approved for docs lookup |
+| Playwright MCP tools | ❌ No | Auto-approved for E2E testing |
 | **gh pr create** | ✅ Yes | Creating PR requires approval |
 | **gh pr merge** | ✅ Yes | Merging requires approval |
 | **rm -rf** | ✅ Yes | Destructive command |
@@ -537,15 +568,26 @@ After setup, your project should have:
 
 ```
 your-project/
-├── CLAUDE.md                          # Project rules + workflow + learnings
+├── CLAUDE.md                          # Project rules + workflow (no learnings here)
 ├── CONTINUITY.md                      # Current state (Done/Now/Next)
 ├── docs/
 │   ├── CHANGELOG.md                   # Historical record
 │   ├── prds/                          # Product requirements
 │   │   ├── {feature}.md               # Structured PRD
 │   │   └── {feature}-discussion.md    # Refinement conversation log
-│   └── plans/                         # Design docs from Superpowers
-│       └── YYYY-MM-DD-{feature}.md
+│   ├── plans/                         # Design docs from Superpowers
+│   │   └── YYYY-MM-DD-{feature}.md
+│   └── solutions/                     # Compounded learnings (searchable)
+│       ├── build-errors/
+│       ├── test-failures/
+│       ├── runtime-errors/
+│       ├── performance-issues/
+│       ├── database-issues/
+│       ├── security-issues/
+│       ├── ui-bugs/
+│       ├── integration-issues/
+│       ├── logic-errors/
+│       └── patterns/                  # Consolidated when 3+ similar
 ├── .claude/
 │   ├── settings.json                  # Permissions + Hooks + MCP servers
 │   ├── hooks/
@@ -646,6 +688,25 @@ This is expected if you already have Claude Code set up. See [Scenario C](#scena
 
 3. **Restart Claude Code** after changing settings
 
+### MCP servers still prompting for permission?
+
+MCP permissions **do not support wildcards**. The pattern `mcp__*` does nothing.
+
+**Correct syntax:**
+```json
+// ❌ Wrong - wildcards don't work
+"mcp__*"
+"mcp__plugin_compound-engineering_context7__*"
+
+// ✅ Correct - use server name without wildcard
+"mcp__plugin_compound-engineering_context7"
+"mcp__plugin_compound-engineering_pw"
+```
+
+The server name (without `__*`) approves ALL tools from that MCP server.
+
+See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
+
 ### Plugins not showing in /help?
 
 1. **Verify plugin installed:**
@@ -738,15 +799,16 @@ This is expected if you already have Claude Code set up. See [Scenario C](#scena
 │                                                             │
 │ QUALITY:                                                    │
 │   /workflows:review                    ← 14 agents review  │
-│   "Use code-simplifier agent"          ← PR Review Toolkit │
-│   "Use verify-app agent"               ← Tests + E2E + migrations │
+│   "Use code-simplifier agent"          ← Simplify code     │
+│   /superpowers:verification-before-completion ← Evidence   │
+│   "Use verify-app agent"               ← Tests + migrations │
+│   /test-browser                        ← E2E browser tests │
 │                                                             │
 │ FINISH:                                                     │
 │   /workflows:compound                  ← If learnings      │
 │   Update CONTINUITY.md                 ← Done/Now/Next     │
-│   Commit + push                        ← No prompt         │
-│   gh pr create                         ← PROMPTS           │
-│   gh pr merge                          ← PROMPTS           │
+│   Update CHANGELOG.md                  ← If 3+ files       │
+│   /superpowers:finishing-a-development-branch ← Structured │
 ├─────────────────────────────────────────────────────────────┤
 │ SHORTCUTS                                                   │
 ├─────────────────────────────────────────────────────────────┤
@@ -772,6 +834,12 @@ This is expected if you already have Claude Code set up. See [Scenario C](#scena
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.7 | 2026-01-18 | Simplified CONTINUITY.md: Done section keeps only 2-3 recent items, removed redundant sections (Working Set, Test Status, Active Artifacts). Leaner template. |
+| 2.6 | 2026-01-18 | Hooks follow Anthropic best practices: path traversal protection, sensitive file skip, `$CLAUDE_PROJECT_DIR` for absolute paths. Added external post-tool-format.sh script. |
+| 2.5 | 2026-01-17 | E2E testing via `/test-browser` (uses agent-browser). Removed E2E from verify-app agent. Added agent-browser to prerequisites. |
+| 2.4 | 2026-01-17 | Knowledge compounding now uses `docs/solutions/` instead of inline CLAUDE.md learnings. Searchable files with YAML frontmatter, auto-categorized by problem type. |
+| 2.3 | 2026-01-17 | Enhanced workflow with Superpowers skills: systematic-debugging, verification-before-completion, finishing-a-development-branch. Added /deepen-plan, /resolve_parallel from Compound Engineering. Updated Stop hook checklist. |
+| 2.2 | 2026-01-17 | Fixed MCP permissions - wildcards don't work, use explicit server names (`mcp__plugin_compound-engineering_context7`) |
 | 2.1 | 2026-01-11 | Added native Windows/PowerShell support - hooks now work without jq on Windows, platform-specific settings templates |
 | 2.0 | 2026-01-10 | Added code-simplifier, verify-app agent, SubagentStop hook, prompt-based Stop hook, project-agnostic templates, clear setup scenarios |
 | 1.0 | 2026-01-02 | Initial setup with Superpowers + Compound Engineering |

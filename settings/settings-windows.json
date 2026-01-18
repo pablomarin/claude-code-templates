@@ -5,10 +5,11 @@
       "Edit",
       "Write",
       "Bash",
-      "Skill(*)",
+      "Skill",
       "WebFetch",
       "WebSearch",
-      "mcp__*"
+      "mcp__plugin_compound-engineering_context7",
+      "mcp__plugin_compound-engineering_pw"
     ],
     "deny": [
       "Bash(rm -rf /:*)",
@@ -48,11 +49,11 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "STOP. Complete this checklist IN ORDER:\n\n1. `/workflows:review` — Code review (14 agents from Compound Engineering)\n2. `code-simplifier` — Use PR Review Toolkit agent on modified files\n3. `verify-app` agent — Runs unit tests, E2E browser tests, migration check, lint, types\n4. `/workflows:compound` — Capture learnings if bugs fixed\n5. CONTINUITY.md — Update Done/Now/Next\n6. docs/CHANGELOG.md — Update if 3+ files changed\n7. Commit and push\n\nThe hook will BLOCK if items 5-6 are incomplete.\n\nMinor docs-only changes can skip items 1-4."
+            "prompt": "STOP. Complete this checklist IN ORDER:\n\n1. `/workflows:review` — Code review (14 agents)\n2. `code-simplifier` agent — Use PR Review Toolkit agent on modified files\n 3. `verify-app` agent — Unit tests, migrations, lint, types\n4. `/test-browser` — E2E browser tests (if UI/API changed)\n5. `/workflows:compound` — Capture learnings if bugs fixed\n6. CONTINUITY.md — Update Done/Now/Next\n7. docs/CHANGELOG.md — Update if 3+ files changed on branch\n8. `/superpowers:finishing-a-development-branch` — Structured completion\n\nThe hook will BLOCK if items 6-7 are incomplete.\n\nMinor docs-only changes can skip items 1-5."
           },
           {
             "type": "command",
-            "command": "powershell -ExecutionPolicy Bypass -File .\\.claude\\hooks\\check-state-updated.ps1"
+            "command": "powershell -ExecutionPolicy Bypass -File \"$env:CLAUDE_PROJECT_DIR\\.claude\\hooks\\check-state-updated.ps1\""
           }
         ]
       }
@@ -74,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -ExecutionPolicy Bypass -File .\\.claude\\hooks\\post-tool-format.ps1"
+            "command": "powershell -ExecutionPolicy Bypass -File \"$env:CLAUDE_PROJECT_DIR\\.claude\\hooks\\post-tool-format.ps1\""
           }
         ]
       }

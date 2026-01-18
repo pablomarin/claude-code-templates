@@ -109,6 +109,16 @@ directories=(
     ".claude/agents"
     "docs/prds"
     "docs/plans"
+    "docs/solutions/build-errors"
+    "docs/solutions/test-failures"
+    "docs/solutions/runtime-errors"
+    "docs/solutions/performance-issues"
+    "docs/solutions/database-issues"
+    "docs/solutions/security-issues"
+    "docs/solutions/ui-bugs"
+    "docs/solutions/integration-issues"
+    "docs/solutions/logic-errors"
+    "docs/solutions/patterns"
 )
 
 for dir in "${directories[@]}"; do
@@ -153,7 +163,9 @@ copy_file "$SCRIPT_DIR/settings/settings-template.json" ".claude/settings.json" 
 
 # Hooks
 copy_file "$SCRIPT_DIR/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh"
+copy_file "$SCRIPT_DIR/hooks/post-tool-format.sh" ".claude/hooks/post-tool-format.sh" ".claude/hooks/post-tool-format.sh"
 chmod +x .claude/hooks/check-state-updated.sh 2>/dev/null || true
+chmod +x .claude/hooks/post-tool-format.sh 2>/dev/null || true
 
 # Agents
 copy_file "$SCRIPT_DIR/agents/verify-app.md" ".claude/agents/verify-app.md" ".claude/agents/verify-app.md"
@@ -264,6 +276,9 @@ echo "   /plugin marketplace add EveryInc/compound-engineering-plugin"
 echo "   /plugin install compound-engineering@compound-engineering-plugin"
 echo ""
 echo "   /plugin install code-simplifier"
+echo ""
+echo "   # Install E2E testing tool (outside Claude Code):"
+echo "   npm install -g agent-browser && agent-browser install"
 echo ""
 echo "4. ${BLUE}Verify setup${NC}:"
 echo "   /hooks      # Should show SessionStart, Stop, SubagentStop, PostToolUse"

@@ -22,6 +22,7 @@ project/
 ├── docs/             # Documentation
 │   ├── prds/         # Product requirements
 │   ├── plans/        # Design documents
+│   ├── solutions/    # Compounded learnings (searchable)
 │   └── CHANGELOG.md  # Historical record
 └── .claude/          # Claude Code configuration
 ```
@@ -39,7 +40,7 @@ cd src && uv run ruff check .              # Lint
 # Frontend
 cd frontend && pnpm test                   # Unit tests
 cd frontend && pnpm build                  # Build
-cd frontend && pnpm test:e2e               # E2E tests
+# E2E: Use /test-browser command (not pnpm)
 
 # Git
 git checkout -b feat/{name}                # Start feature
@@ -58,6 +59,8 @@ Check your work. If you write a chunk of code, try to find a way to run it and m
 Be cautious with terminal commands. Before every terminal command, consider carefully whether it can be expected to exit on its own, or if it will run indefinitely (e.g. launching a web server). For processes that run indefinitely, always launch them in a new process (e.g. nohup).
 
 Research before implementing. AI knowledge has a cutoff date. ALWAYS use WebSearch and WebFetch tools to research current documentation, best practices, and library versions BEFORE implementing. Libraries and frameworks evolve rapidly—never assume your training data is current.
+
+Learn from competitors. Before implementing any significant feature, research how established products solved the same problem. Their solutions have been battle-tested in production—study their patterns, edge cases, and UX decisions.
 
 ---
 
@@ -112,23 +115,29 @@ git checkout -b feat/   # or fix/
 ```
 START           → git checkout -b feat/{feature-name}
                         │
-RESEARCH        → WebSearch/WebFetch for current docs, best practices, libraries
+RESEARCH        → WebSearch/WebFetch/Context7 for current docs, best practices
                         │
 PRD PHASE       → /prd:discuss → /prd:create (includes web research)
                         │
 DESIGN          → /superpowers:brainstorm → /superpowers:write-plan
                         │
+ENHANCE PLAN    → /deepen-plan (parallel research agents add depth to plan)
+                        │
 EXECUTE         → /superpowers:execute-plan (TDD enforced)
+                        │
+DEBUG (if bugs) → /superpowers:systematic-debugging (4-phase root cause analysis)
                         │
 REVIEW          → /workflows:review (14 agents from Compound Engineering)
                         │
-SIMPLIFY        → Use code-simplifier agent from PR Review Toolkit (NOT Compound Engineering)
+SIMPLIFY        → code-simplifier agent (simplify modified files)
                         │
-VERIFY          → "Use the verify-app agent" (unit tests, E2E, migration check, lint, types)
+VERIFY          → verify-app agent (unit tests, migrations, lint, types)
+                        │
+E2E             → /test-browser (if UI/API changed)
                         │
 COMPOUND        → /workflows:compound (if learnings)
                         │
-FINISH          → Update CONTINUITY.md → Commit → PR (prompts) → Merge (prompts)
+FINISH          → CONTINUITY.md → CHANGELOG.md → /superpowers:finishing-a-development-branch
 ```
 
 ### Before Finishing Work (MANDATORY)
@@ -136,13 +145,13 @@ FINISH          → Update CONTINUITY.md → Commit → PR (prompts) → Merge (
 > **These steps are NOT optional.** Complete them IN ORDER before saying "done".
 
 1. **Review** - `/workflows:review` (14 agents from Compound Engineering, fix issues found)
-2. **Simplify** - Use the `code-simplifier` agent from **PR Review Toolkit** on modified files
-3. **Verify** - "Use the verify-app agent" (runs unit tests, E2E browser tests, migration check, lint, types)
-4. **Compound** - `/workflows:compound` (if bugs fixed or patterns learned)
-5. **Update CONTINUITY.md** - Move items to Done, update Now/Next
-6. **Update CHANGELOG.md** - If significant work
-7. **Commit + Push** - To feature branch (no prompt needed)
-8. **Create PR + Merge** - Will prompt for permission
+2. **Simplify** - Use `code-simplifier` agent on modified files
+4. **Verify Tests** - `verify-app` agent (unit tests, migrations, lint, types)
+5. **E2E Tests** - `/test-browser` (if UI/API changed, uses agent-browser)
+6. **Compound** - `/workflows:compound` (if bugs fixed or patterns learned)
+7. **Update CONTINUITY.md** - Update Done (keep 2-3 recent), Now/Next
+8. **Update CHANGELOG.md** - If 3+ files changed on branch
+9. **Finish Branch** - `/superpowers:finishing-a-development-branch` (structured completion with 4 options)
 
 ---
 
@@ -154,7 +163,9 @@ FINISH          → Update CONTINUITY.md → Commit → PR (prompts) → Merge (
 | `docs/CHANGELOG.md` | Historical record | **You (Claude)** | After features/fixes |
 | `docs/prds/*.md` | Product requirements | `/prd:create` | Before design |
 | `docs/plans/*.md` | Design docs | Superpowers | Per feature |
-| `CLAUDE.md` (this) | Rules + learnings | `/workflows:compound` | When mistakes happen |
+| `docs/solutions/*.md` | Compounded learnings | `/workflows:compound` | After fixing bugs/discovering patterns |
+| `todos/`| Document technical debt found by code review workflow| `/workflows:review` | After features/fixes |
+| `CLAUDE.md` (this) | Rules + workflow | Manual | Rarely (process changes only) |
 
 ---
 
@@ -174,15 +185,17 @@ FINISH          → Update CONTINUITY.md → Commit → PR (prompts) → Merge (
 
 ## Critical Rules
 - **CHECK BRANCH FIRST** - If on main, create feature branch before ANY code changes
-- **RESEARCH BEFORE IMPLEMENTING** - Use WebSearch/WebFetch for current docs and best practices
+- **RESEARCH BEFORE IMPLEMENTING** - Use WebSearch/WebFetch/Context7 for current docs
+- **SYSTEMATIC DEBUGGING** - Use `/superpowers:systematic-debugging` before ANY bug fix attempt
 - **Never commit directly to main** - always use feature branches
 - **Never merge without tests passing**
-- **Never skip E2E tests** - if project has frontend, run E2E via Chrome Extension or Playwright MCP
-- **Never skip the verify step** - use verify-app agent
+- **Never skip E2E tests** - if project has frontend, run `/test-browser` for UI/API changes
+- **Never skip verification** - using verify-app agent
 - **Always check for migrations** - if models/schema changed, create migration
 - **TDD is mandatory** - Superpowers enforces RED-GREEN-REFACTOR
 - **Update CONTINUITY.md before finishing** - Stop hook enforces this
-- **Use code-simplifier from PR Review Toolkit** - NOT from Compound Engineering
+- **Update CHANGELOG.md before finishing** - if 3+ files changed, Stop hook enforces this
+-- **Always research before implementing.** Use WebSearch/WebFetch/Context7
 - **Challenge me when there's a better way** - don't blindly agree
 
 ## Detailed Rules
@@ -207,7 +220,30 @@ See `.claude/rules/` for:
 
 ## E2E Testing
 
-**Every user-facing change needs E2E verification.** The verify-app agent handles this automatically using Chrome Extension MCP (preferred) or Playwright MCP.
+**Every user-facing change needs E2E verification.** Use `/test-browser` from Compound Engineering plugin.
+
+### How It Works
+```
+/test-browser
+    ↓
+Detects affected routes from git diff
+    ↓
+Uses agent-browser to test each route
+    ↓
+Reports pass/fail for each test
+```
+
+### Prerequisites
+```bash
+npm install -g agent-browser
+agent-browser install
+```
+
+### When to Run
+- After any UI component changes
+- After API endpoint changes that affect UI
+- After routing changes
+- Before creating PR for frontend features
 
 ---
 
@@ -217,47 +253,56 @@ See `.claude/rules/` for:
 
 ---
 
-## Compound Engineering: Learnings & Don'ts
+## Knowledge Compounding
 
-When Claude makes a mistake or we discover a better pattern, add it here via `/workflows:compound`. This section compounds knowledge over time.
+Learnings are stored in `docs/solutions/` as searchable markdown files with YAML frontmatter. This keeps CLAUDE.md clean while building institutional knowledge.
 
-### Don'ts (Learned from Mistakes)
-<!-- Add entries when Claude does something incorrectly -->
-<!-- Format: "Don't [action] - [consequence/reason]" -->
-- **Don't** skip `/workflows:review` before commit (14 agents catch issues you won't)
-- **Don't** finish work without updating CONTINUITY.md (Stop hook will catch this)
-- **Don't** skip code-simplifier step (tech debt accumulates fast)
-- **Don't** merge without running verify-app agent (untested code breaks prod)
-<!-- Add project-specific don'ts below -->
+### How It Works
 
-### Do's (Discovered Better Patterns)
-<!-- Add entries when we find better approaches -->
-<!-- Format: "Do [action] - [benefit/reason]" -->
-- **Do** use Superpowers brainstorm before any significant feature work
-- **Do** run `/workflows:compound` after fixing non-trivial bugs
-- **Do** update CONTINUITY.md Done/Now/Next at end of every work session
-- **Do** use code-simplifier agent after review, before commit
-- **Do** use verify-app agent to ensure comprehensive testing
-<!-- Add project-specific do's below -->
+```
+Bug fixed or pattern discovered
+        ↓
+Run /workflows:compound
+        ↓
+Creates: docs/solutions/[category]/[symptom]-[module]-[date].md
+        ↓
+Next occurrence → grep -r "error phrase" docs/solutions/
+```
 
-### Project-Specific Gotchas
-<!-- Add non-obvious things specific to THIS codebase -->
-<!-- These are things that aren't obvious from reading the code -->
-[ADD PROJECT-SPECIFIC LEARNINGS HERE - Examples:]
-- [Example: EmbeddingsService must be lazy-loaded in ToolSyncService (avoid startup failures)]
-- [Example: Frontend expects `deployed_server` object with: server_id, server_name, tool_count]
-- [Example: Alembic migrations need idempotent enum creation for PostgreSQL]
+### Solution Categories (auto-detected)
+```
+docs/solutions/
+├── build-errors/
+├── test-failures/
+├── runtime-errors/
+├── performance-issues/
+├── database-issues/
+├── security-issues/
+├── ui-bugs/
+├── integration-issues/
+├── logic-errors/
+└── patterns/           ← consolidated when 3+ similar issues
+```
 
-### How to Update This File
+### When to Compound
 
-When you (Claude) make a mistake or discover something non-obvious:
+Run `/workflows:compound` after:
+- Fixing a non-trivial bug
+- Discovering a gotcha or workaround
+- Finding a performance optimization
+- Resolving a security issue
+- Learning something non-obvious about the codebase
 
-1. Run `/workflows:compound` (Compound Engineering plugin)
-2. Or manually add to the appropriate section above
-3. Be specific, include context
-4. Keep it concise - one line per learning, searchable
+### Retrieving Solutions
 
-This is "Compounding Engineering" - each mistake makes the codebase smarter.
+When debugging, search for similar issues:
+```bash
+grep -r "error message" docs/solutions/
+grep -r "tags:.*eager-loading" docs/solutions/
+ls docs/solutions/performance-issues/
+```
+
+The compound-engineering plugin creates structured files with YAML frontmatter for searchability.
 
 ---
 
@@ -266,8 +311,7 @@ This is "Compounding Engineering" - each mistake makes the codebase smarter.
 | Hook | What It Does |
 |------|--------------|
 | `SessionStart` | Loads CONTINUITY.md into context automatically |
-| `Stop` | Validates work is complete before stopping |
+| `Stop` | Validates workflow is complete before stopping |
 | `SubagentStop` | Validates subagent output quality |
 | `PostToolUse` | Auto-formats Python/TypeScript after edits |
 
-The Stop hook is a **safety net** - Claude should update CONTINUITY.md proactively, not wait to be reminded.

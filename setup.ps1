@@ -97,7 +97,17 @@ $directories = @(
     ".claude\commands\prd",
     ".claude\agents",
     "docs\prds",
-    "docs\plans"
+    "docs\plans",
+    "docs\solutions\build-errors",
+    "docs\solutions\test-failures",
+    "docs\solutions\runtime-errors",
+    "docs\solutions\performance-issues",
+    "docs\solutions\database-issues",
+    "docs\solutions\security-issues",
+    "docs\solutions\ui-bugs",
+    "docs\solutions\integration-issues",
+    "docs\solutions\logic-errors",
+    "docs\solutions\patterns"
 )
 
 foreach ($dir in $directories) {
@@ -283,6 +293,9 @@ Write-Host "   /plugin marketplace add EveryInc/compound-engineering-plugin"
 Write-Host "   /plugin install compound-engineering@compound-engineering-plugin"
 Write-Host ""
 Write-Host "   /plugin install code-simplifier"
+Write-Host ""
+Write-Host "   # Install E2E testing tool (outside Claude Code):"
+Write-Host "   npm install -g agent-browser && agent-browser install"
 Write-Host ""
 Write-Host "4. " -NoNewline
 Write-Color "Verify setup" "Blue"
