@@ -38,8 +38,19 @@
             "command": "echo '=== Current Branch ===' && git branch --show-current && echo '' && cat CONTINUITY.md 2>/dev/null || echo 'No CONTINUITY.md found'"
           },
           {
-            "type": "command",
-            "command": "echo 'IMPORTANT: If on main, create a feature branch before ANY code changes. Ask user: What feature? Then run: git checkout -b feat/<name>'"
+            "type": "prompt",
+            "prompt": "WORKFLOW ENFORCEMENT:\n\n1. If on `main` branch: Create feature branch FIRST\n2. Ask user: What type of task?\n   - New feature → Run `/new-feature <name>`\n   - Bug fix → Run `/fix-bug <name>`\n   - Trivial change (< 3 files) → Run `/quick-fix <name>`\n\nThese commands contain the FULL workflow. Follow them exactly."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "BEFORE writing code, verify:\n\n1. Did you run `/new-feature`, `/fix-bug`, or `/quick-fix`?\n2. For features: Is there a plan in docs/plans/?\n3. For bugs: Did you run `/superpowers:systematic-debugging`?\n\nIf implementing without following a workflow command, STOP.\nRun the appropriate command first: `/new-feature`, `/fix-bug`, or `/quick-fix`."
           }
         ]
       }
@@ -50,7 +61,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "STOP. Complete this checklist IN ORDER:\n\n1. `/workflows:review` — Code review (14 agents)\n2. `code-simplifier` agent — Use PR Review Toolkit agent on modified files\n 3. `verify-app` agent — Unit tests, migrations, lint, types\n4. `/test-browser` — E2E browser tests (if UI/API changed)\n5. `/workflows:compound` — Capture learnings if bugs fixed\n6. CONTINUITY.md — Update Done/Now/Next\n7. docs/CHANGELOG.md — Update if 3+ files changed on branch\n8. `/superpowers:finishing-a-development-branch` — Structured completion\n\nThe hook will BLOCK if items 6-7 are incomplete.\n\nMinor docs-only changes can skip items 1-5."
+            "prompt": "STOP. Complete this checklist IN ORDER:\n\n1. `/workflows:review` — Code review (14 agents)\n2. `code-simplifier` agent — Use PR Review Toolkit agent on modified files\n3. `verify-app` agent — Unit tests, migrations, lint, types\n4. `/playwright-test` — E2E browser tests (if UI/API changed)\n5. `/workflows:compound` — Capture learnings if bugs fixed\n6. CONTINUITY.md — Update Done/Now/Next\n7. docs/CHANGELOG.md — Update if 3+ files changed on branch\n8. `/superpowers:finishing-a-development-branch` — Structured completion\n\nThe hook will BLOCK if items 6-7 are incomplete.\n\nMinor docs-only changes can skip items 1-5."
           },
           {
             "type": "command",
@@ -81,20 +92,5 @@
         ]
       }
     ]
-  },
-  "mcpServers": {
-    "playwright": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@playwright/mcp@latest"
-      ],
-      "env": {}
-    },
-    "context7": {
-      "type": "http",
-      "url": "https://mcp.context7.com/mcp"
-    }
   }
 }
