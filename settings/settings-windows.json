@@ -39,10 +39,6 @@
           {
             "type": "command",
             "command": "powershell -Command \"Write-Output '=== Current Branch ===' ; git branch --show-current ; Write-Output '' ; if (Test-Path CONTINUITY.md) { Get-Content CONTINUITY.md } else { Write-Output 'No CONTINUITY.md found in project root. Create one to track project state.' }\""
-          },
-          {
-            "type": "prompt",
-            "prompt": "WORKFLOW ENFORCEMENT:\n\n1. If on `main` branch: Create feature branch FIRST\n2. Ask user: What type of task?\n   - New feature → Run `/new-feature <name>`\n   - Bug fix → Run `/fix-bug <name>`\n   - Trivial change (< 3 files) → Run `/quick-fix <name>`\n\nThese commands contain the FULL workflow. Follow them exactly."
           }
         ]
       }
