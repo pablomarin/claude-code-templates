@@ -48,17 +48,6 @@
         ]
       }
     ],
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "BEFORE writing code, verify:\n\n1. Did you run `/new-feature`, `/fix-bug`, or `/quick-fix`?\n2. For features: Is there a plan in docs/plans/?\n3. For bugs: Did you run `/superpowers:systematic-debugging`?\n\nIf implementing without following a workflow command, STOP.\nRun the appropriate command first: `/new-feature`, `/fix-bug`, or `/quick-fix`."
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "matcher": "",

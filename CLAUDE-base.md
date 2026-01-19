@@ -71,7 +71,7 @@ git checkout -b feat/{name}                # Start feature
 
 ## Workflow
 
-> **ENFORCED via hooks.** SessionStart prompts for task type. PreToolUse blocks code without workflow.
+> **GUIDED via workflow commands.** SessionStart loads context. Stop hook validates completion.
 
 | Task Type | Command | What It Contains |
 |-----------|---------|------------------|
@@ -133,7 +133,6 @@ See `.claude/rules/` for language-specific standards.
 | Hook | What It Does |
 |------|--------------|
 | `SessionStart` | Loads CONTINUITY.md, prompts for task type |
-| `PreToolUse` | Blocks Edit/Write without workflow command |
 | `Stop` | Validates workflow complete, CONTINUITY.md updated |
 | `SubagentStop` | Validates subagent output quality |
 | `PostToolUse` | Auto-formats Python/TypeScript after edits |

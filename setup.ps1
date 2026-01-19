@@ -301,7 +301,7 @@ Write-Host ""
 Write-Host "4. " -NoNewline
 Write-Color "Verify setup" "Blue"
 Write-Host ":"
-Write-Host "   /hooks      # Should show SessionStart, PreToolUse, Stop, SubagentStop, PostToolUse"
+Write-Host "   /hooks      # Should show SessionStart, Stop, SubagentStop, PostToolUse"
 Write-Host "   /permissions # Should show pre-allowed commands"
 Write-Host "   /help       # Should show /superpowers:*, /workflows:*, /prd:*"
 Write-Host ""

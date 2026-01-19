@@ -496,7 +496,7 @@ Based on Boris Cherny's key insight:
 | `/fix-bug <name>` | Bug fix workflow | Search solutions → Systematic debugging → Fix → Review → Compound |
 | `/quick-fix <name>` | Trivial changes only | < 3 files, no arch impact, still requires verify |
 
-**Hooks enforce these commands.** SessionStart prompts for task type, PreToolUse blocks code without workflow.
+**Workflow commands guide the process.** SessionStart loads context, Stop hook validates completion.
 
 ### PRD Commands (Requirements)
 
@@ -557,7 +557,6 @@ Based on Boris Cherny's key insight:
 | Hook | Trigger | What Happens |
 |------|---------|--------------|
 | `SessionStart` | New session, `/clear`, compact | Loads CONTINUITY.md, prompts for task type |
-| `PreToolUse` | Before Edit/Write | Blocks code without workflow command |
 | `Stop` | Claude finishes responding | Validates work complete (prompt + script) |
 | `SubagentStop` | Subagent finishes | Validates subagent output quality |
 | `PostToolUse` | After Edit/Write on code files | Auto-formats with ruff/prettier |
@@ -878,7 +877,7 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 3.0 | 2026-01-18 | **WORKFLOW ENFORCEMENT**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Added PreToolUse hook to block code without workflow. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E now uses `/compound-engineering:playwright-test` with Playwright MCP. |
+| 3.0 | 2026-01-18 | **WORKFLOW COMMANDS**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E now uses `/compound-engineering:playwright-test` with Playwright MCP. |
 | 2.7 | 2026-01-18 | Simplified CONTINUITY.md: Done section keeps only 2-3 recent items, removed redundant sections (Working Set, Test Status, Active Artifacts). Leaner template. |
 | 2.6 | 2026-01-18 | Hooks follow Anthropic best practices: path traversal protection, sensitive file skip, `$CLAUDE_PROJECT_DIR` for absolute paths. Added external post-tool-format.sh script. |
 | 2.5 | 2026-01-17 | E2E testing via `/compound-engineering:playwright-test` (uses Playwright MCP). Removed E2E from verify-app agent. |
