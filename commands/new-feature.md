@@ -152,17 +152,21 @@ Use the code-simplifier agent on all modified files:
 - Functions > 50 lines that could be split
 - Over-engineered abstractions
 
-### 5.3 Verify
+### 5.3 Verify (USE SUBAGENT - saves context window)
 
-Run verification (unit tests, migrations, lint, types):
+**MUST use the verify-app subagent** - Do NOT run tests yourself.
 
+Using a subagent keeps test output out of your context window, preserving tokens for actual work.
+
+**Invoke the subagent:**
 ```
-"Use the verify-app agent"
+Use the Task tool with:
+- subagent_type: "general-purpose"
+- prompt: "You are the verify-app agent. Run ALL verification: unit tests, migrations, lint, types. Read .claude/agents/verify-app.md for instructions. Report pass/fail verdict."
 ```
 
-**Fallback if unavailable:** Run manually:
+**Only use fallback if Task tool fails:**
 ```bash
-# Run tests, lint, type checks for your stack
 pytest && ruff check . && mypy .  # Python
 npm test && npm run lint && npm run typecheck  # Node
 ```
