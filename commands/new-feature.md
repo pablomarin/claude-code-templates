@@ -289,6 +289,29 @@ If you fixed bugs or discovered patterns:
 3. Push branch to remote
 4. Create PR if ready for review
 
+### 6.4 Cleanup worktree (if created)
+
+**Only if SESSION_WORKTREE was set (worktree was created in Pre-Flight):**
+
+After the branch is merged and deleted, clean up the worktree:
+
+```bash
+# Remove the worktree directory and metadata
+git worktree remove $SESSION_WORKTREE
+
+# Clear the session marker
+rm -f .claude/.session_worktree
+
+# Prune any stale worktree references
+git worktree prune
+```
+
+**If PR is still open (not merged yet):**
+- Keep the worktree for potential follow-up work
+- Cleanup will happen after merge
+
+**Ask the user:** "The branch has been pushed/merged. Should I clean up the worktree at `$SESSION_WORKTREE`?"
+
 ---
 
 ## ⚠️ IMPORTANT: Never Bypass Mandatory Steps
@@ -331,3 +354,4 @@ If any MANDATORY step cannot be completed:
 - [ ] CONTINUITY.md updated
 - [ ] CHANGELOG.md updated (if 3+ files)
 - [ ] Branch finished via `/superpowers:finishing-a-development-branch`
+- [ ] **Worktree cleaned up** (if created) - ask user after merge
