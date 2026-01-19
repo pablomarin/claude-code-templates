@@ -17,12 +17,13 @@ Based on Boris Cherny's (Claude Code creator) workflow and Anthropic's official 
    - [Scenario B: Existing Project WITHOUT Claude Code](#scenario-b-existing-project-without-claude-code)
    - [Scenario C: Existing Project WITH Claude Code](#scenario-c-existing-project-with-claude-code)
 4. [After Setup: Customize Your Project](#after-setup-customize-your-project)
-5. [Workflow Overview](#workflow-overview)
-6. [Commands Reference](#commands-reference)
-7. [What's Automated](#whats-automated)
-8. [File Structure](#file-structure)
-9. [Troubleshooting](#troubleshooting)
-10. [Security](#security)
+5. [Parallel Development (Multiple Sessions)](#parallel-development-multiple-sessions)
+6. [Workflow Overview](#workflow-overview)
+7. [Commands Reference](#commands-reference)
+8. [What's Automated](#whats-automated)
+9. [File Structure](#file-structure)
+10. [Troubleshooting](#troubleshooting)
+11. [Security](#security)
 
 ---
 
@@ -373,6 +374,58 @@ claude
 # Test SessionStart hook
 /clear
 # Should display CONTINUITY.md content
+```
+
+---
+
+## Parallel Development (Multiple Sessions)
+
+Run multiple Claude Code sessions simultaneously on the same project - each working on a different feature without conflicts.
+
+### How It Works
+
+When you run `/new-feature` or `/fix-bug` from the `main` branch, the workflow automatically:
+
+1. **Creates an isolated worktree** at `.worktrees/<feature-name>/`
+2. **Copies environment files** (`.env*`) to the worktree
+3. **Tracks the worktree path** in `.claude/.session_worktree` for hooks
+
+Each session works in its own isolated directory with its own branch. No conflicts.
+
+### Example: 3 Parallel Sessions
+
+```bash
+# Terminal 1
+cd /project && claude
+> /new-feature auth        # Creates .worktrees/auth/, works there
+
+# Terminal 2
+cd /project && claude
+> /new-feature api         # Creates .worktrees/api/, works there
+
+# Terminal 3
+cd /project && claude
+> /fix-bug login-error     # Creates .worktrees/login-error/, works there
+```
+
+### Important Notes
+
+- **Worktrees are created automatically** when starting from `main`
+- **No nested worktrees** - if already in a worktree or feature branch, the workflow uses the current directory
+- **Hooks are worktree-aware** - Stop hook checks CONTINUITY.md in the correct worktree
+- **`.worktrees/` is gitignored** automatically
+- **Quick-fix does NOT create worktrees** - use `/new-feature` or `/fix-bug` for parallel work
+
+### Cleanup
+
+After merging a feature:
+
+```bash
+# Remove the worktree
+git worktree remove .worktrees/auth
+
+# Or list all worktrees
+git worktree list
 ```
 
 ---
@@ -877,6 +930,7 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 3.1 | 2026-01-19 | **PARALLEL DEVELOPMENT**: Workflow commands auto-create git worktrees for isolated parallel sessions. Hooks are worktree-aware. verify-app agent accepts worktree path. |
 | 3.0 | 2026-01-18 | **WORKFLOW COMMANDS**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E now uses `/compound-engineering:playwright-test` with Playwright MCP. |
 | 2.7 | 2026-01-18 | Simplified CONTINUITY.md: Done section keeps only 2-3 recent items, removed redundant sections (Working Set, Test Status, Active Artifacts). Leaner template. |
 | 2.6 | 2026-01-18 | Hooks follow Anthropic best practices: path traversal protection, sensitive file skip, `$CLAUDE_PROJECT_DIR` for absolute paths. Added external post-tool-format.sh script. |

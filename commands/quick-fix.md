@@ -72,6 +72,8 @@ Use the Task tool with:
 - prompt: "Run verification on current changes and report pass/fail verdict."
 ```
 
+> **Note:** Quick-fix doesn't create worktrees. For parallel development, use `/new-feature` or `/fix-bug` instead.
+
 **Only use fallback if Task tool fails:**
 ```bash
 pytest && ruff check . && mypy .  # Python

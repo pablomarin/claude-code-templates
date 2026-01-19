@@ -2,6 +2,8 @@
 # This hook runs when Claude is about to stop responding.
 # It checks if there are uncommitted changes and reminds Claude to update state.
 #
+# Supports worktrees: reads .claude/.session_worktree to check the correct directory.
+#
 # Requirements: PowerShell 5.1+, git
 # No external dependencies needed - uses native ConvertFrom-Json
 
@@ -21,34 +23,69 @@ if ($data.stop_hook_active -eq $true) {
     exit 0
 }
 
-# Check for uncommitted changes
-$uncommittedOutput = git status --porcelain 2>$null
+# Check for worktree path (set by /new-feature or /fix-bug workflows)
+$workDir = "."
+$sessionWorktreeFile = ".claude/.session_worktree"
+if (Test-Path $sessionWorktreeFile) {
+    $worktreePath = Get-Content $sessionWorktreeFile -Raw
+    $worktreePath = $worktreePath.Trim()
+    if ($worktreePath -and (Test-Path $worktreePath -PathType Container)) {
+        $workDir = $worktreePath
+    }
+}
+
+# Helper function to run git in the work directory
+function Invoke-Git {
+    param([string[]]$Arguments)
+    $allArgs = @("-C", $workDir) + $Arguments
+    & git @allArgs 2>$null
+}
+
+# Check for uncommitted changes in work directory
+$uncommittedOutput = Invoke-Git @("status", "--porcelain")
 $uncommitted = if ($uncommittedOutput) { ($uncommittedOutput | Measure-Object -Line).Lines } else { 0 }
 
-# Check if CONTINUITY.md was modified in this session
-$continuityOutput = git status --porcelain CONTINUITY.md 2>$null
+# Check if CONTINUITY.md was modified
+$continuityOutput = Invoke-Git @("status", "--porcelain", "CONTINUITY.md")
 $continuityModified = if ($continuityOutput) { ($continuityOutput | Measure-Object -Line).Lines } else { 0 }
+
+# Check if CHANGELOG was modified
+$changelogOutput = Invoke-Git @("status", "--porcelain", "docs/CHANGELOG.md")
+$changelogModified = if ($changelogOutput) { ($changelogOutput | Measure-Object -Line).Lines } else { 0 }
+
+# Get branch base for comparison
+$branchBase = Invoke-Git @("merge-base", "main", "HEAD")
+if (-not $branchBase) { $branchBase = "HEAD~10" }
+
+# Count files changed on branch
+$branchChangedOutput = Invoke-Git @("diff", "--name-only", $branchBase, "HEAD")
+$branchChanged = if ($branchChangedOutput) { ($branchChangedOutput | Measure-Object -Line).Lines } else { 0 }
+
+$uncommittedFilesOutput = Invoke-Git @("diff", "--name-only")
+$uncommittedFiles = if ($uncommittedFilesOutput) { ($uncommittedFilesOutput | Measure-Object -Line).Lines } else { 0 }
+
+$totalChanged = $branchChanged + $uncommittedFiles
+
+# Check if CHANGELOG was updated anywhere on branch
+$changelogInBranch = 0
+if ($branchChangedOutput) {
+    $changelogInBranch = ($branchChangedOutput | Select-String "CHANGELOG.md" | Measure-Object).Count
+}
 
 # Build response
 $issues = ""
 
+# Block: uncommitted changes but CONTINUITY.md not updated
 if ($uncommitted -gt 0 -and $continuityModified -eq 0) {
-    $issues = "You have uncommitted changes but CONTINUITY.md hasn't been updated. Please update the Done/Now/Next sections to reflect the current state before finishing."
+    $issues = "Update CONTINUITY.md Done/Now/Next sections."
 }
 
-# Check if CHANGELOG should be updated (if there are significant changes)
-$changelogOutput = git status --porcelain docs/CHANGELOG.md 2>$null
-$changelogModified = if ($changelogOutput) { ($changelogOutput | Measure-Object -Line).Lines } else { 0 }
-
-# Count changed files
-$changedFilesOutput = git diff --name-only HEAD 2>$null
-$changedFiles = if ($changedFilesOutput) { ($changedFilesOutput | Measure-Object -Line).Lines } else { 0 }
-
-if ($changedFiles -gt 3 -and $changelogModified -eq 0) {
+# Block: 3+ files changed on branch but CHANGELOG.md never updated
+if ($totalChanged -gt 3 -and $changelogInBranch -eq 0 -and $changelogModified -eq 0) {
     if ($issues) {
-        $issues = "$issues Also, consider updating docs/CHANGELOG.md for the significant changes made ($changedFiles files changed)."
+        $issues = "$issues Update docs/CHANGELOG.md ($totalChanged files changed this session)."
     } else {
-        $issues = "Consider updating docs/CHANGELOG.md for the significant changes made ($changedFiles files changed)."
+        $issues = "Update docs/CHANGELOG.md ($totalChanged files changed this session)."
     }
 }
 

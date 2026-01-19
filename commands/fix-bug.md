@@ -65,6 +65,9 @@ fi
 for f in .env .env.local .env.development .env.test; do
   [ -f "$f" ] && cp "$f" "$WORKTREE_PATH/"
 done
+
+# Write worktree path for hooks to read
+echo "$WORKTREE_PATH" > .claude/.session_worktree
 ```
 
 **⚠️ CRITICAL: Set SESSION_WORKTREE for this session:**
@@ -75,6 +78,7 @@ done
 
 **If ALREADY_IN_WORKTREE or ON_FEATURE_BRANCH:**
 - `SESSION_WORKTREE=""` (empty - use current directory)
+- Clear any stale worktree marker: `rm -f .claude/.session_worktree`
 - Continue with current workspace, already isolated
 
 ### 2. Read project state
@@ -218,7 +222,8 @@ Using a subagent keeps test output out of your context window, preserving tokens
 ```
 Use the Task tool with:
 - subagent_type: "verify-app"
-- prompt: "Run verification on current changes and report pass/fail verdict."
+- prompt: "Run verification in $SESSION_WORKTREE and report pass/fail verdict."
+  (If SESSION_WORKTREE is empty, just say "Run verification and report pass/fail verdict.")
 ```
 
 **Only use fallback if Task tool fails:**
