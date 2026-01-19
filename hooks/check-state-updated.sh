@@ -14,9 +14,11 @@ STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false')
 [ "$STOP_HOOK_ACTIVE" = "true" ] && exit 0
 
 # Check for worktree path (set by /new-feature or /fix-bug workflows)
+# Falls back to current directory if worktree doesn't exist (cleaned up or parallel session)
 WORK_DIR="."
 if [ -f ".claude/.session_worktree" ]; then
     WORKTREE_PATH=$(cat .claude/.session_worktree)
+    # Only use worktree if directory still exists (may have been cleaned up)
     if [ -n "$WORKTREE_PATH" ] && [ -d "$WORKTREE_PATH" ]; then
         WORK_DIR="$WORKTREE_PATH"
     fi

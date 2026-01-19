@@ -24,11 +24,13 @@ if ($data.stop_hook_active -eq $true) {
 }
 
 # Check for worktree path (set by /new-feature or /fix-bug workflows)
+# Falls back to current directory if worktree doesn't exist (cleaned up or parallel session)
 $workDir = "."
 $sessionWorktreeFile = ".claude/.session_worktree"
 if (Test-Path $sessionWorktreeFile) {
     $worktreePath = Get-Content $sessionWorktreeFile -Raw
     $worktreePath = $worktreePath.Trim()
+    # Only use worktree if directory still exists (may have been cleaned up)
     if ($worktreePath -and (Test-Path $worktreePath -PathType Container)) {
         $workDir = $worktreePath
     }

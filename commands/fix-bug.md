@@ -317,12 +317,12 @@ After the branch is merged and deleted, clean up the worktree:
 # Remove the worktree directory and metadata
 git worktree remove $SESSION_WORKTREE
 
-# Clear the session marker
-rm -f .claude/.session_worktree
-
 # Prune any stale worktree references
 git worktree prune
 ```
+
+> **⚠️ DO NOT delete `.claude/.session_worktree`** - other parallel sessions may be using it.
+> The file is harmless if left behind; hooks handle missing worktrees gracefully.
 
 **If PR is still open (not merged yet):**
 - Keep the worktree for potential follow-up work

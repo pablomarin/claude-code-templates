@@ -432,6 +432,7 @@ cd /project/.worktrees/auth && claude  # Hooks won't work!
 - **`.worktrees/` is gitignored** automatically
 - **Dependencies are installed** automatically for Node.js projects
 - **Quick-fix does NOT create worktrees** - use `/new-feature` or `/fix-bug` for parallel work
+- **Cleanup is safe** - when one session cleans up its worktree, it doesn't affect other running sessions (hooks gracefully fall back if worktree is gone)
 
 ### Cleanup
 
