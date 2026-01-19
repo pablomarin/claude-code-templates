@@ -118,7 +118,10 @@ git checkout -b feat/{name}                # Start feature
 When `/new-feature` or `/fix-bug` runs and you're on `main`:
 1. Creates isolated worktree at `.worktrees/<name>/`
 2. Copies `.env*` files automatically
-3. **All subsequent file operations use the worktree path**
+3. Installs dependencies (Node.js) or prompts (Python)
+4. **All subsequent file operations use the worktree path**
+
+> **CRITICAL**: Always run `claude` from the **project root**, not from inside `.worktrees/`. The `.claude/` folder with hooks and settings lives in the main repo only.
 
 ### Session Worktree Tracking
 

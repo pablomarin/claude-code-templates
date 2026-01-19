@@ -68,6 +68,16 @@ done
 
 # Write worktree path for hooks to read
 echo "$WORKTREE_PATH" > .claude/.session_worktree
+
+# Install dependencies in worktree (if applicable)
+if [ -f "$WORKTREE_PATH/package.json" ] && [ ! -d "$WORKTREE_PATH/node_modules" ]; then
+  echo "Installing Node dependencies in worktree..."
+  (cd "$WORKTREE_PATH" && (pnpm install --silent 2>/dev/null || npm install --silent 2>/dev/null || yarn install --silent 2>/dev/null))
+fi
+if [ -f "$WORKTREE_PATH/pyproject.toml" ]; then
+  echo "Installing Python dependencies in worktree..."
+  (cd "$WORKTREE_PATH" && (uv sync 2>/dev/null || pip install -e . 2>/dev/null || echo "Run 'uv sync' or 'pip install' manually"))
+fi
 ```
 
 **⚠️ CRITICAL: Set SESSION_WORKTREE for this session:**

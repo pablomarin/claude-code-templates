@@ -388,7 +388,8 @@ When you run `/new-feature` or `/fix-bug` from the `main` branch, the workflow a
 
 1. **Creates an isolated worktree** at `.worktrees/<feature-name>/`
 2. **Copies environment files** (`.env*`) to the worktree
-3. **Tracks the worktree path** in `.claude/.session_worktree` for hooks
+3. **Installs dependencies** (Node.js) or prompts for Python
+4. **Tracks the worktree path** in `.claude/.session_worktree` for hooks
 
 Each session works in its own isolated directory with its own branch. No conflicts.
 
@@ -408,25 +409,49 @@ cd /project && claude
 > /fix-bug login-error     # Creates .worktrees/login-error/, works there
 ```
 
+### Critical: Always Run Claude from Project Root
+
+> **WARNING**: Always start `claude` from the **main project directory**, NOT from inside a worktree.
+
+```bash
+# ✅ CORRECT - run from project root
+cd /project && claude
+> /new-feature auth
+
+# ❌ WRONG - don't cd into worktree then run claude
+cd /project/.worktrees/auth && claude  # Hooks won't work!
+```
+
+**Why?** The `.claude/` folder (with hooks, settings, agents) lives in the main repo. Running Claude from inside a worktree means it won't find these configurations.
+
 ### Important Notes
 
 - **Worktrees are created automatically** when starting from `main`
 - **No nested worktrees** - if already in a worktree or feature branch, the workflow uses the current directory
 - **Hooks are worktree-aware** - Stop hook checks CONTINUITY.md in the correct worktree
 - **`.worktrees/` is gitignored** automatically
+- **Dependencies are installed** automatically for Node.js projects
 - **Quick-fix does NOT create worktrees** - use `/new-feature` or `/fix-bug` for parallel work
 
 ### Cleanup
 
-After merging a feature:
+After merging a feature, clean up the worktree:
 
 ```bash
-# Remove the worktree
+# List all worktrees
+git worktree list
+
+# Remove a specific worktree (after merging its branch)
 git worktree remove .worktrees/auth
 
-# Or list all worktrees
-git worktree list
+# Clean up stale worktree metadata
+git worktree prune
+
+# Optionally delete the merged branch
+git branch -d feat/auth
 ```
+
+**Tip**: Regular cleanup prevents disk space bloat and keeps `git worktree list` manageable
 
 ---
 
