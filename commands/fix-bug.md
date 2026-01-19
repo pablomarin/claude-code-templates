@@ -1,6 +1,30 @@
 # Bug Fix Workflow
 
 > **This workflow is MANDATORY. Follow every step in order.**
+> **If any required command/skill fails with "Unknown skill", STOP and alert the user.**
+
+## Required Plugins
+
+This workflow requires the following plugins to be **installed AND enabled**:
+
+| Plugin | Skills/Commands Used |
+|--------|---------------------|
+| `superpowers@superpowers-marketplace` | `/superpowers:systematic-debugging`, `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:executing-plans`, `/superpowers:finishing-a-development-branch` |
+| `compound-engineering@every-marketplace` | `/compound-engineering:workflows:review`, `/compound-engineering:workflows:compound`, `/compound-engineering:playwright-test` |
+| `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent |
+
+**To enable plugins**, add to `~/.claude/settings.json`:
+```json
+{
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "compound-engineering@every-marketplace": true,
+    "pr-review-toolkit@claude-plugins-official": true
+  }
+}
+```
+
+---
 
 ## Pre-Flight Checks
 
@@ -13,6 +37,25 @@
    ```bash
    cat CONTINUITY.md
    ```
+
+3. **Verify required plugins are available** (test ONE skill):
+   ```
+   /superpowers:systematic-debugging
+   ```
+
+   **If "Unknown skill" error:**
+   - STOP immediately
+   - Tell user: "Required plugins not loaded. Please enable in ~/.claude/settings.json:
+     ```json
+     {
+       "enabledPlugins": {
+         "superpowers@superpowers-marketplace": true,
+         "compound-engineering@every-marketplace": true
+       }
+     }
+     ```
+     Then restart Claude Code."
+   - Do NOT proceed with workarounds or skip mandatory steps
 
 ---
 
@@ -38,11 +81,19 @@ If found, review the solution and apply it.
 /superpowers:systematic-debugging
 ```
 
-This will:
+This will guide you through:
 1. **Reproduce** - Confirm the bug exists
 2. **Isolate** - Narrow down the cause
 3. **Identify** - Find the root cause
 4. **Verify** - Confirm understanding before fixing
+
+> **⚠️ CRITICAL:** If this skill is unavailable, you MUST still follow the 4-phase process manually:
+> 1. Reproduce the bug consistently
+> 2. Isolate by adding logging/tracing at component boundaries
+> 3. Identify root cause (not just symptoms)
+> 4. Verify your understanding before proposing ANY fix
+>
+> **NEVER skip this phase. NEVER guess at fixes.**
 
 ---
 
@@ -56,13 +107,13 @@ Proceed directly to Phase 4.
 #### 3.1 Brainstorm approaches
 
 ```
-/superpowers:brainstorm
+/superpowers:brainstorming
 ```
 
 #### 3.2 Write the fix plan
 
 ```
-/superpowers:write-plan
+/superpowers:writing-plans
 ```
 
 ---
@@ -72,7 +123,7 @@ Proceed directly to Phase 4.
 Implement using TDD (Red-Green-Refactor):
 
 ```
-/superpowers:execute-plan
+/superpowers:executing-plans
 ```
 
 Or for simple fixes, write a failing test first, then fix.
@@ -81,13 +132,20 @@ Or for simple fixes, write a failing test first, then fix.
 
 ## Phase 5: Quality Gates (ALL REQUIRED)
 
+> **If any command below fails with "Unknown skill":**
+> - Alert the user about missing plugins
+> - Perform equivalent checks manually (see fallbacks below)
+> - Do NOT skip quality gates
+
 ### 5.1 Code Review (14 specialized agents)
 
 ```
-/workflows:review
+/compound-engineering:workflows:review
 ```
 
 Fix ALL issues found before proceeding.
+
+**Fallback if unavailable:** Use `pr-review-toolkit:code-reviewer` agent on modified files.
 
 ### 5.2 Simplify
 
@@ -97,6 +155,11 @@ Use the code-simplifier agent on all modified files:
 "Use the code-simplifier agent on [list modified files]"
 ```
 
+**Fallback if unavailable:** Manually review for:
+- Unnecessary complexity, dead code, duplicate logic
+- Functions > 50 lines that could be split
+- Over-engineered abstractions
+
 ### 5.3 Verify
 
 Run verification (unit tests, migrations, lint, types):
@@ -105,10 +168,17 @@ Run verification (unit tests, migrations, lint, types):
 "Use the verify-app agent"
 ```
 
+**Fallback if unavailable:** Run manually:
+```bash
+# Run tests, lint, type checks for your stack
+pytest && ruff check . && mypy .  # Python
+npm test && npm run lint && npm run typecheck  # Node
+```
+
 ### 5.4 E2E Tests (if UI/API changed)
 
 ```
-/playwright-test
+/compound-engineering:playwright-test
 ```
 
 ---
@@ -120,10 +190,20 @@ Run verification (unit tests, migrations, lint, types):
 Every bug fix teaches something. Capture it:
 
 ```
-/workflows:compound
+/compound-engineering:workflows:compound
 ```
 
 This creates a searchable solution in `docs/solutions/` so the same bug is never debugged twice.
+
+**Fallback if unavailable:** Create solution doc manually:
+```bash
+mkdir -p docs/solutions/[category]
+# Create docs/solutions/[category]/[descriptive-name].md with:
+# - Problem: What was the symptom
+# - Root Cause: What actually caused it
+# - Solution: How to fix it
+# - Prevention: How to avoid in future
+```
 
 ### 6.2 Update state files
 
@@ -136,21 +216,52 @@ This creates a searchable solution in `docs/solutions/` so the same bug is never
 /superpowers:finishing-a-development-branch
 ```
 
+**Fallback if unavailable:** Complete manually:
+1. Run final verification (tests, lint, types)
+2. Stage and commit changes with descriptive message
+3. Push branch to remote
+4. Create PR if ready for review
+
+---
+
+## ⚠️ IMPORTANT: Never Bypass Mandatory Steps
+
+If any MANDATORY step cannot be completed:
+1. **STOP** - Do not continue with workarounds
+2. **ALERT** - Tell the user which step failed and why
+3. **WAIT** - Get user guidance before proceeding
+4. **NEVER** use bash/python scripts to bypass Edit hooks or skip workflow validation
+
+The hooks exist to enforce quality. Bypassing them defeats their purpose.
+
 ---
 
 ## Checklist Summary
 
+**Pre-Flight:**
 - [ ] On fix branch (not main)
+- [ ] Read CONTINUITY.md
+- [ ] **Verified plugins loaded** (if "Unknown skill" → STOP, alert user)
+
+**Investigation:**
 - [ ] Searched docs/solutions/ for existing fixes
-- [ ] Ran `/superpowers:systematic-debugging` (4-phase analysis)
-- [ ] Brainstormed via `/superpowers:brainstorm` (if complex)
-- [ ] Plan written via `/superpowers:write-plan` (if complex)
-- [ ] Executed fix with TDD
-- [ ] Code reviewed via `/workflows:review`
+- [ ] Ran `/superpowers:systematic-debugging` OR manual 4-phase analysis (MANDATORY)
+
+**Planning (if complex):**
+- [ ] Brainstormed via `/superpowers:brainstorming`
+- [ ] Plan written via `/superpowers:writing-plans`
+
+**Implementation:**
+- [ ] Executed fix with TDD (failing test FIRST, then fix)
+
+**Quality Gates (ALL REQUIRED):**
+- [ ] Code reviewed via `/compound-engineering:workflows:review` or `code-reviewer` agent
 - [ ] Simplified via `code-simplifier` agent
-- [ ] Verified via `verify-app` agent
-- [ ] E2E tested via `/playwright-test` (if UI/API)
-- [ ] **Learning compounded via `/workflows:compound`** (MANDATORY)
+- [ ] Verified via `verify-app` agent (tests, lint, types pass)
+- [ ] E2E tested via `/compound-engineering:playwright-test` (if UI/API changed)
+
+**Finish:**
+- [ ] **Learning compounded** via `/compound-engineering:workflows:compound` or manual doc (MANDATORY)
 - [ ] CONTINUITY.md updated
 - [ ] CHANGELOG.md updated (if 3+ files)
 - [ ] Branch finished via `/superpowers:finishing-a-development-branch`

@@ -38,7 +38,7 @@ After creating PRD:
 1. Summarize what was created (section count, story count)
 2. Ask user to review
 3. Offer to make adjustments
-4. When approved, prompt to start technical design with `/superpowers:brainstorm`
+4. When approved, prompt to start technical design with `/superpowers:brainstorming`
 
 ## PRD Template
 
@@ -198,7 +198,7 @@ Before finalizing, verify PRD has:
 
 - Creates `docs/prds/{feature-name}.md`
 - PRD is ready for technical design phase
-- Prompt user to proceed with `/superpowers:brainstorm` when approved
+- Prompt user to proceed with `/superpowers:brainstorming` when approved
 
 ## Error Handling
 

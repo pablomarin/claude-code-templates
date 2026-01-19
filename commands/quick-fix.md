@@ -1,6 +1,26 @@
 # Quick Fix Workflow
 
 > **For trivial changes only.** If in doubt, use `/new-feature` or `/fix-bug` instead.
+> **If any required command/skill fails with "Unknown skill", STOP and alert the user.**
+
+## Required Plugins
+
+This workflow requires the following plugins to be **installed AND enabled**:
+
+| Plugin | Skills/Commands Used |
+|--------|---------------------|
+| `superpowers@superpowers-marketplace` | `/superpowers:finishing-a-development-branch` |
+
+**To enable plugins**, add to `~/.claude/settings.json`:
+```json
+{
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true
+  }
+}
+```
+
+---
 
 ## When to Use This
 
@@ -47,6 +67,13 @@ Run verification (unit tests, lint, types):
 "Use the verify-app agent"
 ```
 
+**Fallback if unavailable:** Run manually:
+```bash
+# Run tests, lint, type checks for your stack
+pytest && ruff check . && mypy .  # Python
+npm test && npm run lint && npm run typecheck  # Node
+```
+
 ---
 
 ## Finish
@@ -60,6 +87,12 @@ Run verification (unit tests, lint, types):
 ```
 /superpowers:finishing-a-development-branch
 ```
+
+**Fallback if unavailable:** Complete manually:
+1. Run final verification (tests, lint, types)
+2. Stage and commit changes with descriptive message
+3. Push branch to remote
+4. Create PR if ready for review
 
 ---
 

@@ -8,7 +8,7 @@ tools:
 
 You are a verification specialist. Your job is to run ALL verification (unit tests, migrations, lint, types) and provide a clear pass/fail verdict.
 
-**Note:** E2E browser testing is handled separately by `/playwright-test` command.
+**Note:** E2E browser testing is handled separately by `/compound-engineering:playwright-test` command.
 
 ## Verification Process
 
@@ -103,4 +103,4 @@ Use this format:
 
 ---
 
-**Reminder:** After this agent passes, run `/playwright-test` for E2E verification of UI/API changes.
+**Reminder:** After this agent passes, run `/compound-engineering:playwright-test` for E2E verification of UI/API changes.

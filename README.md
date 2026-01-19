@@ -131,6 +131,19 @@ Then run these commands inside Claude Code:
 /plugin install code-simplifier
 ```
 
+**Important:** After installing, ensure plugins are **enabled** in `~/.claude/settings.json`:
+```json
+{
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "compound-engineering@every-marketplace": true,
+    "pr-review-toolkit@claude-plugins-official": true
+  }
+}
+```
+
+Then restart Claude Code to apply.
+
 **Done!** Now [customize your project](#after-setup-customize-your-project).
 
 ---
@@ -171,6 +184,19 @@ Then run these commands inside Claude Code:
 /plugin install compound-engineering@compound-engineering-plugin
 /plugin install code-simplifier
 ```
+
+**Important:** After installing, ensure plugins are **enabled** in `~/.claude/settings.json`:
+```json
+{
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "compound-engineering@every-marketplace": true,
+    "pr-review-toolkit@claude-plugins-official": true
+  }
+}
+```
+
+Then restart Claude Code to apply.
 
 ```bash
 # 4. Commit the new files
@@ -378,21 +404,21 @@ claude
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 4. DESIGN (Superpowers Plugin)                              │
-│    /superpowers:brainstorm → Interactive design            │
-│    /superpowers:write-plan → Detailed TDD tasks            │
+│    /superpowers:brainstorming → Interactive design            │
+│    /superpowers:writing-plans → Detailed TDD tasks            │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 5. ENHANCE PLAN (Compound Engineering)                      │
-│    /deepen-plan → Parallel research agents add depth       │
+│    /compound-engineering:deepen-plan → Parallel research agents add depth       │
 │    → Best practices, implementation details per section    │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 6. EXECUTE (Superpowers Plugin)                             │
-│    /superpowers:execute-plan                               │
+│    /superpowers:executing-plans                               │
 │    → TDD enforced (RED-GREEN-REFACTOR)                     │
 │    → Subagents handle individual tasks                     │
 │    → Auto-format on save (ruff/prettier)                   │
@@ -409,7 +435,7 @@ claude
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 7. REVIEW (Compound Engineering Plugin)                     │
-│    /workflows:review → 14 parallel review agents           │
+│    /compound-engineering:workflows:review → 14 parallel review agents           │
 │    → Fix any issues found                                  │
 └─────────────────────────────────────────────────────────────┘
                             │
@@ -430,7 +456,7 @@ claude
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 10. E2E TESTING (Compound Engineering Plugin)               │
-│    /playwright-test (if UI/API changed)                       │
+│    /compound-engineering:playwright-test (if UI/API changed)                       │
 │    → Auto-detects affected routes from git diff            │
 │    → Uses Playwright MCP for headless testing              │
 └─────────────────────────────────────────────────────────────┘
@@ -438,7 +464,7 @@ claude
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 11. COMPOUND (Compound Engineering Plugin)                  │
-│    /workflows:compound (if bugs fixed or patterns learned) │
+│    /compound-engineering:workflows:compound (if bugs fixed or patterns learned) │
 │    → Captures learnings in docs/solutions/                 │
 └─────────────────────────────────────────────────────────────┘
                             │
@@ -483,9 +509,9 @@ Based on Boris Cherny's key insight:
 
 | Command | Purpose | Notes |
 |---------|---------|-------|
-| `/superpowers:brainstorm` | Interactive design refinement | Uses PRD context |
-| `/superpowers:write-plan` | Create detailed implementation plan | TDD tasks |
-| `/superpowers:execute-plan` | Execute plan with subagents | TDD enforced |
+| `/superpowers:brainstorming` | Interactive design refinement | Uses PRD context |
+| `/superpowers:writing-plans` | Create detailed implementation plan | TDD tasks |
+| `/superpowers:executing-plans` | Execute plan with subagents | TDD enforced |
 | `/superpowers:systematic-debugging` | 4-phase root cause analysis | Before ANY bug fix |
 | `/superpowers:verification-before-completion` | Evidence-based completion check | Catches "should work" claims |
 | `/superpowers:finishing-a-development-branch` | Structured branch completion | 4 options with safeguards |
@@ -494,21 +520,21 @@ Based on Boris Cherny's key insight:
 
 | Command | Purpose | Notes |
 |---------|---------|-------|
-| `/workflows:review` | 14-agent parallel code review | Run before commit |
-| `/workflows:compound` | Capture learnings | Creates files in `docs/solutions/` |
-| `/playwright-test` | E2E browser tests | Auto-detects routes from git diff, uses Playwright MCP |
-| `/deepen-plan` | Enhance plan with parallel research | Run after write-plan |
-| `/changelog` | Generate changelog summary (output only) | For reference when updating CHANGELOG.md |
-| `/resolve_parallel` | Resolve all TODOs in parallel | Speed up cleanup |
-| `/resolve_pr_parallel` | Address all PR comments in parallel | Speed up PR fixes |
-| `/reproduce-bug` | Systematically reproduce bugs | Before fixing |
+| `/compound-engineering:workflows:review` | 14-agent parallel code review | Run before commit |
+| `/compound-engineering:workflows:compound` | Capture learnings | Creates files in `docs/solutions/` |
+| `/compound-engineering:playwright-test` | E2E browser tests | Auto-detects routes from git diff, uses Playwright MCP |
+| `/compound-engineering:deepen-plan` | Enhance plan with parallel research | Run after write-plan |
+| `/compound-engineering:changelog` | Generate changelog summary (output only) | For reference when updating CHANGELOG.md |
+| `/compound-engineering:resolve_parallel` | Resolve all TODOs in parallel | Speed up cleanup |
+| `/compound-engineering:resolve_pr_parallel` | Address all PR comments in parallel | Speed up PR fixes |
+| `/compound-engineering:reproduce-bug` | Systematically reproduce bugs | Before fixing |
 
 ### Custom Agents
 
 | Agent | How to Use | Purpose |
 |-------|------------|---------|
 | code-simplifier | "Use the code-simplifier agent on [files]" | Clean up code (PR Review Toolkit) |
-| verify-app | "Use the verify-app agent" | Unit tests, migration check, lint, types (E2E via `/playwright-test`) |
+| verify-app | "Use the verify-app agent" | Unit tests, migration check, lint, types (E2E via `/compound-engineering:playwright-test`) |
 
 ### Built-in Commands
 
@@ -559,10 +585,10 @@ These happen automatically per CLAUDE.md instructions:
 | Task | When | Prompts? |
 |------|------|----------|
 | Create feature branch | Before new feature | No |
-| `/workflows:review` | Before finishing code | No |
+| `/compound-engineering:workflows:review` | Before finishing code | No |
 | Use code-simplifier | After review | No |
 | Use verify-app | After simplify | No |
-| `/workflows:compound` | After fixing bugs | No |
+| `/compound-engineering:workflows:compound` | After fixing bugs | No |
 | Update CONTINUITY.md | Before finishing session | No |
 | Update CHANGELOG.md | After features/fixes | No |
 | Commit + push | After tests pass | No |
@@ -725,7 +751,19 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
    /plugin list
    ```
 
-2. **Try reinstalling:**
+2. **Verify plugin is ENABLED** in `~/.claude/settings.json`:
+   ```json
+   {
+     "enabledPlugins": {
+       "superpowers@superpowers-marketplace": true,
+       "compound-engineering@every-marketplace": true
+     }
+   }
+   ```
+
+3. **Restart Claude Code** after enabling plugins
+
+4. **Try reinstalling:**
    ```
    /plugin uninstall superpowers@superpowers-marketplace
    /plugin install superpowers@superpowers-marketplace
@@ -811,7 +849,7 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 │   ✓ TDD execution                                          │
 │   ✓ Code review (14 agents)                                │
 │   ✓ Verification (tests, lint, types)                      │
-│   ✓ E2E testing (/playwright-test)                         │
+│   ✓ E2E testing (/compound-engineering:playwright-test)                         │
 │   ✓ Knowledge compounding                                  │
 │   ✓ State updates (CONTINUITY.md, CHANGELOG.md)            │
 │   ✓ Branch completion                                      │
@@ -840,12 +878,12 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 3.0 | 2026-01-18 | **WORKFLOW ENFORCEMENT**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Added PreToolUse hook to block code without workflow. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E now uses `/playwright-test` with Playwright MCP. |
+| 3.0 | 2026-01-18 | **WORKFLOW ENFORCEMENT**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Added PreToolUse hook to block code without workflow. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E now uses `/compound-engineering:playwright-test` with Playwright MCP. |
 | 2.7 | 2026-01-18 | Simplified CONTINUITY.md: Done section keeps only 2-3 recent items, removed redundant sections (Working Set, Test Status, Active Artifacts). Leaner template. |
 | 2.6 | 2026-01-18 | Hooks follow Anthropic best practices: path traversal protection, sensitive file skip, `$CLAUDE_PROJECT_DIR` for absolute paths. Added external post-tool-format.sh script. |
-| 2.5 | 2026-01-17 | E2E testing via `/playwright-test` (uses Playwright MCP). Removed E2E from verify-app agent. |
+| 2.5 | 2026-01-17 | E2E testing via `/compound-engineering:playwright-test` (uses Playwright MCP). Removed E2E from verify-app agent. |
 | 2.4 | 2026-01-17 | Knowledge compounding now uses `docs/solutions/` instead of inline CLAUDE.md learnings. Searchable files with YAML frontmatter, auto-categorized by problem type. |
-| 2.3 | 2026-01-17 | Enhanced workflow with Superpowers skills: systematic-debugging, verification-before-completion, finishing-a-development-branch. Added /deepen-plan, /resolve_parallel from Compound Engineering. Updated Stop hook checklist. |
+| 2.3 | 2026-01-17 | Enhanced workflow with Superpowers skills: systematic-debugging, verification-before-completion, finishing-a-development-branch. Added /compound-engineering:deepen-plan, /compound-engineering:resolve_parallel from Compound Engineering. Updated Stop hook checklist. |
 | 2.2 | 2026-01-17 | Fixed MCP permissions - wildcards don't work, use explicit server names (`mcp__plugin_compound-engineering_context7`) |
 | 2.1 | 2026-01-11 | Added native Windows/PowerShell support - hooks now work without jq on Windows, platform-specific settings templates |
 | 2.0 | 2026-01-10 | Added code-simplifier, verify-app agent, SubagentStop hook, prompt-based Stop hook, project-agnostic templates, clear setup scenarios |

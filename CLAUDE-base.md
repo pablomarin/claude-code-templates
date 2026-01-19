@@ -115,7 +115,7 @@ git checkout -b feat/{name}                # Start feature
 - **USE WORKFLOW COMMANDS** - `/new-feature`, `/fix-bug`, or `/quick-fix`
 - **SYSTEMATIC DEBUGGING** - Use `/superpowers:systematic-debugging` for bugs
 - **TDD MANDATORY** - Red-Green-Refactor via Superpowers
-- **E2E TESTING** - `/playwright-test` for UI/API changes
+- **E2E TESTING** - `/compound-engineering:playwright-test` for UI/API changes
 - **UPDATE STATE** - CONTINUITY.md + CHANGELOG.md (Stop hook enforces)
 - **RESEARCH FIRST** - WebSearch/WebFetch/Context7 before implementing
 - **CHALLENGE ME** - Don't blindly agree

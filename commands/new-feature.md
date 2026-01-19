@@ -1,6 +1,30 @@
 # New Feature Workflow
 
 > **This workflow is MANDATORY. Follow every step in order.**
+> **If any required command/skill fails with "Unknown skill", STOP and alert the user.**
+
+## Required Plugins
+
+This workflow requires the following plugins to be **installed AND enabled**:
+
+| Plugin | Skills/Commands Used |
+|--------|---------------------|
+| `superpowers@superpowers-marketplace` | `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:executing-plans`, `/superpowers:systematic-debugging`, `/superpowers:finishing-a-development-branch` |
+| `compound-engineering@every-marketplace` | `/compound-engineering:workflows:review`, `/compound-engineering:workflows:compound`, `/compound-engineering:playwright-test`, `/compound-engineering:deepen-plan` |
+| `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent |
+
+**To enable plugins**, add to `~/.claude/settings.json`:
+```json
+{
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "compound-engineering@every-marketplace": true,
+    "pr-review-toolkit@claude-plugins-official": true
+  }
+}
+```
+
+---
 
 ## Pre-Flight Checks
 
@@ -13,6 +37,16 @@
    ```bash
    cat CONTINUITY.md
    ```
+
+3. **Verify required plugins are available** (test ONE skill):
+   ```
+   /superpowers:brainstorming
+   ```
+
+   **If "Unknown skill" error:**
+   - STOP immediately
+   - Tell user: "Required plugins not loaded. Please enable in ~/.claude/settings.json and restart Claude Code."
+   - Do NOT proceed with workarounds or skip mandatory steps
 
 ---
 
@@ -55,19 +89,19 @@ Then create the PRD:
 ### 3.1 Brainstorm approaches
 
 ```
-/superpowers:brainstorm
+/superpowers:brainstorming
 ```
 
 ### 3.2 Write the implementation plan
 
 ```
-/superpowers:write-plan
+/superpowers:writing-plans
 ```
 
 ### 3.3 Enhance the plan with parallel research
 
 ```
-/deepen-plan
+/compound-engineering:deepen-plan
 ```
 
 ---
@@ -77,7 +111,7 @@ Then create the PRD:
 Implement using TDD (Red-Green-Refactor):
 
 ```
-/superpowers:execute-plan
+/superpowers:executing-plans
 ```
 
 **If you encounter bugs during implementation:**
@@ -90,13 +124,20 @@ Implement using TDD (Red-Green-Refactor):
 
 ## Phase 5: Quality Gates (ALL REQUIRED)
 
+> **If any command below fails with "Unknown skill":**
+> - Alert the user about missing plugins
+> - Perform equivalent checks manually (see fallbacks below)
+> - Do NOT skip quality gates
+
 ### 5.1 Code Review (14 specialized agents)
 
 ```
-/workflows:review
+/compound-engineering:workflows:review
 ```
 
 Fix ALL issues found before proceeding.
+
+**Fallback if unavailable:** Use `pr-review-toolkit:code-reviewer` agent on modified files.
 
 ### 5.2 Simplify
 
@@ -106,6 +147,11 @@ Use the code-simplifier agent on all modified files:
 "Use the code-simplifier agent on [list modified files]"
 ```
 
+**Fallback if unavailable:** Manually review for:
+- Unnecessary complexity, dead code, duplicate logic
+- Functions > 50 lines that could be split
+- Over-engineered abstractions
+
 ### 5.3 Verify
 
 Run verification (unit tests, migrations, lint, types):
@@ -114,10 +160,17 @@ Run verification (unit tests, migrations, lint, types):
 "Use the verify-app agent"
 ```
 
+**Fallback if unavailable:** Run manually:
+```bash
+# Run tests, lint, type checks for your stack
+pytest && ruff check . && mypy .  # Python
+npm test && npm run lint && npm run typecheck  # Node
+```
+
 ### 5.4 E2E Tests (if UI/API changed)
 
 ```
-/playwright-test
+/compound-engineering:playwright-test
 ```
 
 ---
@@ -129,8 +182,10 @@ Run verification (unit tests, migrations, lint, types):
 If you fixed bugs or discovered patterns:
 
 ```
-/workflows:compound
+/compound-engineering:workflows:compound
 ```
+
+**Fallback if unavailable:** Create solution doc manually in `docs/solutions/[category]/`.
 
 ### 6.2 Update state files
 
@@ -143,22 +198,51 @@ If you fixed bugs or discovered patterns:
 /superpowers:finishing-a-development-branch
 ```
 
+**Fallback if unavailable:** Complete manually:
+1. Run final verification (tests, lint, types)
+2. Stage and commit changes with descriptive message
+3. Push branch to remote
+4. Create PR if ready for review
+
+---
+
+## ⚠️ IMPORTANT: Never Bypass Mandatory Steps
+
+If any MANDATORY step cannot be completed:
+1. **STOP** - Do not continue with workarounds
+2. **ALERT** - Tell the user which step failed and why
+3. **WAIT** - Get user guidance before proceeding
+4. **NEVER** use bash/python scripts to bypass Edit hooks or skip workflow validation
+
 ---
 
 ## Checklist Summary
 
+**Pre-Flight:**
 - [ ] On feature branch (not main)
+- [ ] Read CONTINUITY.md
+- [ ] **Verified plugins loaded** (if "Unknown skill" → STOP, alert user)
+
+**Research & Requirements:**
 - [ ] Researched existing solutions and best practices
 - [ ] PRD created via `/prd:create`
-- [ ] Brainstormed via `/superpowers:brainstorm`
-- [ ] Plan written via `/superpowers:write-plan`
-- [ ] Plan enhanced via `/deepen-plan`
-- [ ] Executed via `/superpowers:execute-plan` (TDD)
-- [ ] Code reviewed via `/workflows:review`
+
+**Design:**
+- [ ] Brainstormed via `/superpowers:brainstorming`
+- [ ] Plan written via `/superpowers:writing-plans`
+- [ ] Plan enhanced via `/compound-engineering:deepen-plan`
+
+**Implementation:**
+- [ ] Executed via `/superpowers:executing-plans` (TDD)
+
+**Quality Gates (ALL REQUIRED):**
+- [ ] Code reviewed via `/compound-engineering:workflows:review` or `code-reviewer` agent
 - [ ] Simplified via `code-simplifier` agent
-- [ ] Verified via `verify-app` agent
-- [ ] E2E tested via `/playwright-test` (if UI/API)
-- [ ] Learnings compounded via `/workflows:compound` (if any)
+- [ ] Verified via `verify-app` agent (tests, lint, types pass)
+- [ ] E2E tested via `/compound-engineering:playwright-test` (if UI/API changed)
+
+**Finish:**
+- [ ] Learnings compounded via `/compound-engineering:workflows:compound` (if any)
 - [ ] CONTINUITY.md updated
 - [ ] CHANGELOG.md updated (if 3+ files)
 - [ ] Branch finished via `/superpowers:finishing-a-development-branch`
