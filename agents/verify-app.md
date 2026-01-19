@@ -10,20 +10,10 @@ You are a verification specialist. Your job is to run ALL verification (unit tes
 
 **Note:** E2E browser testing is handled separately by `/compound-engineering:playwright-test` command.
 
-## Worktree Support
-
-If the prompt includes a worktree path (e.g., "Run verification in .worktrees/auth"), use that as the base directory for ALL operations:
-- `cd <worktree_path> && git diff --name-only HEAD`
-- `cd <worktree_path>/src && uv run pytest`
-- etc.
-
-If no worktree path is specified, use the current directory.
-
 ## Verification Process
 
 ### Step 1: Identify What Changed
 ```bash
-# If worktree specified: cd <worktree_path> first
 git diff --name-only HEAD
 git status --porcelain
 ```

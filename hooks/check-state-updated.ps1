@@ -2,8 +2,6 @@
 # This hook runs when Claude is about to stop responding.
 # It checks if there are uncommitted changes and reminds Claude to update state.
 #
-# Supports worktrees: reads .claude/.session_worktree to check the correct directory.
-#
 # Requirements: PowerShell 5.1+, git
 # No external dependencies needed - uses native ConvertFrom-Json
 
@@ -23,47 +21,29 @@ if ($data.stop_hook_active -eq $true) {
     exit 0
 }
 
-# Check for worktree path (set by /new-feature or /fix-bug workflows)
-# Falls back to current directory if worktree doesn't exist (cleaned up or parallel session)
-$workDir = "."
-$sessionWorktreeFile = ".claude/.session_worktree"
-if (Test-Path $sessionWorktreeFile) {
-    $worktreePath = Get-Content $sessionWorktreeFile -Raw
-    $worktreePath = $worktreePath.Trim()
-    # Only use worktree if directory still exists (may have been cleaned up)
-    if ($worktreePath -and (Test-Path $worktreePath -PathType Container)) {
-        $workDir = $worktreePath
-    }
-}
+# All git commands run in current directory (Claude cd's into worktrees)
 
-# Helper function to run git in the work directory
-function Invoke-Git {
-    param([string[]]$Arguments)
-    $allArgs = @("-C", $workDir) + $Arguments
-    & git @allArgs 2>$null
-}
-
-# Check for uncommitted changes in work directory
-$uncommittedOutput = Invoke-Git @("status", "--porcelain")
+# Check for uncommitted changes
+$uncommittedOutput = git status --porcelain 2>$null
 $uncommitted = if ($uncommittedOutput) { ($uncommittedOutput | Measure-Object -Line).Lines } else { 0 }
 
 # Check if CONTINUITY.md was modified
-$continuityOutput = Invoke-Git @("status", "--porcelain", "CONTINUITY.md")
+$continuityOutput = git status --porcelain CONTINUITY.md 2>$null
 $continuityModified = if ($continuityOutput) { ($continuityOutput | Measure-Object -Line).Lines } else { 0 }
 
 # Check if CHANGELOG was modified
-$changelogOutput = Invoke-Git @("status", "--porcelain", "docs/CHANGELOG.md")
+$changelogOutput = git status --porcelain docs/CHANGELOG.md 2>$null
 $changelogModified = if ($changelogOutput) { ($changelogOutput | Measure-Object -Line).Lines } else { 0 }
 
 # Get branch base for comparison
-$branchBase = Invoke-Git @("merge-base", "main", "HEAD")
+$branchBase = git merge-base main HEAD 2>$null
 if (-not $branchBase) { $branchBase = "HEAD~10" }
 
 # Count files changed on branch
-$branchChangedOutput = Invoke-Git @("diff", "--name-only", $branchBase, "HEAD")
+$branchChangedOutput = git diff --name-only $branchBase HEAD 2>$null
 $branchChanged = if ($branchChangedOutput) { ($branchChangedOutput | Measure-Object -Line).Lines } else { 0 }
 
-$uncommittedFilesOutput = Invoke-Git @("diff", "--name-only")
+$uncommittedFilesOutput = git diff --name-only 2>$null
 $uncommittedFiles = if ($uncommittedFilesOutput) { ($uncommittedFilesOutput | Measure-Object -Line).Lines } else { 0 }
 
 $totalChanged = $branchChanged + $uncommittedFiles

@@ -118,49 +118,54 @@ git checkout -b feat/{name}                # Start feature
 When `/new-feature` or `/fix-bug` runs and you're on `main`:
 1. Creates isolated worktree at `.worktrees/<name>/`
 2. Copies `.env*` files automatically
-3. Installs dependencies (Node.js) or prompts (Python)
-4. **All subsequent file operations use the worktree path**
+3. Installs dependencies
+4. **cd's into the worktree** - all subsequent commands run there
 
 > **CRITICAL**: Always run `claude` from the **project root**, not from inside `.worktrees/`. The `.claude/` folder with hooks and settings lives in the main repo only.
 
-### Session Worktree Tracking
+### Working Inside a Worktree
 
-After Pre-Flight creates a worktree, mentally track `SESSION_WORKTREE`:
-- If worktree created: `SESSION_WORKTREE=".worktrees/<name>"`
-- If already isolated: `SESSION_WORKTREE=""` (use current directory)
+After `cd`ing into the worktree:
+- All file paths are relative (e.g., `src/main.py`, not `.worktrees/auth/src/main.py`)
+- All git commands operate on the worktree's branch
+- Hooks run in the current directory and check the correct files
 
-**All file paths must be prefixed with `$SESSION_WORKTREE/` when set:**
-- Read: `$SESSION_WORKTREE/src/main.py`
-- Edit: `$SESSION_WORKTREE/CONTINUITY.md`
-- Bash: `cd $SESSION_WORKTREE && pytest`
-
-### ⚠️ CRITICAL: No Nested Worktrees
+### No Nested Worktrees
 
 **Worktrees are created ONLY at workflow start (Pre-Flight).**
 
-When running Superpowers skills (`brainstorming`, `writing-plans`, `executing-plans`), these skills may attempt to create worktrees. **SKIP worktree creation** in these skills if:
-- You're already in a `.worktrees/` directory, OR
-- You're already on a feature/fix branch (not main)
-
-Check with: `pwd | grep -q ".worktrees/" || git branch --show-current | grep -qE "^(feat|fix)/"`
+When running Superpowers skills (`brainstorming`, `writing-plans`, `executing-plans`), these skills may attempt to create worktrees. **SKIP worktree creation** in these skills - you're already isolated.
 
 ### Multiple Sessions Example
 
 ```bash
 # Terminal 1
 cd /project && claude
-> /new-feature auth        # Creates .worktrees/auth/, works there
+> /new-feature auth        # Creates .worktrees/auth/, cd's into it
 
 # Terminal 2
 cd /project && claude
-> /new-feature api         # Creates .worktrees/api/, works there
+> /new-feature api         # Creates .worktrees/api/, cd's into it
 
 # Terminal 3
 cd /project && claude
-> /fix-bug login-error     # Creates .worktrees/login-error/, works there
+> /fix-bug login-error     # Creates .worktrees/login-error/, cd's into it
 ```
 
 Each session is fully isolated. No conflicts.
+
+### Cleanup After Merge
+
+After a branch is merged, clean up the worktree:
+
+```bash
+# Go back to main repo
+cd $(git rev-parse --git-common-dir)/..
+
+# Remove the worktree
+git worktree remove .worktrees/<name>
+git worktree prune
+```
 
 ---
 

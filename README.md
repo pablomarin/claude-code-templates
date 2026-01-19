@@ -388,25 +388,25 @@ When you run `/new-feature` or `/fix-bug` from the `main` branch, the workflow a
 
 1. **Creates an isolated worktree** at `.worktrees/<feature-name>/`
 2. **Copies environment files** (`.env*`) to the worktree
-3. **Installs dependencies** (Node.js) or prompts for Python
-4. **Tracks the worktree path** in `.claude/.session_worktree` for hooks
+3. **Installs dependencies** (Node.js/Python)
+4. **cd's into the worktree** - all subsequent commands run there
 
-Each session works in its own isolated directory with its own branch. No conflicts.
+Each session works in its own isolated directory with its own branch. No conflicts, no shared state files.
 
 ### Example: 3 Parallel Sessions
 
 ```bash
 # Terminal 1
 cd /project && claude
-> /new-feature auth        # Creates .worktrees/auth/, works there
+> /new-feature auth        # Creates .worktrees/auth/, cd's into it
 
 # Terminal 2
 cd /project && claude
-> /new-feature api         # Creates .worktrees/api/, works there
+> /new-feature api         # Creates .worktrees/api/, cd's into it
 
 # Terminal 3
 cd /project && claude
-> /fix-bug login-error     # Creates .worktrees/login-error/, works there
+> /fix-bug login-error     # Creates .worktrees/login-error/, cd's into it
 ```
 
 ### Critical: Always Run Claude from Project Root
@@ -428,19 +428,20 @@ cd /project/.worktrees/auth && claude  # Hooks won't work!
 
 - **Worktrees are created automatically** when starting from `main`
 - **No nested worktrees** - if already in a worktree or feature branch, the workflow uses the current directory
-- **Hooks are worktree-aware** - Stop hook checks CONTINUITY.md in the correct worktree
+- **Hooks run in current directory** - after Claude cd's into a worktree, hooks check files there
+- **File paths are relative** - use `src/main.py`, not `.worktrees/auth/src/main.py`
 - **`.worktrees/` is gitignored** automatically
-- **Dependencies are installed** automatically for Node.js projects
+- **Dependencies are installed** automatically
 - **Quick-fix does NOT create worktrees** - use `/new-feature` or `/fix-bug` for parallel work
-- **Cleanup is safe** - when one session cleans up its worktree, it doesn't affect other running sessions (hooks gracefully fall back if worktree is gone)
+- **Cleanup is safe** - each session is fully isolated, no shared state between sessions
 
 ### Cleanup
 
 After merging a feature, clean up the worktree:
 
 ```bash
-# List all worktrees
-git worktree list
+# Go back to main repo (from inside worktree)
+cd $(git rev-parse --git-common-dir)/..
 
 # Remove a specific worktree (after merging its branch)
 git worktree remove .worktrees/auth
@@ -956,6 +957,7 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 3.2 | 2026-01-19 | **SIMPLIFIED WORKTREES**: Claude now `cd`s into worktrees instead of using path prefixes. Removed `.session_worktree` file - no shared state between sessions. Hooks and verify-app simplified to use current directory. |
 | 3.1 | 2026-01-19 | **PARALLEL DEVELOPMENT**: Workflow commands auto-create git worktrees for isolated parallel sessions. Hooks are worktree-aware. verify-app agent accepts worktree path. |
 | 3.0 | 2026-01-18 | **WORKFLOW COMMANDS**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E now uses `/compound-engineering:playwright-test` with Playwright MCP. |
 | 2.7 | 2026-01-18 | Simplified CONTINUITY.md: Done section keeps only 2-3 recent items, removed redundant sections (Working Set, Test Status, Active Artifacts). Leaner template. |

@@ -41,7 +41,7 @@ else
 fi
 ```
 
-**If ON_MAIN → Create worktree:**
+**If ON_MAIN → Create worktree and cd into it:**
 ```bash
 FIX_NAME="$ARGUMENTS"
 WORKTREE_PATH=".worktrees/$FIX_NAME"
@@ -61,39 +61,42 @@ else
   echo "✓ Created new worktree at $WORKTREE_PATH"
 fi
 
-# Copy environment files
+# Copy environment files to worktree
 for f in .env .env.local .env.development .env.test; do
   [ -f "$f" ] && cp "$f" "$WORKTREE_PATH/"
 done
+```
 
-# Write worktree path for hooks to read
-echo "$WORKTREE_PATH" > .claude/.session_worktree
+**Then cd into the worktree:**
+```bash
+cd $WORKTREE_PATH
+```
 
-# Install dependencies in worktree (if applicable)
-if [ -f "$WORKTREE_PATH/package.json" ] && [ ! -d "$WORKTREE_PATH/node_modules" ]; then
-  echo "Installing Node dependencies in worktree..."
-  (cd "$WORKTREE_PATH" && (pnpm install --silent 2>/dev/null || npm install --silent 2>/dev/null || yarn install --silent 2>/dev/null))
+**Install dependencies (if needed):**
+```bash
+# Node.js
+if [ -f "package.json" ] && [ ! -d "node_modules" ]; then
+  pnpm install --silent 2>/dev/null || npm install --silent 2>/dev/null || yarn install --silent 2>/dev/null
 fi
-if [ -f "$WORKTREE_PATH/pyproject.toml" ]; then
-  echo "Installing Python dependencies in worktree..."
-  (cd "$WORKTREE_PATH" && (uv sync 2>/dev/null || pip install -e . 2>/dev/null || echo "Run 'uv sync' or 'pip install' manually"))
+
+# Python
+if [ -f "pyproject.toml" ]; then
+  uv sync 2>/dev/null || pip install -e . 2>/dev/null || echo "Run 'uv sync' manually"
 fi
 ```
 
-**⚠️ CRITICAL: Set SESSION_WORKTREE for this session:**
-- `SESSION_WORKTREE=".worktrees/$FIX_NAME"`
-- **ALL file operations for the rest of this workflow MUST use `$SESSION_WORKTREE/` as base path**
-- Example: `$SESSION_WORKTREE/src/main.py`, `$SESSION_WORKTREE/CONTINUITY.md`
-- Bash commands: `cd $SESSION_WORKTREE && command`
+**⚠️ IMPORTANT: You are now working inside the worktree.**
+- All file paths are relative to the worktree (e.g., `src/main.py`, not `.worktrees/fix-name/src/main.py`)
+- All git commands operate on the worktree's branch
+- Hooks will automatically check the correct files
 
 **If ALREADY_IN_WORKTREE or ON_FEATURE_BRANCH:**
-- `SESSION_WORKTREE=""` (empty - use current directory)
-- Clear any stale worktree marker: `rm -f .claude/.session_worktree`
-- Continue with current workspace, already isolated
+- You're already isolated - continue with current workspace
+- No cd needed
 
 ### 2. Read project state
 ```bash
-cat ${SESSION_WORKTREE:-.}/CONTINUITY.md
+cat CONTINUITY.md
 ```
 
 ### 3. Verify required plugins are available (test ONE skill)
@@ -103,16 +106,7 @@ cat ${SESSION_WORKTREE:-.}/CONTINUITY.md
 
 **If "Unknown skill" error:**
 - STOP immediately
-- Tell user: "Required plugins not loaded. Please enable in ~/.claude/settings.json:
-  ```json
-  {
-    "enabledPlugins": {
-      "superpowers@superpowers-marketplace": true,
-      "compound-engineering@every-marketplace": true
-    }
-  }
-  ```
-  Then restart Claude Code."
+- Tell user: "Required plugins not loaded. Please enable in ~/.claude/settings.json and restart Claude Code."
 - Do NOT proceed with workarounds or skip mandatory steps
 
 ### 4. Worktree Policy Reminder
@@ -232,8 +226,7 @@ Using a subagent keeps test output out of your context window, preserving tokens
 ```
 Use the Task tool with:
 - subagent_type: "verify-app"
-- prompt: "Run verification in $SESSION_WORKTREE and report pass/fail verdict."
-  (If SESSION_WORKTREE is empty, just say "Run verification and report pass/fail verdict.")
+- prompt: "Run verification and report pass/fail verdict."
 ```
 
 **Only use fallback if Task tool fails:**
@@ -309,26 +302,26 @@ mkdir -p docs/solutions/[category]
 
 ### 6.4 Cleanup worktree (if created)
 
-**Only if SESSION_WORKTREE was set (worktree was created in Pre-Flight):**
+**Only if you created a worktree in Pre-Flight (started from main):**
 
 After the branch is merged and deleted, clean up the worktree:
 
 ```bash
-# Remove the worktree directory and metadata
-git worktree remove $SESSION_WORKTREE
+# First, go back to the main repository
+cd $(git rev-parse --git-common-dir)/..
+
+# Remove the worktree
+git worktree remove .worktrees/$FIX_NAME
 
 # Prune any stale worktree references
 git worktree prune
 ```
 
-> **⚠️ DO NOT delete `.claude/.session_worktree`** - other parallel sessions may be using it.
-> The file is harmless if left behind; hooks handle missing worktrees gracefully.
-
 **If PR is still open (not merged yet):**
-- Keep the worktree for potential follow-up work
+- Keep the worktree for potential follow-up work (addressing review comments)
 - Cleanup will happen after merge
 
-**Ask the user:** "The branch has been pushed/merged. Should I clean up the worktree at `$SESSION_WORKTREE`?"
+**Ask the user:** "The branch has been pushed/merged. Should I clean up the worktree?"
 
 ---
 
@@ -347,7 +340,7 @@ The hooks exist to enforce quality. Bypassing them defeats their purpose.
 ## Checklist Summary
 
 **Pre-Flight:**
-- [ ] On fix branch (not main)
+- [ ] Created worktree and cd'd into it (if on main)
 - [ ] Read CONTINUITY.md
 - [ ] **Verified plugins loaded** (if "Unknown skill" → STOP, alert user)
 
