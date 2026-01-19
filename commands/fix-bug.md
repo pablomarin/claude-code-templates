@@ -175,11 +175,29 @@ pytest && ruff check . && mypy .  # Python
 npm test && npm run lint && npm run typecheck  # Node
 ```
 
-### 5.4 E2E Tests (if UI/API changed)
+### 5.4 E2E Tests (MANDATORY if API changed)
 
+**If you modified ANY API endpoint, you MUST run E2E tests.**
+
+The API doesn't exist in isolation - frontend code depends on it. Even if you didn't touch the frontend, API changes can break existing UI functionality.
+
+**Step 1: Find what uses the changed API**
+```bash
+# Search frontend for API endpoint usage
+grep -r "your-endpoint-path" frontend/
+```
+
+**Step 2: Run E2E tests on affected UI**
 ```
 /compound-engineering:playwright-test
 ```
+
+**DO NOT skip this step by saying:**
+- ❌ "No frontend exists for this endpoint" → Test the UI that USES the API
+- ❌ "Unit tests cover it" → Unit tests don't catch integration issues
+- ❌ "The fix is backend only" → Backend fixes can break frontend behavior
+
+**Only skip if:** The change is purely backend with NO frontend consumers.
 
 ---
 
@@ -258,7 +276,7 @@ The hooks exist to enforce quality. Bypassing them defeats their purpose.
 - [ ] Code reviewed via `/compound-engineering:workflows:review` or `code-reviewer` agent
 - [ ] Simplified via `code-simplifier` agent
 - [ ] Verified via `verify-app` agent (tests, lint, types pass)
-- [ ] E2E tested via `/compound-engineering:playwright-test` (if UI/API changed)
+- [ ] **E2E tested via `/compound-engineering:playwright-test`** (MANDATORY if API changed)
 
 **Finish:**
 - [ ] **Learning compounded** via `/compound-engineering:workflows:compound` or manual doc (MANDATORY)
