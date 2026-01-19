@@ -28,25 +28,73 @@ This workflow requires the following plugins to be **installed AND enabled**:
 
 ## Pre-Flight Checks
 
-1. **Verify branch**: You must NOT be on `main`. If on main:
-   ```bash
-   git checkout -b feat/$ARGUMENTS
-   ```
+### 1. Create Isolated Workspace (enables parallel sessions)
 
-2. **Read project state**:
-   ```bash
-   cat CONTINUITY.md
-   ```
+**Determine current state:**
+```bash
+if [[ "$(pwd)" == *".worktrees/"* ]]; then
+  echo "STATE: ALREADY_IN_WORKTREE"
+elif [[ "$(git branch --show-current)" =~ ^(main|master)$ ]]; then
+  echo "STATE: ON_MAIN"
+else
+  echo "STATE: ON_FEATURE_BRANCH"
+fi
+```
 
-3. **Verify required plugins are available** (test ONE skill):
-   ```
-   /superpowers:brainstorming
-   ```
+**If ON_MAIN → Create worktree:**
+```bash
+FEATURE_NAME="$ARGUMENTS"
+WORKTREE_PATH=".worktrees/$FEATURE_NAME"
 
-   **If "Unknown skill" error:**
-   - STOP immediately
-   - Tell user: "Required plugins not loaded. Please enable in ~/.claude/settings.json and restart Claude Code."
-   - Do NOT proceed with workarounds or skip mandatory steps
+# Ensure .worktrees exists and is gitignored
+mkdir -p .worktrees
+grep -qxF '.worktrees/' .gitignore 2>/dev/null || echo '.worktrees/' >> .gitignore
+
+# Create worktree (handle existing branch/worktree cases)
+if [ -d "$WORKTREE_PATH" ]; then
+  echo "✓ Worktree exists - reusing $WORKTREE_PATH"
+elif git show-ref --quiet "refs/heads/feat/$FEATURE_NAME" 2>/dev/null; then
+  git worktree add "$WORKTREE_PATH" "feat/$FEATURE_NAME"
+  echo "✓ Created worktree for existing branch at $WORKTREE_PATH"
+else
+  git worktree add "$WORKTREE_PATH" -b "feat/$FEATURE_NAME"
+  echo "✓ Created new worktree at $WORKTREE_PATH"
+fi
+
+# Copy environment files
+for f in .env .env.local .env.development .env.test; do
+  [ -f "$f" ] && cp "$f" "$WORKTREE_PATH/"
+done
+```
+
+**⚠️ CRITICAL: Set SESSION_WORKTREE for this session:**
+- `SESSION_WORKTREE=".worktrees/$FEATURE_NAME"`
+- **ALL file operations for the rest of this workflow MUST use `$SESSION_WORKTREE/` as base path**
+- Example: `$SESSION_WORKTREE/src/main.py`, `$SESSION_WORKTREE/CONTINUITY.md`
+- Bash commands: `cd $SESSION_WORKTREE && command`
+
+**If ALREADY_IN_WORKTREE or ON_FEATURE_BRANCH:**
+- `SESSION_WORKTREE=""` (empty - use current directory)
+- Continue with current workspace, already isolated
+
+### 2. Read project state
+```bash
+cat ${SESSION_WORKTREE:-.}/CONTINUITY.md
+```
+
+### 3. Verify required plugins are available (test ONE skill)
+```
+/superpowers:brainstorming
+```
+
+**If "Unknown skill" error:**
+- STOP immediately
+- Tell user: "Required plugins not loaded. Please enable in ~/.claude/settings.json and restart Claude Code."
+- Do NOT proceed with workarounds or skip mandatory steps
+
+### 4. Worktree Policy Reminder
+
+**DO NOT create additional worktrees** during this workflow. If `/superpowers:brainstorming` or other skills attempt to create a worktree, **SKIP that step** - you're already isolated.
 
 ---
 

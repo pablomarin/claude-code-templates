@@ -99,13 +99,65 @@ git checkout -b feat/{name}                # Start feature
 
 | Scenario | Action |
 |----------|--------|
-| Session start on main | **Create feature branch** (ask user for name) |
+| Session start on main | **Create worktree** via workflow command |
 | Starting new feature | Run `/new-feature <name>` |
 | Fixing a bug | Run `/fix-bug <name>` |
 | Trivial change (< 3 files) | Run `/quick-fix <name>` |
 | Creating PR to main | **Ask** |
 | Merging PR to main | **Ask** |
 | Skipping tests | **Never** |
+
+---
+
+## Parallel Development (Worktrees)
+
+> **Enables multiple Claude sessions working simultaneously on different features.**
+
+### How It Works
+
+When `/new-feature` or `/fix-bug` runs and you're on `main`:
+1. Creates isolated worktree at `.worktrees/<name>/`
+2. Copies `.env*` files automatically
+3. **All subsequent file operations use the worktree path**
+
+### Session Worktree Tracking
+
+After Pre-Flight creates a worktree, mentally track `SESSION_WORKTREE`:
+- If worktree created: `SESSION_WORKTREE=".worktrees/<name>"`
+- If already isolated: `SESSION_WORKTREE=""` (use current directory)
+
+**All file paths must be prefixed with `$SESSION_WORKTREE/` when set:**
+- Read: `$SESSION_WORKTREE/src/main.py`
+- Edit: `$SESSION_WORKTREE/CONTINUITY.md`
+- Bash: `cd $SESSION_WORKTREE && pytest`
+
+### ⚠️ CRITICAL: No Nested Worktrees
+
+**Worktrees are created ONLY at workflow start (Pre-Flight).**
+
+When running Superpowers skills (`brainstorming`, `writing-plans`, `executing-plans`), these skills may attempt to create worktrees. **SKIP worktree creation** in these skills if:
+- You're already in a `.worktrees/` directory, OR
+- You're already on a feature/fix branch (not main)
+
+Check with: `pwd | grep -q ".worktrees/" || git branch --show-current | grep -qE "^(feat|fix)/"`
+
+### Multiple Sessions Example
+
+```bash
+# Terminal 1
+cd /project && claude
+> /new-feature auth        # Creates .worktrees/auth/, works there
+
+# Terminal 2
+cd /project && claude
+> /new-feature api         # Creates .worktrees/api/, works there
+
+# Terminal 3
+cd /project && claude
+> /fix-bug login-error     # Creates .worktrees/login-error/, works there
+```
+
+Each session is fully isolated. No conflicts.
 
 ---
 
