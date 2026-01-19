@@ -72,8 +72,6 @@ Use the Task tool with:
 - prompt: "Run verification on current changes and report pass/fail verdict."
 ```
 
-The verify-app agent is defined in `.claude/agents/verify-app.md` and will automatically use its configured tools (Bash, Read) and instructions.
-
 **Only use fallback if Task tool fails:**
 ```bash
 pytest && ruff check . && mypy .  # Python
