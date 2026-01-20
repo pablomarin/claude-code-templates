@@ -71,27 +71,7 @@ git checkout -b feat/{name}                # Start feature
 
 ## Workflow
 
-> **GUIDED via workflow commands.** SessionStart loads context. Stop hook validates completion.
-
-| Task Type | Command | What It Contains |
-|-----------|---------|------------------|
-| New feature | `/new-feature <name>` | Research → PRD → Brainstorm → Plan → Execute → Review → Finish |
-| Bug fix | `/fix-bug <name>` | Search solutions → Systematic debugging → Fix → Review → Compound → Finish |
-| Trivial change | `/quick-fix <name>` | Verify → Fix → Verify → Finish |
-
-**The commands contain the full workflow. Follow them exactly.**
-
----
-
-## State Management
-
-| File | Purpose | When |
-|------|---------|------|
-| `CONTINUITY.md` | Current goal, Done/Now/Next | Every session |
-| `docs/CHANGELOG.md` | Historical record | After features/fixes (3+ files) |
-| `docs/prds/*.md` | Product requirements | Before design |
-| `docs/plans/*.md` | Design docs | Per feature |
-| `docs/solutions/*.md` | Compounded learnings | After fixing bugs |
+**Use workflow commands.** They contain the full process - follow them exactly.
 
 ---
 
@@ -133,14 +113,3 @@ When running Superpowers skills (`brainstorming`, `writing-plans`, `executing-pl
 ## Detailed Rules
 
 See `.claude/rules/` for language-specific standards.
-
----
-
-## Automation (Hooks)
-
-| Hook | What It Does |
-|------|--------------|
-| `SessionStart` | Loads CONTINUITY.md, prompts for task type |
-| `Stop` | Validates workflow complete, CONTINUITY.md updated |
-| `SubagentStop` | Validates subagent output quality |
-| `PostToolUse` | Auto-formats Python/TypeScript after edits |
