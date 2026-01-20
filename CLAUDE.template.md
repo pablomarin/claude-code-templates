@@ -79,10 +79,9 @@ git checkout -b feat/{name}                # Start feature
 
 | Scenario | Action |
 |----------|--------|
-| Session start on main | **Create worktree** via workflow command |
-| Starting new feature | Run `/new-feature <name>` |
-| Fixing a bug | Run `/fix-bug <name>` |
-| Trivial change (< 3 files) | Run `/quick-fix <name>` |
+| Starting new feature | Run `/new-feature <name>` (creates worktree) |
+| Fixing a bug | Run `/fix-bug <name>` (creates worktree) |
+| Trivial change (< 3 files) | Run `/quick-fix <name>` (no worktree) |
 | Creating PR to main | **Ask** |
 | Merging PR to main | **Ask** |
 | Skipping tests | **Never** |
@@ -91,7 +90,9 @@ git checkout -b feat/{name}                # Start feature
 
 ## Worktree Policy
 
-**Worktrees are created ONLY at workflow start (Pre-Flight in `/new-feature` or `/fix-bug`).**
+**`/new-feature` and `/fix-bug` ALWAYS create a worktree** (unless already inside one). This ensures parallel sessions never mix work - even if you're on an unrelated feature branch.
+
+**`/quick-fix` does NOT create worktrees** - it's for trivial changes only.
 
 When running Superpowers skills (`brainstorming`, `writing-plans`, `executing-plans`), these skills may attempt to create worktrees. **SKIP worktree creation** in these skills - you're already isolated.
 
