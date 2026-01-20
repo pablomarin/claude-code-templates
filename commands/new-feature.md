@@ -299,7 +299,7 @@ After the branch is merged and deleted, clean up the worktree:
 
 ```bash
 # First, go back to the main repository
-cd $(git rev-parse --git-common-dir)/..
+cd "$(git rev-parse --git-common-dir)/.."
 
 # Remove the worktree
 git worktree remove ".worktrees/$FEATURE_NAME"
