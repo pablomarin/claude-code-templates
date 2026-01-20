@@ -1,10 +1,69 @@
 # Claude Code Automation Setup
 
-**Company-wide setup guide for Claude Code with Superpowers + Compound Engineering workflow.**
+> **Transform Claude Code from a coding assistant into an autonomous software engineering system.**
 
-Based on Boris Cherny's (Claude Code creator) workflow and Anthropic's official best practices.
+This template adds structured workflows, automated quality gates, and knowledge compounding to Claude Code - turning it into a reliable development partner that learns from every bug fix and enforces best practices automatically.
 
-**Repository:** https://github.com/pablomarin/claude-code-templates
+## Why Use This?
+
+| Problem | Solution |
+|---------|----------|
+| Claude makes changes without testing | **Automated verification** - tests, lint, types checked before completion |
+| Bugs get fixed but knowledge is lost | **Knowledge compounding** - solutions saved to `docs/solutions/` for future reference |
+| No consistent development process | **Guided workflows** - `/new-feature`, `/fix-bug` commands enforce best practices |
+| Context lost between sessions | **State persistence** - CONTINUITY.md tracks Done/Now/Next across sessions |
+| Can't run multiple features in parallel | **Git worktrees** - isolated workspaces for parallel Claude sessions |
+| Code review happens too late | **14-agent parallel review** - catches issues before commit |
+| E2E testing skipped | **Playwright integration** - automated browser testing for UI/API changes |
+
+## Key Features
+
+- **3 Workflow Commands**: `/new-feature`, `/fix-bug`, `/quick-fix` - each guides you through the complete process
+- **Automated Hooks**: SessionStart loads context, Stop validates completion, PostToolUse auto-formats code
+- **TDD Enforcement**: Red-Green-Refactor via Superpowers plugin
+- **Parallel Development**: Multiple Claude sessions working on different features simultaneously
+- **Knowledge Base**: Bug fixes automatically documented for future reference
+
+Based on [Boris Cherny's workflow](https://www.anthropic.com/engineering/claude-code-best-practices) (Claude Code creator) and Anthropic's official best practices.
+
+---
+
+## Quick Start (5 minutes)
+
+```bash
+# 1. Clone templates (one-time)
+git clone https://github.com/pablomarin/claude-code-templates.git ~/claude-code-templates
+chmod +x ~/claude-code-templates/setup.sh
+
+# 2. Go to your project and run setup
+cd /path/to/your/project
+~/claude-code-templates/setup.sh -p "My Project"
+
+# 3. Start Claude and install plugins
+claude
+```
+
+Then in Claude Code, run:
+```
+/plugin marketplace add obra/superpowers-marketplace
+/plugin install superpowers@superpowers-marketplace
+/plugin marketplace add EveryInc/compound-engineering-plugin
+/plugin install compound-engineering@compound-engineering-plugin
+/plugin install code-simplifier
+```
+
+Enable plugins in `~/.claude/settings.json`:
+```json
+{
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "compound-engineering@every-marketplace": true,
+    "pr-review-toolkit@claude-plugins-official": true
+  }
+}
+```
+
+Restart Claude Code. **Done!** Now use `/new-feature my-feature` to start your first guided workflow.
 
 ---
 
