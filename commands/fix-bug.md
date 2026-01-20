@@ -69,7 +69,7 @@ done
 
 **Then cd into the worktree:**
 ```bash
-cd $WORKTREE_PATH
+cd "$WORKTREE_PATH"
 ```
 
 **Install dependencies (if needed):**
@@ -311,7 +311,7 @@ After the branch is merged and deleted, clean up the worktree:
 cd $(git rev-parse --git-common-dir)/..
 
 # Remove the worktree
-git worktree remove .worktrees/$FIX_NAME
+git worktree remove ".worktrees/$FIX_NAME"
 
 # Prune any stale worktree references
 git worktree prune

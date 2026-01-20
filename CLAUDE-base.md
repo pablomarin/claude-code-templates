@@ -160,10 +160,10 @@ After a branch is merged, clean up the worktree:
 
 ```bash
 # Go back to main repo
-cd $(git rev-parse --git-common-dir)/..
+cd "$(git rev-parse --git-common-dir)/.."
 
 # Remove the worktree
-git worktree remove .worktrees/<name>
+git worktree remove ".worktrees/<name>"
 git worktree prune
 ```
 

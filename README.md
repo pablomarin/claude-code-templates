@@ -441,10 +441,10 @@ After merging a feature, clean up the worktree:
 
 ```bash
 # Go back to main repo (from inside worktree)
-cd $(git rev-parse --git-common-dir)/..
+cd "$(git rev-parse --git-common-dir)/.."
 
 # Remove a specific worktree (after merging its branch)
-git worktree remove .worktrees/auth
+git worktree remove ".worktrees/auth"
 
 # Clean up stale worktree metadata
 git worktree prune

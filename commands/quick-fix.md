@@ -45,7 +45,7 @@ This workflow requires the following plugins to be **installed AND enabled**:
 
 1. **Verify branch**: You must NOT be on `main`. If on main:
    ```bash
-   git checkout -b fix/$ARGUMENTS
+   git checkout -b "fix/$ARGUMENTS"
    ```
 
 ---
