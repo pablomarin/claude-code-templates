@@ -158,11 +158,11 @@ function Copy-TemplateFile {
 Write-Color "Copying configuration files..." "Yellow"
 
 # Main files
-Copy-TemplateFile "$ScriptDir\CLAUDE-base.md" "CLAUDE.md" "CLAUDE.md"
-Copy-TemplateFile "$ScriptDir\CONTINUITY-template.md" "CONTINUITY.md" "CONTINUITY.md"
+Copy-TemplateFile "$ScriptDir\CLAUDE.template.md" "CLAUDE.md" "CLAUDE.md"
+Copy-TemplateFile "$ScriptDir\CONTINUITY.template.md" "CONTINUITY.md" "CONTINUITY.md"
 
 # Settings (Windows-specific with PowerShell hooks)
-Copy-TemplateFile "$ScriptDir\settings\settings-windows.json" ".claude\settings.json" ".claude\settings.json"
+Copy-TemplateFile "$ScriptDir\settings\settings-windows.template.json" ".claude\settings.json" ".claude\settings.json"
 
 # Hooks (PowerShell versions for Windows)
 Copy-TemplateFile "$ScriptDir\hooks\check-state-updated.ps1" ".claude\hooks\check-state-updated.ps1" ".claude\hooks\check-state-updated.ps1"

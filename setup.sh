@@ -155,11 +155,11 @@ copy_file() {
 echo -e "${YELLOW}Copying configuration files...${NC}"
 
 # Main files (directly in SCRIPT_DIR, not in templates subfolder)
-copy_file "$SCRIPT_DIR/CLAUDE-base.md" "CLAUDE.md" "CLAUDE.md"
-copy_file "$SCRIPT_DIR/CONTINUITY-template.md" "CONTINUITY.md" "CONTINUITY.md"
+copy_file "$SCRIPT_DIR/CLAUDE.template.md" "CLAUDE.md" "CLAUDE.md"
+copy_file "$SCRIPT_DIR/CONTINUITY.template.md" "CONTINUITY.md" "CONTINUITY.md"
 
 # Settings
-copy_file "$SCRIPT_DIR/settings/settings-template.json" ".claude/settings.json" ".claude/settings.json"
+copy_file "$SCRIPT_DIR/settings/settings.template.json" ".claude/settings.json" ".claude/settings.json"
 
 # Hooks
 copy_file "$SCRIPT_DIR/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh"
