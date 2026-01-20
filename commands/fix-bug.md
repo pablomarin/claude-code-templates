@@ -28,20 +28,25 @@ This workflow requires the following plugins to be **installed AND enabled**:
 
 ## Pre-Flight Checks
 
-### 1. Create Isolated Workspace (enables parallel sessions)
+### 1. Create Isolated Workspace (MANDATORY)
 
-**Determine current state:**
+**Check if already in a worktree:**
 ```bash
 if [[ "$(pwd)" == *".worktrees/"* ]]; then
   echo "STATE: ALREADY_IN_WORKTREE"
-elif [[ "$(git branch --show-current)" =~ ^(main|master)$ ]]; then
-  echo "STATE: ON_MAIN"
 else
-  echo "STATE: ON_FEATURE_BRANCH"
+  echo "STATE: NEEDS_WORKTREE"
 fi
 ```
 
-**If ON_MAIN → Create worktree and cd into it:**
+**If ALREADY_IN_WORKTREE:**
+- You're already isolated - continue with current workspace
+- No action needed
+
+**If NEEDS_WORKTREE → Create worktree and cd into it:**
+
+> ⚠️ **ALWAYS create a worktree**, even if on a feature branch. Being on "a feature branch" doesn't mean it's the right branch for THIS fix. Worktrees ensure parallel sessions never mix work.
+
 ```bash
 FIX_NAME="$ARGUMENTS"
 WORKTREE_PATH=".worktrees/$FIX_NAME"
@@ -89,10 +94,6 @@ fi
 - All file paths are relative to the worktree (e.g., `src/main.py`, not `.worktrees/fix-name/src/main.py`)
 - All git commands operate on the worktree's branch
 - Hooks will automatically check the correct files
-
-**If ALREADY_IN_WORKTREE or ON_FEATURE_BRANCH:**
-- You're already isolated - continue with current workspace
-- No cd needed
 
 ### 2. Read project state
 ```bash
@@ -340,7 +341,7 @@ The hooks exist to enforce quality. Bypassing them defeats their purpose.
 ## Checklist Summary
 
 **Pre-Flight:**
-- [ ] Created worktree and cd'd into it (if on main)
+- [ ] Created worktree and cd'd into it (unless already in worktree)
 - [ ] Read CONTINUITY.md
 - [ ] **Verified plugins loaded** (if "Unknown skill" → STOP, alert user)
 
