@@ -154,21 +154,9 @@ echo "✓ Updated main branch"
 
 ### 4.9 Restart servers in main directory (if needed)
 
-> ⚠️ **If you restarted servers in the worktree for E2E testing**, they are now stopped or pointing to a deleted directory. Restart them from main.
+> ⚠️ **If you restarted servers in the worktree for E2E testing**, they are now stopped or pointing to a deleted directory.
 
-**Ask the user:** "Should I restart the dev servers from the main directory?"
-
-**If yes:**
-```bash
-# Docker Compose
-docker compose down && docker compose up -d
-
-# Node.js
-npm run dev &
-
-# Python/uvicorn
-uvicorn main:app --reload &
-```
+Start the dev servers from the main directory. Use the project's start commands from CLAUDE.md.
 
 ---
 
@@ -183,7 +171,7 @@ After successful cleanup, report to user:
   - Deleted remote branch: [branch]
   - Pruned stale references
   - Now on main branch (up to date)
-  - Remember: Restart dev servers if they were running in the worktree
+  - Dev servers restarted from main
 ```
 
 ---
