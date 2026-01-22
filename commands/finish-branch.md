@@ -156,7 +156,7 @@ echo "✓ Updated main branch"
 
 > ⚠️ **If you restarted servers in the worktree for E2E testing**, they are now stopped or pointing to a deleted directory.
 
-Start the dev servers from the main directory. Use the project's start commands from CLAUDE.md.
+Start the development servers from the main directory. Use the project's start commands from CLAUDE.md.
 
 ---
 
@@ -171,7 +171,7 @@ After successful cleanup, report to user:
   - Deleted remote branch: [branch]
   - Pruned stale references
   - Now on main branch (up to date)
-  - Dev servers restarted from main
+  - Development servers restarted from main
 ```
 
 ---

@@ -250,9 +250,9 @@ grep -r "your-endpoint-path" frontend/
 
 **Step 2: Restart servers from worktree (CRITICAL if in worktree)**
 
-> ⚠️ **If you're in a worktree**, the dev servers are likely still running from the main directory, serving OLD code. You MUST restart them from the worktree to test your changes.
+> ⚠️ **If you're in a worktree**, the development servers are likely still running from the main directory, serving OLD code. You MUST restart them from the worktree to test your changes.
 
-Stop the current dev servers and start them from this worktree directory. Use the project's start/stop commands from CLAUDE.md.
+Stop the current development servers and start them from this worktree directory. Use the project's start/stop commands from CLAUDE.md.
 
 Wait for servers to be ready before proceeding.
 
