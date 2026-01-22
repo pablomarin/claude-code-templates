@@ -249,7 +249,31 @@ The API doesn't exist in isolation - frontend code depends on it. Even if you di
 grep -r "your-endpoint-path" frontend/
 ```
 
-**Step 2: Run E2E tests on affected UI**
+**Step 2: Restart servers from worktree (CRITICAL if in worktree)**
+
+> ⚠️ **If you're in a worktree**, the dev servers are likely still running from the main directory, serving OLD code. You MUST restart them from the worktree to test your changes.
+
+**Ask the user:** "I need to restart the dev servers from this worktree to run E2E tests. Should I stop the current servers and start them here?"
+
+**After user confirms, restart servers:**
+```bash
+# Docker Compose
+docker compose down && docker compose up -d
+
+# Node.js (find and kill existing, then start)
+pkill -f "node.*dev" || true
+npm run dev &
+
+# Python/uvicorn
+pkill -f "uvicorn" || true
+uvicorn main:app --reload &
+
+# Generic: Ask user for their start command if unknown
+```
+
+**Wait for servers to be ready before proceeding.**
+
+**Step 3: Run E2E tests on affected UI**
 ```
 /compound-engineering:playwright-test
 ```
