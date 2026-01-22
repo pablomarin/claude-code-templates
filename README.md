@@ -496,7 +496,14 @@ cd /project/.worktrees/auth && claude  # Hooks won't work!
 
 ### Cleanup
 
-After merging a feature, clean up the worktree:
+The `/finish-branch` command handles cleanup automatically after PR merge. It will:
+1. Remove the worktree
+2. Delete the local branch
+3. Delete the remote branch
+4. Prune stale references
+5. Switch to main and pull latest
+
+**Manual cleanup** (if needed):
 
 ```bash
 # Go back to main repo (from inside worktree)
@@ -508,11 +515,12 @@ git worktree remove ".worktrees/auth"
 # Clean up stale worktree metadata
 git worktree prune
 
-# Optionally delete the merged branch
+# Delete the merged branch
 git branch -d feat/auth
+git push origin --delete feat/auth
 ```
 
-**Tip**: Regular cleanup prevents disk space bloat and keeps `git worktree list` manageable
+**Tip**: Use `/finish-branch` to automate cleanup and avoid forgetting steps
 
 ---
 
@@ -612,8 +620,8 @@ git branch -d feat/auth
 │ 12. FINISH (Structured)                                     │
 │    → Update CONTINUITY.md (Done/Now/Next)                  │
 │    → Update docs/CHANGELOG.md (if 3+ files changed)        │
-│    → /superpowers:finishing-a-development-branch           │
-│      (merge local, create PR, keep, or discard)            │
+│    → /finish-branch                                        │
+│      (commit, push, create PR, cleanup worktree after merge)│
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -634,6 +642,7 @@ Based on Boris Cherny's key insight:
 | `/new-feature <name>` | Full feature workflow | Research → PRD → Brainstorm → Plan → Execute → Review → Finish |
 | `/fix-bug <name>` | Bug fix workflow | Search solutions → Systematic debugging → Fix → Review → Compound |
 | `/quick-fix <name>` | Trivial changes only | < 3 files, no arch impact, still requires verify |
+| `/finish-branch` | Complete branch workflow | Commit → Push → PR → Wait for merge → Cleanup worktree |
 
 **Workflow commands guide the process.** SessionStart loads context, Stop hook validates completion.
 
@@ -644,7 +653,7 @@ Based on Boris Cherny's key insight:
 | `/prd:discuss {feature}` | Interactive user story refinement | `docs/prds/{feature}-discussion.md` |
 | `/prd:create {feature}` | Generate structured PRD | `docs/prds/{feature}.md` |
 
-### Superpowers Commands (Design → Execute → Verify → Finish)
+### Superpowers Commands (Design → Execute → Debug)
 
 | Command | Purpose | Notes |
 |---------|---------|-------|
@@ -653,7 +662,6 @@ Based on Boris Cherny's key insight:
 | `/superpowers:executing-plans` | Execute plan with subagents | TDD enforced |
 | `/superpowers:systematic-debugging` | 4-phase root cause analysis | Before ANY bug fix |
 | `/superpowers:verification-before-completion` | Evidence-based completion check | Catches "should work" claims |
-| `/superpowers:finishing-a-development-branch` | Structured branch completion | 4 options with safeguards |
 
 ### Compound Engineering Commands (Review → Learn → E2E → Utility)
 
@@ -774,6 +782,7 @@ your-project/
 │   │   ├── new-feature.md             # /new-feature - Full feature workflow
 │   │   ├── fix-bug.md                 # /fix-bug - Bug fix workflow
 │   │   ├── quick-fix.md               # /quick-fix - Trivial changes only
+│   │   ├── finish-branch.md           # /finish-branch - PR + cleanup workflow
 │   │   └── prd/
 │   │       ├── discuss.md             # /prd:discuss command
 │   │       └── create.md              # /prd:create command
@@ -979,6 +988,7 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 │   /new-feature <name>  ← Full workflow (Research→PRD→Plan) │
 │   /fix-bug <name>      ← Debugging workflow (Systematic)   │
 │   /quick-fix <name>    ← Trivial only (< 3 files)          │
+│   /finish-branch       ← PR creation + worktree cleanup    │
 │                                                             │
 │ THE COMMAND GUIDES YOU THROUGH:                             │
 │   ✓ Branch creation (if needed)                            │
@@ -1016,6 +1026,7 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 3.3 | 2026-01-22 | **FINISH-BRANCH COMMAND**: Added `/finish-branch` command that handles PR creation + worktree cleanup. Removed `/superpowers:finishing-a-development-branch` from workflows (redundant testing, no worktree awareness). `/quick-fix` now just commits directly. |
 | 3.2 | 2026-01-19 | **SIMPLIFIED WORKTREES**: Claude now `cd`s into worktrees instead of using path prefixes. Removed `.session_worktree` file - no shared state between sessions. Hooks and verify-app simplified to use current directory. |
 | 3.1 | 2026-01-19 | **PARALLEL DEVELOPMENT**: Workflow commands auto-create git worktrees for isolated parallel sessions. Hooks are worktree-aware. verify-app agent accepts worktree path. |
 | 3.0 | 2026-01-18 | **WORKFLOW COMMANDS**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E now uses `/compound-engineering:playwright-test` with Playwright MCP. |

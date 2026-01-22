@@ -1,24 +1,6 @@
 # Quick Fix Workflow
 
 > **For trivial changes only.** If in doubt, use `/new-feature` or `/fix-bug` instead.
-> **If any required command/skill fails with "Unknown skill", STOP and alert the user.**
-
-## Required Plugins
-
-This workflow requires the following plugins to be **installed AND enabled**:
-
-| Plugin | Skills/Commands Used |
-|--------|---------------------|
-| `superpowers@superpowers-marketplace` | `/superpowers:finishing-a-development-branch` |
-
-**To enable plugins**, add to `~/.claude/settings.json`:
-```json
-{
-  "enabledPlugins": {
-    "superpowers@superpowers-marketplace": true
-  }
-}
-```
 
 ---
 
@@ -88,17 +70,20 @@ npm test && npm run lint && npm run typecheck  # Node
 
 1. **CONTINUITY.md**: Update Done (keep 2-3 recent), Now, Next
 
-### Complete the branch
+### Commit the changes
 
-```
-/superpowers:finishing-a-development-branch
+```bash
+git add -A
+git commit -m "fix: [descriptive message]"
 ```
 
-**Fallback if unavailable:** Complete manually:
-1. Run final verification (tests, lint, types)
-2. Stage and commit changes with descriptive message
-3. Push branch to remote
-4. Create PR if ready for review
+**Note:** Quick fixes are typically committed directly to the current branch. Since quick-fix doesn't create worktrees or feature branches, there's no PR/merge workflow - just commit and you're done.
+
+**If you want to create a PR instead** (e.g., for review):
+```bash
+git push -u origin HEAD
+gh pr create --base main --fill
+```
 
 ---
 
@@ -109,7 +94,7 @@ npm test && npm run lint && npm run typecheck  # Node
 - [ ] Change verified manually or with tests
 - [ ] Verified via `verify-app` agent
 - [ ] CONTINUITY.md updated
-- [ ] Branch finished via `/superpowers:finishing-a-development-branch`
+- [ ] Changes committed
 
 ---
 

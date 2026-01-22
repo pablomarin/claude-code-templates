@@ -9,7 +9,7 @@ This workflow requires the following plugins to be **installed AND enabled**:
 
 | Plugin | Skills/Commands Used |
 |--------|---------------------|
-| `superpowers@superpowers-marketplace` | `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:executing-plans`, `/superpowers:systematic-debugging`, `/superpowers:finishing-a-development-branch` |
+| `superpowers@superpowers-marketplace` | `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:executing-plans`, `/superpowers:systematic-debugging` |
 | `compound-engineering@every-marketplace` | `/compound-engineering:workflows:review`, `/compound-engineering:workflows:compound`, `/compound-engineering:playwright-test`, `/compound-engineering:deepen-plan` |
 | `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent |
 
@@ -280,40 +280,20 @@ If you fixed bugs or discovered patterns:
 1. **CONTINUITY.md**: Update Done (keep 2-3 recent), Now, Next
 2. **docs/CHANGELOG.md**: If 3+ files changed on branch
 
-### 6.3 Complete the branch
+### 6.3 Finish the branch (PR + Cleanup)
 
 ```
-/superpowers:finishing-a-development-branch
+/finish-branch
 ```
 
-**Fallback if unavailable:** Complete manually:
-1. Run final verification (tests, lint, types)
-2. Stage and commit changes with descriptive message
-3. Push branch to remote
-4. Create PR if ready for review
+This command will:
+1. Commit and push any uncommitted changes
+2. **Ask user** if they want to create a PR
+3. Create PR (if confirmed)
+4. **Wait** for user to confirm PR is merged
+5. Clean up worktree, local branch, and remote branch
 
-### 6.4 Cleanup worktree (if created)
-
-**Only if you created a worktree in Pre-Flight (started from main):**
-
-After the branch is merged and deleted, clean up the worktree:
-
-```bash
-# First, go back to the main repository
-cd "$(git rev-parse --git-common-dir)/.."
-
-# Remove the worktree
-git worktree remove ".worktrees/$FEATURE_NAME"
-
-# Prune any stale worktree references
-git worktree prune
-```
-
-**If PR is still open (not merged yet):**
-- Keep the worktree for potential follow-up work (addressing review comments)
-- Cleanup will happen after merge
-
-**Ask the user:** "The branch has been pushed/merged. Should I clean up the worktree?"
+**Note:** The cleanup happens automatically after PR merge confirmation. No manual worktree cleanup needed.
 
 ---
 
@@ -356,5 +336,4 @@ If any MANDATORY step cannot be completed:
 - [ ] Learnings compounded via `/compound-engineering:workflows:compound` (if any)
 - [ ] CONTINUITY.md updated
 - [ ] CHANGELOG.md updated (if 3+ files)
-- [ ] Branch finished via `/superpowers:finishing-a-development-branch`
-- [ ] **Worktree cleaned up** (if created) - ask user after merge
+- [ ] Branch finished via `/finish-branch` (PR created, merged, worktree cleaned up)

@@ -54,7 +54,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "STOP. Complete this checklist IN ORDER:\n\n1. `/compound-engineering:workflows:review` — Code review (14 agents)\n2. `code-simplifier` agent — Use PR Review Toolkit agent on modified files\n3. `verify-app` agent — Unit tests, migrations, lint, types\n4. `/compound-engineering:playwright-test` — E2E browser tests (if UI/API changed)\n5. `/compound-engineering:workflows:compound` — Capture learnings if bugs fixed\n6. CONTINUITY.md — Update Done/Now/Next\n7. docs/CHANGELOG.md — Update if 3+ files changed on branch\n8. `/superpowers:finishing-a-development-branch` — Structured completion\n\nThe hook will BLOCK if items 6-7 are incomplete.\n\nMinor docs-only changes can skip items 1-5."
+            "prompt": "STOP. Complete this checklist IN ORDER:\n\n1. `/compound-engineering:workflows:review` — Code review (14 agents)\n2. `code-simplifier` agent — Use PR Review Toolkit agent on modified files\n3. `verify-app` agent — Unit tests, migrations, lint, types\n4. `/compound-engineering:playwright-test` — E2E browser tests (if UI/API changed)\n5. `/compound-engineering:workflows:compound` — Capture learnings if bugs fixed\n6. CONTINUITY.md — Update Done/Now/Next\n7. docs/CHANGELOG.md — Update if 3+ files changed on branch\n8. `/finish-branch` — PR creation + worktree cleanup (for /new-feature and /fix-bug)\n\nThe hook will BLOCK if items 6-7 are incomplete.\n\nMinor docs-only changes can skip items 1-5. Quick fixes just commit directly."
           },
           {
             "type": "command",
