@@ -58,7 +58,7 @@
           },
           {
             "type": "command",
-            "command": "powershell -ExecutionPolicy Bypass -File \"$env:CLAUDE_PROJECT_DIR\\.claude\\hooks\\check-state-updated.ps1\""
+            "command": "powershell -ExecutionPolicy Bypass -Command \"& (Join-Path $env:CLAUDE_PROJECT_DIR '.claude\\hooks\\check-state-updated.ps1')\""
           }
         ]
       }
@@ -80,7 +80,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -ExecutionPolicy Bypass -File \"$env:CLAUDE_PROJECT_DIR\\.claude\\hooks\\post-tool-format.ps1\""
+            "command": "powershell -ExecutionPolicy Bypass -Command \"& (Join-Path $env:CLAUDE_PROJECT_DIR '.claude\\hooks\\post-tool-format.ps1')\""
           }
         ]
       }
