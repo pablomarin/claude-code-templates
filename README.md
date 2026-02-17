@@ -97,6 +97,7 @@ Before starting, ensure you have:
 - [ ] **Git** initialized in your project
 - [ ] **Python 3.12+** with `uv` (if Python project)
 - [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
+- [ ] **Codex CLI** (optional, for `/codex` command): `npm i -g @openai/codex` then `codex login`
 
 ### Windows
 - [ ] **Claude Code** installed and working (`claude --version`)
@@ -105,6 +106,7 @@ Before starting, ensure you have:
 - [ ] **Git** initialized in your project
 - [ ] **Python 3.12+** with `uv` (if Python project)
 - [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
+- [ ] **Codex CLI** (optional, for `/codex` command): `npm i -g @openai/codex` then `codex login`
 
 > **Note:** Windows does NOT require `jq` - PowerShell has native JSON support via `ConvertFrom-Json`.
 
@@ -683,6 +685,13 @@ Based on Boris Cherny's key insight:
 | code-simplifier | "Use the code-simplifier agent on [files]" | Clean up code (PR Review Toolkit) |
 | verify-app | "Use the verify-app agent" | Unit tests, migration check, lint, types (E2E via `/compound-engineering:playwright-test`) |
 
+### Second Opinion (Codex CLI)
+
+| Command | Purpose | Notes |
+|---------|---------|-------|
+| `/codex review` | Code review via OpenAI Codex | Uses `codex review` with uncommitted/base/commit options |
+| `/codex {instruction}` | General second opinion | Runs `codex exec` in read-only sandbox |
+
 ### Built-in Commands
 
 | Command | Purpose |
@@ -1026,6 +1035,7 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 3.4 | 2026-02-16 | **CODEX COMMAND**: Added `/codex` command for getting second opinions from OpenAI's Codex CLI. Code review and general feedback modes. |
 | 3.3 | 2026-01-22 | **FINISH-BRANCH COMMAND**: Added `/finish-branch` command that handles PR creation + worktree cleanup. Removed `/superpowers:finishing-a-development-branch` from workflows (redundant testing, no worktree awareness). `/quick-fix` now just commits directly. |
 | 3.2 | 2026-01-19 | **SIMPLIFIED WORKTREES**: Claude now `cd`s into worktrees instead of using path prefixes. Removed `.session_worktree` file - no shared state between sessions. Hooks and verify-app simplified to use current directory. |
 | 3.1 | 2026-01-19 | **PARALLEL DEVELOPMENT**: Workflow commands auto-create git worktrees for isolated parallel sessions. Hooks are worktree-aware. verify-app agent accepts worktree path. |

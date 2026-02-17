@@ -173,6 +173,14 @@ Proceed directly to Phase 4.
 /superpowers:writing-plans
 ```
 
+#### 3.3 (Optional) Get a second opinion on the plan
+
+If Codex CLI is installed, consider getting an external review before implementing:
+
+```
+/codex review the fix plan and flag any concerns
+```
+
 ---
 
 ## Phase 4: Execute the Fix
@@ -340,6 +348,7 @@ The hooks exist to enforce quality. Bypassing them defeats their purpose.
 **Planning (if complex):**
 - [ ] Brainstormed via `/superpowers:brainstorming`
 - [ ] Plan written via `/superpowers:writing-plans`
+- [ ] (Optional) Second opinion via `/codex`
 
 **Implementation:**
 - [ ] Executed fix with TDD (failing test FIRST, then fix)

@@ -170,6 +170,14 @@ Then create the PRD:
 /compound-engineering:deepen-plan
 ```
 
+### 3.4 (Optional) Get a second opinion on the plan
+
+If Codex CLI is installed, consider getting an external review before writing code:
+
+```
+/codex review the implementation plan and flag any architectural concerns
+```
+
 ---
 
 ## Phase 4: Execute
@@ -330,6 +338,7 @@ If any MANDATORY step cannot be completed:
 - [ ] Brainstormed via `/superpowers:brainstorming`
 - [ ] Plan written via `/superpowers:writing-plans`
 - [ ] Plan enhanced via `/compound-engineering:deepen-plan`
+- [ ] (Optional) Second opinion via `/codex`
 
 **Implementation:**
 - [ ] Executed via `/superpowers:executing-plans` (TDD)

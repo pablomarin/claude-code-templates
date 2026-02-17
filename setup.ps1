@@ -199,6 +199,8 @@ Copy-TemplateFile "$ScriptDir\agents\verify-app.md" ".claude\agents\verify-app.m
 Copy-TemplateFile "$ScriptDir\commands\new-feature.md" ".claude\commands\new-feature.md" ".claude\commands\new-feature.md"
 Copy-TemplateFile "$ScriptDir\commands\fix-bug.md" ".claude\commands\fix-bug.md" ".claude\commands\fix-bug.md"
 Copy-TemplateFile "$ScriptDir\commands\quick-fix.md" ".claude\commands\quick-fix.md" ".claude\commands\quick-fix.md"
+Copy-TemplateFile "$ScriptDir\commands\finish-branch.md" ".claude\commands\finish-branch.md" ".claude\commands\finish-branch.md"
+Copy-TemplateFile "$ScriptDir\commands\codex.md" ".claude\commands\codex.md" ".claude\commands\codex.md"
 
 # Commands - PRD
 Copy-TemplateFile "$ScriptDir\commands\prd\discuss.md" ".claude\commands\prd\discuss.md" ".claude\commands\prd\discuss.md"
