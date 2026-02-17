@@ -36,6 +36,7 @@ project/
 /new-feature <name>     # Full feature workflow
 /fix-bug <name>         # Bug fix with systematic debugging
 /quick-fix <name>       # Trivial changes only (< 3 files)
+/codex <instruction>    # Second opinion from OpenAI Codex CLI
 
 # Example project commands:
 cd src && uv run pytest                    # Run tests
@@ -82,6 +83,7 @@ git checkout -b feat/{name}                # Start feature
 | Starting new feature | Run `/new-feature <name>` (creates worktree) |
 | Fixing a bug | Run `/fix-bug <name>` (creates worktree) |
 | Trivial change (< 3 files) | Run `/quick-fix <name>` (no worktree) |
+| Want a second opinion | Run `/codex <instruction>` (code review or general) |
 | Creating PR to main | **Ask** |
 | Merging PR to main | **Ask** |
 | Skipping tests | **Never** |
