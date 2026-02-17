@@ -88,6 +88,30 @@ Write-Color "+" "Green"
 Write-Host " Prerequisites OK"
 Write-Host ""
 
+# Configure git for Windows long paths
+# This is required for worktrees in projects with deeply nested file structures
+Write-Color "Configuring git for Windows long paths..." "Yellow"
+
+$longPathsEnabled = git config --get core.longpaths 2>$null
+if ($longPathsEnabled -ne "true") {
+    git config core.longpaths true
+    Write-Host "  " -NoNewline
+    Write-Color "+" "Green"
+    Write-Host " Enabled core.longpaths for this repository"
+    Write-Host ""
+    Write-Color "NOTE: If you have very long file paths (>260 chars), you may also need to:" "Yellow"
+    Write-Host "  1. Run as Admin: " -NoNewline
+    Write-Color "New-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Value 1 -PropertyType DWORD -Force" "Cyan"
+    Write-Host "  2. Or enable via Group Policy: Computer Configuration > Administrative Templates > System > Filesystem > Enable Win32 long paths"
+    Write-Host ""
+}
+else {
+    Write-Host "  " -NoNewline
+    Write-Color "o" "Blue"
+    Write-Host " core.longpaths already enabled"
+}
+Write-Host ""
+
 # Create directory structure
 Write-Color "Creating directory structure..." "Yellow"
 
