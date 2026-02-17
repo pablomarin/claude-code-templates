@@ -47,7 +47,7 @@ codex exec review \
   "Focus on: correctness, security, performance, and maintainability."
 ```
 
-**Timeout: 600000ms (10 minutes)** — Codex reasoning can take time.
+**Timeout: 1200000ms (20 minutes)** — Codex reasoning can take time.
 
 ### Step 3: Display output
 
@@ -86,7 +86,7 @@ codex exec \
   "{user's instruction with gathered context}"
 ```
 
-**Timeout: 600000ms (10 minutes)** — Codex reasoning can take time.
+**Timeout: 1200000ms (20 minutes)** — Codex reasoning can take time.
 
 ### Step 3: Display output
 
