@@ -1,7 +1,6 @@
 {
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": true,
-    "compound-engineering@every-marketplace": true,
     "pr-review-toolkit@claude-plugins-official": true
   },
   "permissions": {
@@ -14,8 +13,8 @@
       "Skill",
       "WebFetch",
       "WebSearch",
-      "mcp__plugin_compound-engineering_context7",
-      "mcp__plugin_compound-engineering_pw"
+      "mcp__context7",
+      "mcp__playwright"
     ],
     "deny": [
       "Bash(rm -rf /:*)",
@@ -54,10 +53,6 @@
         "matcher": "",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "STOP. Complete this checklist IN ORDER:\n\n1. `/compound-engineering:workflows:review` — Code review (14 agents)\n2. `code-simplifier` agent — Use PR Review Toolkit agent on modified files\n3. `verify-app` agent — Unit tests, migrations, lint, types\n4. `/compound-engineering:playwright-test` — E2E browser tests (if UI/API changed)\n5. `/compound-engineering:workflows:compound` — Capture learnings if bugs fixed\n6. CONTINUITY.md — Update Done/Now/Next\n7. docs/CHANGELOG.md — Update if 3+ files changed on branch\n8. `/finish-branch` — PR creation + worktree cleanup (for /new-feature and /fix-bug)\n\nThe hook will BLOCK if items 6-7 are incomplete.\n\nMinor docs-only changes can skip items 1-5. Quick fixes just commit directly."
-          },
-          {
             "type": "command",
             "command": "powershell -ExecutionPolicy Bypass -Command \"& (Join-Path $env:CLAUDE_PROJECT_DIR '.claude\\hooks\\check-state-updated.ps1')\""
           }
@@ -71,6 +66,23 @@
           {
             "type": "prompt",
             "prompt": "Evaluate the subagent's output quality. Consider:\n\n1. **Task Completion:** Did the subagent complete its assigned task?\n2. **Output Quality:** Is the output useful and actionable?\n3. **Errors:** Were there any errors or issues reported?\n4. **Next Steps:** Is it clear what should happen next?\n\nRespond with ONE of:\n- 'accept' - Subagent completed task successfully, output is useful\n- 'reject' - Issues found, explain what went wrong and what to fix\n\nBe specific in rejection reasons so the main agent can address them."
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "model": "haiku",
+            "prompt": "CONTEXT COMPACTION IMMINENT. Before your conversation history is compressed:\n\n1. Save any new learnings from this session to your auto memory (MEMORY.md or topic files)\n2. Include: bug root causes, patterns discovered, architecture insights, user preferences\n3. Do NOT save session-specific state (that belongs in CONTINUITY.md)\n4. Keep MEMORY.md concise — move details to topic files\n\nThis is your last chance to preserve session knowledge before compression.",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -Command \"& (Join-Path $env:CLAUDE_PROJECT_DIR '.claude\\hooks\\pre-compact-memory.ps1')\""
           }
         ]
       }

@@ -3,7 +3,7 @@
 # This hook runs after Edit or Write tool is used.
 # It automatically formats the modified file based on its type.
 #
-# Requirements: jq
+# Optional: jq (recommended for robust JSON parsing, falls back to grep)
 # Optional: ruff (for Python), prettier (for JS/TS/JSON/MD)
 #
 # Security: Follows Anthropic best practices
@@ -16,7 +16,13 @@ set -e
 
 # Read and parse input
 INPUT=$(cat)
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+# Parse file_path (jq preferred, grep fallback)
+if command -v jq &> /dev/null; then
+    FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+else
+    FILE_PATH=$(echo "$INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"file_path"[[:space:]]*:[[:space:]]*"//;s/"$//')
+fi
 
 # Exit if no file path
 [ -z "$FILE_PATH" ] && exit 0

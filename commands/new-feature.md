@@ -10,15 +10,13 @@ This workflow requires the following plugins to be **installed AND enabled**:
 | Plugin | Skills/Commands Used |
 |--------|---------------------|
 | `superpowers@superpowers-marketplace` | `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:executing-plans`, `/superpowers:systematic-debugging` |
-| `compound-engineering@every-marketplace` | `/compound-engineering:workflows:review`, `/compound-engineering:workflows:compound`, `/compound-engineering:playwright-test`, `/compound-engineering:deepen-plan` |
-| `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent |
+| `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent, `/pr-review-toolkit:review-pr` |
 
 **To enable plugins**, add to `~/.claude/settings.json`:
 ```json
 {
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": true,
-    "compound-engineering@every-marketplace": true,
     "pr-review-toolkit@claude-plugins-official": true
   }
 }
@@ -164,19 +162,21 @@ Then create the PRD:
 /superpowers:writing-plans
 ```
 
-### 3.3 Enhance the plan with parallel research
+### 3.3 Design Review — Second Opinion (MANDATORY)
 
-```
-/compound-engineering:deepen-plan
-```
+Get an independent review of the design before writing any code. This catches architectural mistakes early, when they're cheap to fix.
 
-### 3.4 (Optional) Get a second opinion on the plan
-
-If Codex CLI is installed, consider getting an external review before writing code:
-
+**If Codex CLI is installed:**
 ```
 /codex review the implementation plan and flag any architectural concerns
 ```
+
+**If Codex CLI is NOT installed:**
+- Present a summary of the design plan to the user
+- Ask: "Does this design approach look right before I start implementing?"
+- Wait for user confirmation before proceeding to Phase 4
+
+> **Why mandatory?** Fixing a design flaw after implementation is 10x more expensive than catching it here. A 30-second review saves hours of rework.
 
 ---
 
@@ -203,13 +203,13 @@ Implement using TDD (Red-Green-Refactor):
 > - Perform equivalent checks manually (see fallbacks below)
 > - Do NOT skip quality gates
 
-### 5.1 Code Review (14 specialized agents)
+### 5.1 Fast Code Review (5 agents with confidence scoring)
 
 ```
-/compound-engineering:workflows:review
+/code-review
 ```
 
-Fix ALL issues found before proceeding.
+Fix ALL high-confidence issues found before proceeding.
 
 **Fallback if unavailable:** Use `pr-review-toolkit:code-reviewer` agent on modified files.
 
@@ -245,7 +245,27 @@ pytest && ruff check . && mypy .  # Python
 npm test && npm run lint && npm run typecheck  # Node
 ```
 
-### 5.4 E2E Tests (MANDATORY if API changed)
+### 5.4 Deep Review (before PR)
+
+Run the comprehensive multi-analyzer review:
+
+```
+/pr-review-toolkit:review-pr
+```
+
+This runs 6 specialized agents: code-reviewer, silent-failure-hunter, pr-test-analyzer, comment-analyzer, type-design-analyzer, and code-simplifier.
+
+**Fallback if unavailable:** Use `/code-review` (already done in 5.1).
+
+### 5.5 Second Opinion (optional but recommended)
+
+If Codex CLI is installed:
+
+```
+/codex review
+```
+
+### 5.6 E2E Tests (MANDATORY if API changed)
 
 **If you modified ANY API endpoint, you MUST run E2E tests.**
 
@@ -265,10 +285,9 @@ Stop the current development servers and start them from this worktree directory
 
 Wait for servers to be ready before proceeding.
 
-**Step 3: Run E2E tests on affected UI**
-```
-/compound-engineering:playwright-test
-```
+**Step 3: Run E2E tests using Playwright MCP**
+
+Use the Playwright MCP server to run browser tests against affected routes. Navigate to the affected pages, interact with the changed functionality, and verify it works end-to-end.
 
 **DO NOT skip this step by saying:**
 - ❌ "No frontend exists for this endpoint" → Test the UI that USES the API
@@ -283,13 +302,19 @@ Wait for servers to be ready before proceeding.
 
 ### 6.1 Compound learnings (if any)
 
-If you fixed bugs or discovered patterns:
+If you fixed bugs or discovered patterns, document them:
 
-```
-/compound-engineering:workflows:compound
-```
+1. **Create solution doc** in `docs/solutions/[category]/`:
+   ```bash
+   mkdir -p docs/solutions/[category]
+   # Create docs/solutions/[category]/[descriptive-name].md with:
+   # - Problem: What was the symptom
+   # - Root Cause: What actually caused it
+   # - Solution: How to fix it
+   # - Prevention: How to avoid in future
+   ```
 
-**Fallback if unavailable:** Create solution doc manually in `docs/solutions/[category]/`.
+2. **Save to auto memory** — write key learnings to your MEMORY.md or topic files
 
 ### 6.2 Update state files
 
@@ -337,20 +362,21 @@ If any MANDATORY step cannot be completed:
 **Design:**
 - [ ] Brainstormed via `/superpowers:brainstorming`
 - [ ] Plan written via `/superpowers:writing-plans`
-- [ ] Plan enhanced via `/compound-engineering:deepen-plan`
-- [ ] (Optional) Second opinion via `/codex`
+- [ ] **Design reviewed** via `/codex` OR user confirmation (MANDATORY)
 
 **Implementation:**
 - [ ] Executed via `/superpowers:executing-plans` (TDD)
 
 **Quality Gates (ALL REQUIRED):**
-- [ ] Code reviewed via `/compound-engineering:workflows:review` or `code-reviewer` agent
+- [ ] Fast review via `/code-review` (5 agents, confidence scoring)
 - [ ] Simplified via `code-simplifier` agent
 - [ ] Verified via `verify-app` agent (tests, lint, types pass)
-- [ ] **E2E tested via `/compound-engineering:playwright-test`** (MANDATORY if API changed)
+- [ ] Deep review via `/pr-review-toolkit:review-pr` (6 specialized agents)
+- [ ] (Optional) Second opinion via `/codex review`
+- [ ] **E2E tested via Playwright MCP** (MANDATORY if API changed)
 
 **Finish:**
-- [ ] Learnings compounded via `/compound-engineering:workflows:compound` (if any)
+- [ ] Learnings documented in `docs/solutions/` + auto memory (if any)
 - [ ] CONTINUITY.md updated
 - [ ] CHANGELOG.md updated (if 3+ files)
 - [ ] Branch finished via `/finish-branch` (PR created, merged, worktree cleaned up)

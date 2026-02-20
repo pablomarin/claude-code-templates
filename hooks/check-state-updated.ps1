@@ -2,8 +2,9 @@
 # This hook runs when Claude is about to stop responding.
 # It checks if there are uncommitted changes and reminds Claude to update state.
 #
+# Uses exit code 2 + stderr to block (avoids JSON stdout parsing issues).
+#
 # Requirements: PowerShell 5.1+, git
-# No external dependencies needed - uses native ConvertFrom-Json
 
 # Read the hook input from stdin
 $jsonInput = [Console]::In.ReadToEnd()
@@ -71,15 +72,10 @@ if ($totalChanged -gt 3 -and $changelogInBranch -eq 0 -and $changelogModified -e
     }
 }
 
-# If there are issues, block and ask Claude to continue
+# Block using exit code 2 + stderr (robust — immune to stdout pollution)
 if ($issues) {
-    # Output JSON that tells Claude to continue working
-    $response = @{
-        decision = "block"
-        reason = $issues
-    } | ConvertTo-Json -Compress
-    Write-Output $response
-    exit 0
+    [Console]::Error.WriteLine($issues)
+    exit 2
 }
 
 # All good, allow stop

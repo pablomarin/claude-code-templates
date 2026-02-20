@@ -25,7 +25,8 @@ project/
 │   ├── solutions/    # Compounded learnings (searchable)
 │   └── CHANGELOG.md  # Historical record
 └── .claude/          # Claude Code configuration
-    └── commands/     # Workflow commands (ENFORCED)
+    ├── commands/     # Workflow commands (ENFORCED)
+    └── rules/        # Coding standards (auto-loaded)
 ```
 
 ### Key Commands
@@ -46,75 +47,16 @@ git checkout -b feat/{name}                # Start feature
 
 ---
 
-## Top-Level Principles
-
-**Work doggedly.** Be autonomous. Continue working toward the user's goal until you can no longer make progress.
-
-**Work smart.** When debugging, think deeply. Add logging to check assumptions.
-
-**Check your work.** Run code to verify it works. Check logs after starting processes.
-
-**Research first.** AI knowledge has a cutoff. Use WebSearch/WebFetch/Context7 for current docs.
-
-**Learn from competitors.** Before implementing features, research how established products solved it.
-
----
-
-## Core Design Philosophy
-
-- **Brutal simplicity** over clever solutions (KISS)
-- **Composition** over inheritance
-- **Immutability** by default
-- **DRY** - if it appears twice, extract it
-- **Reuse** - check if a utility exists before creating new code
-
----
-
-## Workflow
-
-**Use workflow commands.** They contain the full process - follow them exactly.
-
----
-
-## Decision Matrix
-
-| Scenario | Action |
-|----------|--------|
-| Starting new feature | Run `/new-feature <name>` (creates worktree) |
-| Fixing a bug | Run `/fix-bug <name>` (creates worktree) |
-| Trivial change (< 3 files) | Run `/quick-fix <name>` (no worktree) |
-| Want a second opinion | Run `/codex <instruction>` (code review or general) |
-| Creating PR to main | **Ask** |
-| Merging PR to main | **Ask** |
-| Skipping tests | **Never** |
-
----
-
-## Worktree Policy
-
-**`/new-feature` and `/fix-bug` ALWAYS create a worktree** (unless already inside one). This ensures parallel sessions never mix work - even if you're on an unrelated feature branch.
-
-**CRITICAL -- Always check if you are on a git worktree. If you are, never commit to the main folder ALWAYS TO THE WORKTREE**
-
-**`/quick-fix` does NOT create worktrees** - it's for trivial changes only.
-
-When running Superpowers skills (`brainstorming`, `writing-plans`, `executing-plans`), these skills may attempt to create worktrees. **SKIP worktree creation** in these skills - you're already isolated.
-
----
-
-## Critical Rules
-
-- **CHECK BRANCH** - Never work on `main`
-- **USE WORKFLOW COMMANDS** - `/new-feature`, `/fix-bug`, or `/quick-fix`
-- **SYSTEMATIC DEBUGGING** - Use `/superpowers:systematic-debugging` for bugs
-- **TDD MANDATORY** - Red-Green-Refactor via Superpowers
-- **E2E TESTING** - `/compound-engineering:playwright-test` for UI/API changes
-- **UPDATE STATE** - CONTINUITY.md + CHANGELOG.md (Stop hook enforces)
-- **RESEARCH FIRST** - WebSearch/WebFetch/Context7 before implementing
-- **CHALLENGE ME** - Don't blindly agree
-
----
-
 ## Detailed Rules
 
-See `.claude/rules/` for language-specific standards.
+All coding standards, workflow rules, and policies are in `.claude/rules/`.
+These files are auto-loaded by Claude Code with the same priority as this file.
+
+**What's in `.claude/rules/`:**
+- `principles.md` — Top-level principles and design philosophy
+- `workflow.md` — Decision matrix for choosing the right command
+- `worktree-policy.md` — Git worktree isolation rules
+- `critical-rules.md` — Non-negotiable rules (branch safety, TDD, etc.)
+- `memory.md` — How to use persistent memory and save learnings
+- `security.md`, `testing.md`, `api-design.md` — Coding standards
+- Language-specific: `python-style.md`, `typescript-style.md`, `database.md`

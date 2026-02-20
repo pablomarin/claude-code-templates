@@ -3,12 +3,22 @@
 # This hook runs when Claude is about to stop responding.
 # It checks if there are uncommitted changes and reminds Claude to update state.
 #
-# Requirements: jq, git
-# Install jq: brew install jq (macOS) or apt install jq (Linux)
+# Uses exit code 2 + stderr to block (avoids JSON stdout parsing issues
+# caused by shell profile echo statements polluting stdout).
+#
+# Requirements: git
+# Optional: jq (recommended for robust JSON parsing, falls back to grep)
 
 set -e
 INPUT=$(cat)
-STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false')
+
+# Parse stop_hook_active (jq preferred, grep fallback)
+if command -v jq &> /dev/null; then
+    STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false')
+else
+    STOP_HOOK_ACTIVE=$(echo "$INPUT" | grep -o '"stop_hook_active"[[:space:]]*:[[:space:]]*true' | head -1)
+    [ -n "$STOP_HOOK_ACTIVE" ] && STOP_HOOK_ACTIVE="true" || STOP_HOOK_ACTIVE="false"
+fi
 [ "$STOP_HOOK_ACTIVE" = "true" ] && exit 0
 
 # All git commands run in current directory (Claude cd's into worktrees)
@@ -39,6 +49,11 @@ if [ "$TOTAL_CHANGED" -gt 3 ] && [ "$CHANGELOG_IN_BRANCH" -eq 0 ] && [ "$CHANGEL
     ISSUES="${ISSUES:+$ISSUES }Update docs/CHANGELOG.md ($TOTAL_CHANGED files changed this session)."
 fi
 
-[ -n "$ISSUES" ] && echo "{\"decision\": \"block\", \"reason\": \"$ISSUES\"}" && exit 0
+# Block using exit code 2 + stderr (robust — immune to shell profile stdout pollution)
+if [ -n "$ISSUES" ]; then
+    echo "$ISSUES" >&2
+    exit 2
+fi
+
 # All good, allow stop
 exit 0
