@@ -314,6 +314,9 @@ Copy-TemplateFile (Join-Path $ScriptDir "CONTINUITY.template.md") "CONTINUITY.md
 # Settings (Windows-specific with PowerShell hooks)
 Copy-TemplateFile (Join-Path $ScriptDir "settings" "settings-windows.template.json") ".claude\settings.json" ".claude\settings.json"
 
+# MCP servers (MUST be at project root as .mcp.json - .claude\settings.json ignores mcpServers)
+Copy-TemplateFile (Join-Path $ScriptDir "mcp.template.json") ".mcp.json" ".mcp.json (MCP servers: Playwright + Context7)"
+
 # Hooks (PowerShell versions for Windows)
 Copy-TemplateFile (Join-Path $ScriptDir "hooks" "check-state-updated.ps1") ".claude\hooks\check-state-updated.ps1" ".claude\hooks\check-state-updated.ps1"
 Copy-TemplateFile (Join-Path $ScriptDir "hooks" "post-tool-format.ps1") ".claude\hooks\post-tool-format.ps1" ".claude\hooks\post-tool-format.ps1"
@@ -424,7 +427,8 @@ Write-Color "What was created:" "Yellow"
 Write-Host ""
 Write-Host "  CLAUDE.md                Your project description (edit this!)"
 Write-Host "  CONTINUITY.md            Task state that persists across sessions"
-Write-Host "  .claude\settings.json    Hooks, permissions, and MCP servers"
+Write-Host "  .claude\settings.json    Hooks and permissions"
+Write-Host "  .mcp.json                MCP servers (Playwright + Context7)"
 Write-Host "  .claude\commands\        Workflow commands: /new-feature, /fix-bug, /quick-fix"
 Write-Host "  .claude\hooks\           Auto-run scripts (format, verify, memory)"
 Write-Host "  .claude\agents\          Subagent definitions (verify-app)"
@@ -482,7 +486,7 @@ Write-Host "5. " -NoNewline
 Write-Color "Commit and push" "Blue"
 Write-Host ":"
 Write-Host ""
-Write-Host "   git add .claude/ CLAUDE.md CONTINUITY.md docs/"
+Write-Host "   git add .claude/ .mcp.json CLAUDE.md CONTINUITY.md docs/"
 Write-Host "   git commit -m `"chore: add Claude Code automation setup`""
 Write-Host "   git push"
 Write-Host ""

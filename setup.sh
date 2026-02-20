@@ -283,6 +283,9 @@ copy_file "$SCRIPT_DIR/CONTINUITY.template.md" "CONTINUITY.md" "CONTINUITY.md"
 # Settings
 copy_file "$SCRIPT_DIR/settings/settings.template.json" ".claude/settings.json" ".claude/settings.json"
 
+# MCP servers (MUST be at project root as .mcp.json — .claude/settings.json ignores mcpServers)
+copy_file "$SCRIPT_DIR/mcp.template.json" ".mcp.json" ".mcp.json (MCP servers: Playwright + Context7)"
+
 # Hooks
 copy_file "$SCRIPT_DIR/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh"
 copy_file "$SCRIPT_DIR/hooks/post-tool-format.sh" ".claude/hooks/post-tool-format.sh" ".claude/hooks/post-tool-format.sh"
@@ -385,7 +388,8 @@ echo -e "${YELLOW}What was created:${NC}"
 echo ""
 echo "  CLAUDE.md                Your project description (edit this!)"
 echo "  CONTINUITY.md            Task state that persists across sessions"
-echo "  .claude/settings.json    Hooks, permissions, and MCP servers"
+echo "  .claude/settings.json    Hooks and permissions"
+echo "  .mcp.json                MCP servers (Playwright + Context7)"
 echo "  .claude/commands/        Workflow commands: /new-feature, /fix-bug, /quick-fix"
 echo "  .claude/hooks/           Auto-run scripts (format, verify, memory)"
 echo "  .claude/agents/          Subagent definitions (verify-app)"
@@ -428,7 +432,7 @@ echo "   /memory      → Should show your auto memory directory"
 echo ""
 echo -e "5. ${BLUE}Commit and push${NC}:"
 echo ""
-echo "   git add .claude/ CLAUDE.md CONTINUITY.md docs/"
+echo "   git add .claude/ .mcp.json CLAUDE.md CONTINUITY.md docs/"
 echo "   git commit -m \"chore: add Claude Code automation setup\""
 echo "   git push"
 echo ""

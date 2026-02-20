@@ -235,6 +235,7 @@ Claude Code has **two layers of memory** that this template configures. Together
 │  .claude/rules/               ← Coding standards + workflow rules │
 │  CONTINUITY.md                ← Task state (Done/Now/Next)       │
 │  .claude/settings.json        ← Project hooks + permissions      │
+│  .mcp.json                    ← MCP servers (Playwright, Context7)│
 │  docs/solutions/              ← Compounded knowledge base        │
 └──────────────────────────────────────────────────────────────────┘
          │ loaded every session
@@ -481,7 +482,7 @@ Install the Superpowers plugin if not already done (see [Quick Start Step 4](#st
 
 ```bash
 # 4. Commit the new files
-git add .claude/ CLAUDE.md CONTINUITY.md docs/
+git add .claude/ .mcp.json CLAUDE.md CONTINUITY.md docs/
 git commit -m "chore: add Claude Code automation setup"
 git push
 ```
@@ -583,7 +584,7 @@ cp CONTINUITY.md CONTINUITY.md.backup 2>/dev/null
 | Memory section in CLAUDE.md | Tells Claude to actively use auto memory | **High** |
 | Global `~/.claude/CLAUDE.md` | Memory instructions for all projects | **High** |
 | `.claude/agents/verify-app.md` | Runs all tests, reports pass/fail | **High** |
-| Playwright MCP server | Standalone E2E browser testing | **High** |
+| `.mcp.json` with Playwright + Context7 | MCP servers at project root (not in settings.json!) | **High** |
 | `SubagentStop` hook | Validates subagent output | Medium |
 | `/prd:discuss` command | Refine user stories | Medium |
 | `/prd:create` command | Generate structured PRD | Medium |
@@ -981,6 +982,7 @@ After setup, your project should have:
 your-project/
 ├── CLAUDE.md                          # Project description (slim, user-owned)
 ├── CONTINUITY.md                      # Current state (Done/Now/Next)
+├── .mcp.json                          # MCP servers (Playwright + Context7)
 ├── docs/
 │   ├── CHANGELOG.md                   # Historical record
 │   ├── prds/                          # Product requirements
@@ -1000,7 +1002,7 @@ your-project/
 │       ├── logic-errors/
 │       └── patterns/                  # Consolidated when 3+ similar
 ├── .claude/
-│   ├── settings.json                  # Permissions + Hooks + MCP servers
+│   ├── settings.json                  # Permissions + Hooks (NOT MCP servers)
 │   ├── hooks/
 │   │   ├── check-state-updated.sh     # Stop hook script (macOS/Linux)
 │   │   ├── check-state-updated.ps1    # Stop hook script (Windows)
@@ -1162,11 +1164,55 @@ This is expected if you already have Claude Code set up. See [Scenario C](#scena
 
 3. **Restart Claude Code** after changing settings
 
+### MCP servers not showing up in /mcp?
+
+**`mcpServers` in `.claude/settings.json` is silently ignored.** This is a [known issue](https://github.com/anthropics/claude-code/issues/24477) — no error, no warning, they just don't load.
+
+MCP servers must be in one of these files:
+
+| File | Scope | Shareable via git? |
+|------|-------|-------------------|
+| `.mcp.json` (project root) | Project | Yes |
+| `~/.claude.json` | Personal | No |
+
+The setup script creates `.mcp.json` at the project root. If you don't see servers:
+
+1. **Check `.mcp.json` exists at project root** (not inside `.claude/`):
+   ```bash
+   cat .mcp.json
+   ```
+
+2. **If missing, re-run setup or create it manually:**
+   ```json
+   {
+     "mcpServers": {
+       "playwright": {
+         "type": "stdio",
+         "command": "npx",
+         "args": ["-y", "@playwright/mcp@latest"],
+         "env": {}
+       },
+       "context7": {
+         "type": "http",
+         "url": "https://mcp.context7.com/mcp"
+       }
+     }
+   }
+   ```
+
+3. **Or use the CLI:**
+   ```bash
+   claude mcp add --transport stdio --scope project playwright -- npx -y @playwright/mcp@latest
+   claude mcp add --transport http --scope project context7 https://mcp.context7.com/mcp
+   ```
+
+4. **Restart Claude Code** — MCP servers are loaded at session start.
+
 ### MCP servers still prompting for permission?
 
 MCP permissions **do not support wildcards**. The pattern `mcp__*` does nothing.
 
-**Correct syntax:**
+Permissions go in `.claude/settings.json` (separate from MCP server definitions):
 ```json
 // Wrong - wildcards don't work
 "mcp__*"
