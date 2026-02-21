@@ -76,20 +76,36 @@ This reads the review comments left on the PR and helps address them. Fix any is
 
 ---
 
-## Phase 4: Wait for Merge
+## Phase 4: Merge PR
 
-**Tell the user:**
-> "PR created: [URL]
->
-> After the PR is reviewed and merged, tell me to clean up the worktree by saying 'clean up' or running `/finish-branch` again."
+After PR review is complete (automated reviews addressed or no reviewers configured):
 
-**STOP HERE.** Do not proceed to cleanup until the user confirms the PR has been merged.
+### 4.1 Ask user for merge confirmation
+
+**Ask the user:**
+> "PR is ready: [URL]. Shall I merge it to main and clean up?"
+
+**STOP and wait.** Do NOT proceed until the user explicitly says yes.
+
+If the user says no or wants to wait — STOP HERE. They can run `/finish-branch` again later.
+
+### 4.2 Merge the PR (only after user confirms)
+
+```bash
+gh pr merge --squash --delete-branch
+```
+
+> **Why squash?** Keeps main history clean. Use `--merge` or `--rebase` if the user prefers.
+> The `--delete-branch` flag auto-deletes the remote branch on GitHub.
+
+**If merge fails** (e.g., merge conflicts, required checks pending):
+- Tell the user what failed
+- STOP and let them resolve it
+- Do NOT force merge
 
 ---
 
 ## Phase 5: Cleanup (After Merge)
-
-**Only proceed when user confirms the PR has been merged.**
 
 ### 5.1 Detect current context
 
@@ -139,14 +155,11 @@ echo "✓ Deleted local branch: $BRANCH_NAME"
 git branch -D "$BRANCH_NAME"
 ```
 
-### 5.6 Delete remote branch
+### 5.6 Delete remote branch (if not already deleted)
 
 ```bash
-git push origin --delete "$BRANCH_NAME"
-echo "✓ Deleted remote branch: $BRANCH_NAME"
+git push origin --delete "$BRANCH_NAME" 2>/dev/null || echo "Remote branch already deleted (gh pr merge --delete-branch handled it)"
 ```
-
-**Note:** This may fail if GitHub auto-deleted the branch on merge. That's fine.
 
 ### 5.7 Prune stale references
 
@@ -166,11 +179,17 @@ echo "✓ Updated main branch"
 
 ---
 
-### 5.9 Restart servers in main directory (if needed)
+### 5.9 Restart development servers from main
 
-> ⚠️ **If you restarted servers in the worktree for E2E testing**, they are now stopped or pointing to a deleted directory.
+> ⚠️ **Servers may still be running from the deleted worktree directory, or not running at all.**
 
-Start the development servers from the main directory. Use the project's start commands from CLAUDE.md.
+Restart the development servers from the main directory so the user is back to a working state. Use the project's start commands from CLAUDE.md.
+
+```bash
+# Example (replace with actual project commands from CLAUDE.md):
+# npm run dev
+# uv run uvicorn main:app --reload
+```
 
 ---
 
@@ -179,12 +198,13 @@ Start the development servers from the main directory. Use the project's start c
 After successful cleanup, report to user:
 
 ```
-✓ Cleanup complete:
+✓ All done:
+  - PR merged to main (squash)
   - Removed worktree: .worktrees/[name]
   - Deleted local branch: [branch]
   - Deleted remote branch: [branch]
   - Pruned stale references
-  - Now on main branch (up to date)
+  - On main branch (up to date)
   - Development servers restarted from main
 ```
 
@@ -221,9 +241,10 @@ If the user is not in a worktree (e.g., working directly on a feature branch):
 - [ ] Changes committed and pushed
 - [ ] PR created (with user confirmation)
 - [ ] (If automated reviewers configured) Addressed PR review comments via `/code-review`
-- [ ] User confirmed PR is merged
+- [ ] PR merged to main (with user confirmation)
 - [ ] Worktree removed (if applicable)
 - [ ] Local branch deleted
 - [ ] Remote branch deleted
 - [ ] Stale references pruned
-- [ ] Now on main branch
+- [ ] On main branch (up to date)
+- [ ] Development servers restarted from main
