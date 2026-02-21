@@ -62,7 +62,21 @@ gh pr create --base main --title "[PR title]" --body "[PR description]"
 
 ---
 
-## Phase 3: Wait for Merge
+## Phase 3: Address PR Review Comments (if automated reviews configured)
+
+If the repository has automated PR reviewers (GitHub Copilot, OpenAI Codex, Claude), wait for their comments to arrive, then process them:
+
+```
+/code-review
+```
+
+This reads the review comments left on the PR and helps address them. Fix any issues, push the fixes, and wait for re-approval.
+
+> **No automated reviewers?** Skip this phase. See the README's "Recommended: Automated PR Reviews" section for how to set them up.
+
+---
+
+## Phase 4: Wait for Merge
 
 **Tell the user:**
 > "PR created: [URL]
@@ -73,11 +87,11 @@ gh pr create --base main --title "[PR title]" --body "[PR description]"
 
 ---
 
-## Phase 4: Cleanup (After Merge)
+## Phase 5: Cleanup (After Merge)
 
 **Only proceed when user confirms the PR has been merged.**
 
-### 4.1 Detect current context
+### 5.1 Detect current context
 
 ```bash
 # Check if we're in a worktree
@@ -91,14 +105,14 @@ else
 fi
 ```
 
-### 4.2 Get branch name
+### 5.2 Get branch name
 
 ```bash
 BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
 echo "BRANCH_NAME: $BRANCH_NAME"
 ```
 
-### 4.3 Navigate to main repository
+### 5.3 Navigate to main repository
 
 ```bash
 # Go back to main repo root (works from inside worktree)
@@ -106,14 +120,14 @@ cd "$(git rev-parse --git-common-dir)/.."
 echo "Now in: $(pwd)"
 ```
 
-### 4.4 Remove the worktree
+### 5.4 Remove the worktree
 
 ```bash
 git worktree remove ".worktrees/$WORKTREE_NAME" --force
 echo "✓ Removed worktree: .worktrees/$WORKTREE_NAME"
 ```
 
-### 4.5 Delete local branch
+### 5.5 Delete local branch
 
 ```bash
 git branch -d "$BRANCH_NAME"
@@ -125,7 +139,7 @@ echo "✓ Deleted local branch: $BRANCH_NAME"
 git branch -D "$BRANCH_NAME"
 ```
 
-### 4.6 Delete remote branch
+### 5.6 Delete remote branch
 
 ```bash
 git push origin --delete "$BRANCH_NAME"
@@ -134,7 +148,7 @@ echo "✓ Deleted remote branch: $BRANCH_NAME"
 
 **Note:** This may fail if GitHub auto-deleted the branch on merge. That's fine.
 
-### 4.7 Prune stale references
+### 5.7 Prune stale references
 
 ```bash
 git worktree prune
@@ -142,7 +156,7 @@ git fetch --prune
 echo "✓ Pruned stale references"
 ```
 
-### 4.8 Switch to main and pull
+### 5.8 Switch to main and pull
 
 ```bash
 git checkout main
@@ -152,7 +166,7 @@ echo "✓ Updated main branch"
 
 ---
 
-### 4.9 Restart servers in main directory (if needed)
+### 5.9 Restart servers in main directory (if needed)
 
 > ⚠️ **If you restarted servers in the worktree for E2E testing**, they are now stopped or pointing to a deleted directory.
 
@@ -180,9 +194,9 @@ After successful cleanup, report to user:
 
 If the user is not in a worktree (e.g., working directly on a feature branch):
 
-1. **Skip worktree removal** (steps 4.3, 4.4)
-2. **Still delete branches** (steps 4.5, 4.6)
-3. **Still prune and update main** (steps 4.7, 4.8)
+1. **Skip worktree removal** (steps 5.3, 5.4)
+2. **Still delete branches** (steps 5.5, 5.6)
+3. **Still prune and update main** (steps 5.7, 5.8)
 
 ---
 
@@ -206,6 +220,7 @@ If the user is not in a worktree (e.g., working directly on a feature branch):
 
 - [ ] Changes committed and pushed
 - [ ] PR created (with user confirmation)
+- [ ] (If automated reviewers configured) Addressed PR review comments via `/code-review`
 - [ ] User confirmed PR is merged
 - [ ] Worktree removed (if applicable)
 - [ ] Local branch deleted

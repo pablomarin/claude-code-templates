@@ -141,18 +141,29 @@ if ($Global) {
     # Copy global hooks
     Copy-TemplateFile (Join-Path $ScriptDir "hooks" "pre-compact-memory.ps1") (Join-Path $HOME ".claude" "hooks" "pre-compact-memory.ps1") "~\.claude\hooks\pre-compact-memory.ps1"
 
-    # Copy global settings
+    # Merge global hooks into existing settings (preserves user's plugins, statusLine, etc.)
     $globalSettings = Join-Path $HOME ".claude" "settings.json"
-    if ((Test-Path $globalSettings) -and (-not $Force)) {
-        Write-Host "  " -NoNewline
-        Write-Color "o" "Blue"
-        Write-Host " ~\.claude\settings.json already exists (use -f to overwrite)"
-        Write-Host "  " -NoNewline
-        Write-Color "TIP:" "Yellow"
-        Write-Host " Manually merge hooks from settings\global-settings.template.json"
+    $templateSettings = Join-Path $ScriptDir "settings" "global-settings.template.json"
+    if (Test-Path $globalSettings) {
+        try {
+            $existing = Get-Content $globalSettings -Raw | ConvertFrom-Json
+            $template = Get-Content $templateSettings -Raw | ConvertFrom-Json
+            # Merge just the hooks key, preserving everything else
+            $existing | Add-Member -MemberType NoteProperty -Name "hooks" -Value $template.hooks -Force
+            $existing | ConvertTo-Json -Depth 10 | Set-Content $globalSettings -Encoding UTF8
+            Write-Host "  " -NoNewline
+            Write-Color "+" "Green"
+            Write-Host " Merged hooks into existing ~\.claude\settings.json (your settings preserved)"
+        }
+        catch {
+            Write-Host "  " -NoNewline
+            Write-Color "!" "Yellow"
+            Write-Host " Could not merge hooks. Manually add hooks from:"
+            Write-Host "    $templateSettings"
+        }
     }
     else {
-        Copy-TemplateFile (Join-Path $ScriptDir "settings" "global-settings.template.json") $globalSettings "~\.claude\settings.json (global hooks)"
+        Copy-TemplateFile $templateSettings $globalSettings "~\.claude\settings.json (global hooks)"
     }
 
     # Enable auto memory via environment variable
@@ -355,11 +366,13 @@ switch ($Tech) {
     }
     "typescript" {
         Copy-TemplateFile (Join-Path $ScriptDir "rules" "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
+        Copy-TemplateFile (Join-Path $ScriptDir "rules" "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
     }
     default {
         Copy-TemplateFile (Join-Path $ScriptDir "rules" "python-style.md") ".claude\rules\python-style.md" ".claude\rules\python-style.md"
         Copy-TemplateFile (Join-Path $ScriptDir "rules" "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
         Copy-TemplateFile (Join-Path $ScriptDir "rules" "database.md") ".claude\rules\database.md" ".claude\rules\database.md"
+        Copy-TemplateFile (Join-Path $ScriptDir "rules" "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
     }
 }
 
@@ -436,16 +449,28 @@ Write-Host "  .claude\rules\           Coding standards + workflow rules (safe t
 Write-Host "  docs\                    Changelog, PRDs, solutions knowledge base"
 Write-Host ""
 
+Write-Color "Plugins pre-enabled in .claude\settings.json:" "Yellow"
+Write-Host ""
+Write-Host "  - superpowers              (requires install - see step 3 below)"
+Write-Host "  - pr-review-toolkit        (built-in, no install needed)"
+Write-Host "  - frontend-design          (built-in, no install needed)"
+Write-Host ""
+
 # Check if global setup needed
 $globalClaude = Join-Path $HOME ".claude" "CLAUDE.md"
 if (-not (Test-Path $globalClaude)) {
-    Write-Color "WARNING: Global memory not set up yet!" "Red"
-    Write-Host ""
-    Write-Host "  Run this first (once per machine):"
-    Write-Host "  " -NoNewline
-    Write-Color "& $ScriptDir\setup.ps1 -Global" "Green"
-    Write-Host ""
-    Write-Host "  Without global setup, Claude won't persist learnings across sessions."
+    Write-Color "+--------------------------------------------------------------+" "Red"
+    Write-Color "|  WARNING: Global memory not set up yet!                       |" "Red"
+    Write-Color "|                                                               |" "Red"
+    Write-Color "|  Without global setup:                                        |" "Red"
+    Write-Color "|  - Claude won't save learnings before context compression     |" "Red"
+    Write-Color "|  - /memory won't show your auto memory directory              |" "Red"
+    Write-Color "|  - Session knowledge will be lost on compaction               |" "Red"
+    Write-Color "|                                                               |" "Red"
+    Write-Host  "|  Run: " -NoNewline -ForegroundColor Red
+    Write-Host  "& $ScriptDir\setup.ps1 -Global" -NoNewline -ForegroundColor Green
+    Write-Color "                          |" "Red"
+    Write-Color "+--------------------------------------------------------------+" "Red"
     Write-Host ""
 }
 
@@ -470,8 +495,8 @@ Write-Host "   /plugin install superpowers@superpowers-marketplace"
 Write-Host ""
 Write-Host "   Then restart Claude Code."
 Write-Host ""
-Write-Host "   Note: code-review, pr-review-toolkit, and code-simplifier are"
-Write-Host "   built-in Claude Code plugins - no install needed. They're already"
+Write-Host "   Note: code-review, pr-review-toolkit, code-simplifier, and frontend-design"
+Write-Host "   are built-in Claude Code plugins - no install needed. They're already"
 Write-Host "   enabled in .claude\settings.json."
 Write-Host ""
 Write-Host "4. " -NoNewline

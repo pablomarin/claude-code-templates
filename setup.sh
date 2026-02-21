@@ -133,13 +133,40 @@ if [[ "$GLOBAL" == true ]]; then
     copy_file "$SCRIPT_DIR/hooks/pre-compact-memory.sh" "$HOME/.claude/hooks/pre-compact-memory.sh" "~/.claude/hooks/pre-compact-memory.sh"
     chmod +x "$HOME/.claude/hooks/pre-compact-memory.sh" 2>/dev/null || true
 
-    # Merge global settings (hooks only - don't override user's existing permissions/plugins)
+    # Merge global hooks into existing settings (preserves user's plugins, statusLine, etc.)
     GLOBAL_SETTINGS="$HOME/.claude/settings.json"
-    if [[ -f "$GLOBAL_SETTINGS" ]] && [[ "$FORCE" != true ]]; then
-        echo -e "  ${BLUE}○${NC} ~/.claude/settings.json already exists (use -f to overwrite)"
-        echo -e "  ${YELLOW}  TIP: Manually merge hooks from settings/global-settings.template.json${NC}"
+    TEMPLATE_SETTINGS="$SCRIPT_DIR/settings/global-settings.template.json"
+    if [[ -f "$GLOBAL_SETTINGS" ]]; then
+        MERGE_SUCCESS=false
+        if command -v jq &> /dev/null; then
+            # Use jq to merge just the hooks key, preserving everything else
+            MERGED=$(jq -s '.[0] * {hooks: .[1].hooks}' "$GLOBAL_SETTINGS" "$TEMPLATE_SETTINGS" 2>/dev/null)
+            if [[ $? -eq 0 ]] && [[ -n "$MERGED" ]]; then
+                echo "$MERGED" > "$GLOBAL_SETTINGS"
+                echo -e "  ${GREEN}✓${NC} Merged hooks into existing ~/.claude/settings.json (your settings preserved)"
+                MERGE_SUCCESS=true
+            fi
+        fi
+        if [[ "$MERGE_SUCCESS" != true ]] && command -v python3 &> /dev/null; then
+            # Fallback: use Python to merge JSON
+            python3 -c "
+import json, sys
+with open('$GLOBAL_SETTINGS') as f: existing = json.load(f)
+with open('$TEMPLATE_SETTINGS') as f: template = json.load(f)
+existing['hooks'] = template['hooks']
+with open('$GLOBAL_SETTINGS', 'w') as f: json.dump(existing, f, indent=2)
+" 2>/dev/null
+            if [[ $? -eq 0 ]]; then
+                echo -e "  ${GREEN}✓${NC} Merged hooks into existing ~/.claude/settings.json (your settings preserved)"
+                MERGE_SUCCESS=true
+            fi
+        fi
+        if [[ "$MERGE_SUCCESS" != true ]]; then
+            echo -e "  ${YELLOW}⚠${NC} Could not auto-merge hooks (install jq or python3). Manually add hooks from:"
+            echo -e "    ${BLUE}$TEMPLATE_SETTINGS${NC}"
+        fi
     else
-        copy_file "$SCRIPT_DIR/settings/global-settings.template.json" "$GLOBAL_SETTINGS" "~/.claude/settings.json (global hooks)"
+        copy_file "$TEMPLATE_SETTINGS" "$GLOBAL_SETTINGS" "~/.claude/settings.json (global hooks)"
     fi
 
     # Enable auto memory
@@ -151,8 +178,12 @@ if [[ "$GLOBAL" == true ]]; then
     SHELL_RC=""
     if [[ -f "$HOME/.zshrc" ]]; then
         SHELL_RC="$HOME/.zshrc"
+    elif [[ -f "$HOME/.zprofile" ]]; then
+        SHELL_RC="$HOME/.zprofile"
     elif [[ -f "$HOME/.bashrc" ]]; then
         SHELL_RC="$HOME/.bashrc"
+    elif [[ -f "$HOME/.bash_profile" ]]; then
+        SHELL_RC="$HOME/.bash_profile"
     fi
 
     if [[ -n "$SHELL_RC" ]]; then
@@ -188,9 +219,15 @@ if [[ "$GLOBAL" == true ]]; then
     echo "  - Load its memory at the start of every session"
     echo "  - Get smarter over time as it accumulates project knowledge"
     echo ""
-    echo -e "${YELLOW}IMPORTANT — Reload your shell now:${NC}"
-    echo ""
-    echo -e "  ${GREEN}source $SHELL_RC${NC}"
+    if [[ -n "$SHELL_RC" ]]; then
+        echo -e "${YELLOW}IMPORTANT — Reload your shell now:${NC}"
+        echo ""
+        echo -e "  ${GREEN}source $SHELL_RC${NC}"
+    else
+        echo -e "${YELLOW}IMPORTANT — Add this to your shell profile and restart your terminal:${NC}"
+        echo ""
+        echo "  export CLAUDE_CODE_DISABLE_AUTO_MEMORY=0"
+    fi
     echo ""
     echo -e "${YELLOW}Then set up your first project:${NC}"
     echo ""
@@ -219,7 +256,7 @@ echo ""
 echo -e "${YELLOW}Checking prerequisites...${NC}"
 
 if ! command -v jq &> /dev/null; then
-    echo -e "  ${YELLOW}⚠${NC} jq not found. Hooks will work with reduced features."
+    echo -e "  ${YELLOW}⚠${NC} jq not found. The pre-compact-memory hook will output less session context."
     echo "    Install for best experience: brew install jq (macOS) or apt install jq (Linux)"
 fi
 
@@ -326,11 +363,13 @@ case $TECH_STACK in
         ;;
     typescript)
         copy_file "$SCRIPT_DIR/rules/typescript-style.md" ".claude/rules/typescript-style.md" ".claude/rules/typescript-style.md"
+        copy_file "$SCRIPT_DIR/rules/frontend-design.md" ".claude/rules/frontend-design.md" ".claude/rules/frontend-design.md"
         ;;
     fullstack|*)
         copy_file "$SCRIPT_DIR/rules/python-style.md" ".claude/rules/python-style.md" ".claude/rules/python-style.md"
         copy_file "$SCRIPT_DIR/rules/typescript-style.md" ".claude/rules/typescript-style.md" ".claude/rules/typescript-style.md"
         copy_file "$SCRIPT_DIR/rules/database.md" ".claude/rules/database.md" ".claude/rules/database.md"
+        copy_file "$SCRIPT_DIR/rules/frontend-design.md" ".claude/rules/frontend-design.md" ".claude/rules/frontend-design.md"
         ;;
 esac
 
@@ -396,13 +435,23 @@ echo "  .claude/agents/          Subagent definitions (verify-app)"
 echo "  .claude/rules/           Coding standards + workflow rules (safe to update)"
 echo "  docs/                    Changelog, PRDs, solutions knowledge base"
 echo ""
+echo -e "${YELLOW}Plugins pre-enabled in .claude/settings.json:${NC}"
+echo ""
+echo "  - superpowers              (requires install — see step 3 below)"
+echo "  - pr-review-toolkit        (built-in, no install needed)"
+echo "  - frontend-design          (built-in, no install needed)"
+echo ""
 if [[ ! -f "$HOME/.claude/CLAUDE.md" ]]; then
-    echo -e "${RED}⚠ IMPORTANT: Global memory not set up yet!${NC}"
-    echo ""
-    echo "  Run this first (once per machine):"
-    echo -e "  ${GREEN}$SCRIPT_DIR/setup.sh --global${NC}"
-    echo ""
-    echo "  Without global setup, Claude won't persist learnings across sessions."
+    echo -e "${RED}┌──────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${RED}│  ⚠ IMPORTANT: Global memory not set up yet!                 │${NC}"
+    echo -e "${RED}│                                                              │${NC}"
+    echo -e "${RED}│  Without global setup:                                       │${NC}"
+    echo -e "${RED}│  • Claude won't save learnings before context compression    │${NC}"
+    echo -e "${RED}│  • /memory won't show your auto memory directory             │${NC}"
+    echo -e "${RED}│  • Session knowledge will be lost on compaction              │${NC}"
+    echo -e "${RED}│                                                              │${NC}"
+    echo -e "${RED}│  Run: ${GREEN}$SCRIPT_DIR/setup.sh --global${RED}           │${NC}"
+    echo -e "${RED}└──────────────────────────────────────────────────────────────┘${NC}"
     echo ""
 fi
 echo -e "${YELLOW}Next steps:${NC}"
@@ -420,8 +469,8 @@ echo "   /plugin install superpowers@superpowers-marketplace"
 echo ""
 echo "   Then restart Claude Code."
 echo ""
-echo "   Note: code-review, pr-review-toolkit, and code-simplifier are"
-echo "   built-in Claude Code plugins — no install needed. They're already"
+echo "   Note: code-review, pr-review-toolkit, code-simplifier, and frontend-design"
+echo "   are built-in Claude Code plugins — no install needed. They're already"
 echo "   enabled in .claude/settings.json."
 echo ""
 echo -e "4. ${BLUE}Verify everything works${NC}:"

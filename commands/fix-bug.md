@@ -17,7 +17,8 @@ This workflow requires the following plugins to be **installed AND enabled**:
 {
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": true,
-    "pr-review-toolkit@claude-plugins-official": true
+    "pr-review-toolkit@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
   }
 }
 ```
@@ -175,12 +176,17 @@ Proceed directly to Phase 4.
 
 Get an independent review of the fix plan before implementing. This catches mistakes early.
 
-**If Codex CLI is installed:**
+**Check if Codex CLI is available:**
+```bash
+command -v codex &>/dev/null && echo "Codex available" || echo "Codex not installed"
+```
+
+**If Codex is available:**
 ```
 /codex review the fix plan and flag any concerns
 ```
 
-**If Codex CLI is NOT installed:**
+**If Codex is NOT available:**
 - Present a summary of the fix plan to the user
 - Ask: "Does this fix approach look right before I start implementing?"
 - Wait for user confirmation before proceeding to Phase 4
@@ -208,17 +214,33 @@ Or for simple fixes, write a failing test first, then fix.
 > - Perform equivalent checks manually (see fallbacks below)
 > - Do NOT skip quality gates
 
-### 5.1 Fast Code Review (5 agents with confidence scoring)
+### 5.1 Second Opinion (Codex CLI)
+
+**Check if Codex CLI is available:**
+```bash
+command -v codex &>/dev/null && echo "Codex available" || echo "Codex not installed"
+```
+
+**If available**, get an independent review:
+```
+/codex review
+```
+
+**If not available:** Skip this step.
+
+### 5.2 Deep Review (PR Review Toolkit)
+
+Run the comprehensive multi-analyzer review:
 
 ```
-/code-review
+/pr-review-toolkit:review-pr
 ```
 
-Fix ALL high-confidence issues found before proceeding.
+This runs 6 specialized agents: code-reviewer, silent-failure-hunter, pr-test-analyzer, comment-analyzer, type-design-analyzer, and code-simplifier.
 
 **Fallback if unavailable:** Use `pr-review-toolkit:code-reviewer` agent on modified files.
 
-### 5.2 Simplify
+### 5.3 Simplify
 
 Use the code-simplifier agent on all modified files:
 
@@ -231,17 +253,18 @@ Use the code-simplifier agent on all modified files:
 - Functions > 50 lines that could be split
 - Over-engineered abstractions
 
-### 5.3 Verify (USE SUBAGENT - saves context window)
+### 5.4 Verify (USE SUBAGENT - saves context window)
 
 **MUST use the verify-app subagent** - Do NOT run tests yourself.
 
 Using a subagent keeps test output out of your context window, preserving tokens for actual work.
 
 **Invoke the subagent:**
+
+Launch the `verify-app` agent to run all tests, linting, and type checks. Report only the pass/fail verdict back.
+
 ```
-Use the Task tool with:
-- subagent_type: "verify-app"
-- prompt: "Run verification and report pass/fail verdict."
+Task tool → subagent_type: "verify-app", prompt: "Run verification and report pass/fail verdict."
 ```
 
 **Only use fallback if Task tool fails:**
@@ -250,27 +273,7 @@ pytest && ruff check . && mypy .  # Python
 npm test && npm run lint && npm run typecheck  # Node
 ```
 
-### 5.4 Deep Review (before PR)
-
-Run the comprehensive multi-analyzer review:
-
-```
-/pr-review-toolkit:review-pr
-```
-
-This runs 6 specialized agents: code-reviewer, silent-failure-hunter, pr-test-analyzer, comment-analyzer, type-design-analyzer, and code-simplifier.
-
-**Fallback if unavailable:** Use `/code-review` (already done in 5.1).
-
-### 5.5 Second Opinion (optional but recommended)
-
-If Codex CLI is installed:
-
-```
-/codex review
-```
-
-### 5.6 E2E Tests (MANDATORY if API changed)
+### 5.5 E2E Tests (MANDATORY if API changed)
 
 **If you modified ANY API endpoint, you MUST run E2E tests.**
 
@@ -377,11 +380,10 @@ The hooks exist to enforce quality. Bypassing them defeats their purpose.
 - [ ] Executed fix with TDD (failing test FIRST, then fix)
 
 **Quality Gates (ALL REQUIRED):**
-- [ ] Fast review via `/code-review` (5 agents, confidence scoring)
+- [ ] Second opinion via `/codex review` (if Codex CLI installed)
+- [ ] Deep review via `/pr-review-toolkit:review-pr` (6 specialized agents)
 - [ ] Simplified via `code-simplifier` agent
 - [ ] Verified via `verify-app` agent (tests, lint, types pass)
-- [ ] Deep review via `/pr-review-toolkit:review-pr` (6 specialized agents)
-- [ ] (Optional) Second opinion via `/codex review`
 - [ ] **E2E tested via Playwright MCP** (MANDATORY if API changed)
 
 **Finish:**

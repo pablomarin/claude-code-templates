@@ -13,8 +13,10 @@
 - **Deploy:**
 
 ### File Structure
+
+**Replace this example with YOUR project's actual structure. Claude uses this to navigate your codebase.**
+
 ```
-[PROJECT STRUCTURE - Fill in per project]
 project/
 ├── src/              # Backend code
 ├── frontend/         # Frontend code
@@ -29,10 +31,26 @@ project/
     └── rules/        # Coding standards (auto-loaded)
 ```
 
-### Key Commands
-```bash
-[PROJECT-SPECIFIC COMMANDS - Fill in per project]
+### Design Direction (optional — delete if not needed)
+<!-- Remove this comment block and fill in your project's aesthetic:
+- Premium, dark-mode-first aesthetic (think Linear.app, Vercel.com)
+- Font pairing: Instrument Serif for headlines, Geist for body
+- Color palette: deep navy (#0A0E27), electric blue (#3B82F6), warm white (#F8FAFC)
+- No generic "AI slop" — avoid Inter, purple gradients, evenly-spaced 3-card grids
+-->
 
+### Deployment (optional — delete if not needed)
+<!-- Remove this comment block and fill in your deployment setup:
+- Hosted on Vercel, auto-deploys from `main` branch
+- Use `vercel --yes` for preview deployments
+- Environment variables managed via Vercel dashboard
+-->
+
+### Key Commands
+
+**Replace the examples below with your project's actual commands:**
+
+```bash
 # Workflows (MANDATORY - hooks enforce these)
 /new-feature <name>     # Full feature workflow
 /fix-bug <name>         # Bug fix with systematic debugging
@@ -59,4 +77,4 @@ These files are auto-loaded by Claude Code with the same priority as this file.
 - `critical-rules.md` — Non-negotiable rules (branch safety, TDD, etc.)
 - `memory.md` — How to use persistent memory and save learnings
 - `security.md`, `testing.md`, `api-design.md` — Coding standards
-- Language-specific: `python-style.md`, `typescript-style.md`, `database.md`
+- Language-specific: `python-style.md`, `typescript-style.md`, `database.md`, `frontend-design.md`

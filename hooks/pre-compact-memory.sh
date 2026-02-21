@@ -10,15 +10,18 @@
 set -e
 INPUT=$(cat)
 
-# Check for jq - if not available, output basic info and exit gracefully
-if ! command -v jq &> /dev/null; then
-    echo "Pre-compact memory check: jq not installed, skipping detailed context"
-    exit 0
+# Parse input fields (jq preferred, grep fallback)
+if command -v jq &> /dev/null; then
+    TRIGGER=$(echo "$INPUT" | jq -r '.trigger // "unknown"')
+    SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
+    CWD=$(echo "$INPUT" | jq -r '.cwd // "."')
+else
+    TRIGGER=$(echo "$INPUT" | grep -o '"trigger"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"trigger"[[:space:]]*:[[:space:]]*"//;s/"$//')
+    [ -z "$TRIGGER" ] && TRIGGER="unknown"
+    SESSION_ID="unknown"
+    CWD=$(echo "$INPUT" | grep -o '"cwd"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"cwd"[[:space:]]*:[[:space:]]*"//;s/"$//')
+    [ -z "$CWD" ] && CWD="."
 fi
-
-TRIGGER=$(echo "$INPUT" | jq -r '.trigger // "unknown"')
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
-CWD=$(echo "$INPUT" | jq -r '.cwd // "."')
 
 # Determine the auto memory directory for this project
 # Claude Code derives this from the git repo root

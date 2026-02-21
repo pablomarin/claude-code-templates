@@ -15,7 +15,7 @@ This template adds structured workflows, automated quality gates, knowledge comp
 | No consistent development process | **Guided workflows** — `/new-feature`, `/fix-bug` commands enforce best practices |
 | Context lost between sessions | **State persistence** — CONTINUITY.md tracks Done/Now/Next across sessions |
 | Can't run multiple features in parallel | **Git worktrees** — isolated workspaces for parallel Claude sessions |
-| Code review happens too late | **Multi-layer review** — `/code-review` (fast) + `/pr-review-toolkit:review-pr` (deep) + `/codex review` (second opinion) |
+| Code review happens too late | **Multi-layer review** — `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep) → `code-simplifier` → `/code-review` (post-PR comments) |
 | E2E testing skipped | **Playwright MCP** — browser testing via standalone MCP server for UI/API changes |
 
 ## Key Features
@@ -23,7 +23,7 @@ This template adds structured workflows, automated quality gates, knowledge comp
 - **Persistent Memory**: Global + project-level memory that survives across sessions and compaction
 - **3 Workflow Commands**: `/new-feature`, `/fix-bug`, `/quick-fix` — each guides you through the complete process
 - **5 Automated Hooks**: SessionStart, Stop, PreCompact, SubagentStop, PostToolUse — plus global memory hooks
-- **Multi-Layer Code Review**: `/code-review` (fast, 5 agents) → `/pr-review-toolkit:review-pr` (deep, 6 agents) → `/codex review` (second opinion)
+- **Multi-Layer Code Review**: `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep, 6 agents) → `code-simplifier` → `/code-review` (post-PR, process automated comments)
 - **TDD Enforcement**: Red-Green-Refactor via Superpowers plugin
 - **Parallel Development**: Multiple Claude sessions working on different features simultaneously
 - **Knowledge Base**: Bug fixes automatically documented for future reference
@@ -87,7 +87,7 @@ Then inside Claude Code:
 
 Restart Claude Code.
 
-> **Note:** `code-review`, `pr-review-toolkit`, `code-simplifier`, and `feature-dev` are all **built-in** Claude Code plugins — no install needed. The setup script pre-configures them in `.claude/settings.json`.
+> **Note:** `code-review`, `pr-review-toolkit`, `code-simplifier`, `feature-dev`, and `frontend-design` are all **built-in** Claude Code plugins — no install needed. The setup script pre-configures them in `.claude/settings.json`.
 
 ### Step 5: Install Codex CLI (recommended)
 
@@ -176,14 +176,53 @@ These are project-level commands that Claude loads from your `.claude/commands/`
 
 ### Multi-Layer Quality Gates (no install needed)
 
+**Pre-PR (local, before creating the pull request):**
+
 | Gate | What it does |
 |------|-------------|
-| `/code-review` | Fast review: 5 parallel agents with confidence scoring (built-in) |
+| `/codex review` | Independent second opinion from OpenAI Codex — first review after implementation (requires Codex CLI) |
 | `/pr-review-toolkit:review-pr` | Deep review: 6 specialized agents — silent failures, test coverage, type design (built-in) |
-| `code-simplifier` agent | Cleans up code after review (built-in) |
+| `code-simplifier` agent | Cleans up code after reviews (built-in) |
 | `verify-app` agent | Runs unit tests, lint, types, migration check (custom agent in `.claude/agents/`) |
-| `/codex review` | Independent second opinion from OpenAI Codex (requires Codex CLI) |
+| `frontend-design` plugin | Typography, color, motion, and layout quality for web UIs (built-in) |
 | Playwright MCP | E2E browser testing for UI/API changes (standalone MCP server) |
+
+**Post-PR (after automated reviewers comment on the pull request):**
+
+| Gate | What it does |
+|------|-------------|
+| `/code-review` | Processes review comments from GitHub Copilot / Codex / Claude and addresses them (requires automated PR reviews configured) |
+
+### Frontend Design Quality (TypeScript/Fullstack)
+
+For TypeScript and fullstack projects, the setup installs:
+- **`frontend-design` plugin** (built-in) — Improves typography, color, motion, and layout quality. Avoids the generic "AI slop" aesthetic.
+- **`rules/frontend-design.md`** — Design standards: type hierarchy, color systems, responsive breakpoints, accessibility, animation performance.
+
+### Optional MCP Add-ons
+
+The default `.mcp.json` includes Playwright and Context7. For web projects, you may want:
+
+| MCP Server | What it does | Install command |
+|------------|-------------|----------------|
+| **Vercel** | Deploy previews, manage projects, DNS, env vars | `claude mcp add --transport http vercel https://mcp.vercel.com` |
+| **Next.js DevTools** | Live runtime/build/type error diagnostics | `npx next-devtools-mcp@latest init` |
+
+These are optional — add them if your project uses Vercel or Next.js. After adding, also add `"mcp__vercel"` to `permissions.allow` in `.claude/settings.json` to skip permission prompts.
+
+### Recommended: Automated PR Reviews
+
+The `/code-review` command works by processing review comments left on your GitHub pull requests. For it to be useful, you need automated reviewers configured on your repo. Set up **at least one** of these:
+
+| Reviewer | How to enable |
+|----------|--------------|
+| **GitHub Copilot** | Repo Settings → Code review → Copilot → Enable. Copilot reviews PRs automatically. |
+| **OpenAI Codex** | Install the [Codex GitHub App](https://github.com/apps/openai-codex). Configurable via `.codex/` in your repo. |
+| **Claude (via Anthropic)** | Install the [Claude GitHub App](https://github.com/apps/claude). Add a `claude-pr-review.yml` workflow. |
+
+Once configured, the workflow becomes: create PR → automated reviewers leave comments → `/code-review` processes those comments → push fixes → merge.
+
+> **No automated reviewers?** The workflow still works — you just skip the `/code-review` step. All pre-PR quality gates (Codex second opinion, deep review, code-simplifier, verify-app) still catch issues before the PR is created.
 
 ### Persistent Memory System
 
@@ -320,7 +359,7 @@ Before starting, ensure you have:
 - [ ] **Claude Code** installed and working (`claude --version`)
 - [ ] **Node.js 22+** (for Codex CLI, npx commands, and Playwright MCP)
 - [ ] **Git 2.23+** initialized in your project
-- [ ] **jq** (recommended, not required): `brew install jq` (macOS) or `apt install jq` (Linux). Hooks work without it but with reduced features.
+- [ ] **jq** (recommended, not required): `brew install jq` (macOS) or `apt install jq` (Linux). Used for JSON merging during global setup (falls back to Python if unavailable). Hooks work without it.
 - [ ] **Codex CLI** (recommended): `npm i -g @openai/codex` or `brew install --cask codex` (macOS). Used for design review and code review second opinions. See [Step 5](#step-5-install-codex-cli-recommended) for full instructions.
 - [ ] **Python 3.12+** with `uv` (if Python project)
 - [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
@@ -807,28 +846,14 @@ git push origin --delete feat/auth
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 6. FAST REVIEW (Built-in Code Review)                       │
-│    /code-review → 5 parallel agents, confidence scoring    │
-│    → Fix any high-confidence issues found                  │
+│ 6. SECOND OPINION (Codex CLI)                               │
+│    /codex review                                            │
+│    → Independent review from OpenAI Codex                  │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 7. CODE SIMPLIFY                                            │
-│    "Use the code-simplifier agent on modified files"       │
-│    → Cleans up architecture, improves readability          │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 8. VERIFY                                                   │
-│    "Use the verify-app agent"                              │
-│    → Unit tests + migrations + lint + types                │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 9. DEEP REVIEW (PR Review Toolkit)                          │
+│ 7. DEEP REVIEW (PR Review Toolkit)                          │
 │    /pr-review-toolkit:review-pr                              │
 │    → 6 specialized agents (silent failures, test coverage, │
 │      type design, comment quality, code review, simplify)  │
@@ -836,32 +861,46 @@ git push origin --delete feat/auth
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 10. SECOND OPINION (Optional - Codex CLI)                   │
-│    /codex review                                            │
-│    → Independent review from OpenAI Codex                  │
+│ 8. CODE SIMPLIFY                                            │
+│    "Use the code-simplifier agent on modified files"       │
+│    → Cleans up architecture, improves readability          │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 11. E2E TESTING (if UI/API changed)                         │
+│ 9. VERIFY                                                   │
+│    "Use the verify-app agent"                              │
+│    → Unit tests + migrations + lint + types                │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 10. E2E TESTING (if UI/API changed)                         │
 │    Playwright MCP server                                    │
 │    → Browser tests against affected routes                 │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 12. COMPOUND LEARNINGS                                      │
+│ 11. COMPOUND LEARNINGS                                      │
 │    docs/solutions/ + auto memory                            │
 │    → Bug root causes, patterns, solutions saved            │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 13. FINISH (Structured)                                     │
+│ 12. FINISH                                                   │
 │    → Update CONTINUITY.md (Done/Now/Next)                  │
 │    → Update docs/CHANGELOG.md (if 3+ files changed)        │
-│    → /finish-branch                                        │
-│      (commit, push, create PR, cleanup worktree after merge)│
+│    → /finish-branch (commit, push, create PR)              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 13. PR REVIEW COMMENTS (if automated reviews configured)    │
+│    /code-review                                              │
+│    → Process comments from Copilot/Codex/Claude reviewers  │
+│    → Fix issues, push, wait for approval                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -903,21 +942,21 @@ Based on Boris Cherny's key insight:
 | `/superpowers:systematic-debugging` | 4-phase root cause analysis | Before ANY bug fix |
 | `/superpowers:verification-before-completion` | Evidence-based completion check | Catches "should work" claims |
 
-### Built-in Code Review & Quality
+### Quality Gates (Pre-PR — in this order)
 
 | Command / Agent | Purpose | Notes |
 |-----------------|---------|-------|
-| `/code-review` | Fast code review (5 parallel agents) | Confidence scoring 80+, high-signal |
+| `/codex review` | First review after implementation — independent second opinion | Codex CLI (uncommitted/base/commit options) |
+| `/codex {instruction}` | General second opinion | Runs `codex exec` in read-only sandbox |
 | `/pr-review-toolkit:review-pr` | Deep multi-analyzer review (6 agents) | Silent failures, test coverage, type design |
 | `code-simplifier` agent | Clean up modified files | "Use the code-simplifier agent on [files]" |
 | `verify-app` agent | Unit tests, migration check, lint, types | "Use the verify-app agent" |
 
-### Second Opinion (Codex CLI)
+### PR Review Comments (Post-PR)
 
 | Command | Purpose | Notes |
 |---------|---------|-------|
-| `/codex review` | Code review via OpenAI Codex | Uses `codex review` with uncommitted/base/commit options |
-| `/codex {instruction}` | General second opinion | Runs `codex exec` in read-only sandbox |
+| `/code-review` | Address automated PR review comments | Requires GitHub Copilot, Codex, or Claude PR reviews configured |
 
 ### Built-in Commands
 
@@ -1032,6 +1071,7 @@ your-project/
 │       ├── api-design.md              # API design standards
 │       ├── python-style.md            # Python coding style
 │       ├── typescript-style.md        # TypeScript coding style
+│       ├── frontend-design.md        # Frontend design quality (TS/fullstack)
 │       └── database.md               # Database conventions
 └── ...
 ```
@@ -1239,7 +1279,8 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
    {
      "enabledPlugins": {
        "superpowers@superpowers-marketplace": true,
-       "pr-review-toolkit@claude-plugins-official": true
+       "pr-review-toolkit@claude-plugins-official": true,
+       "frontend-design@claude-plugins-official": true
      }
    }
    ```
@@ -1370,10 +1411,12 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 │   /quick-fix <name>    ← Trivial only (< 3 files)          │
 │   /finish-branch       ← PR creation + worktree cleanup    │
 │                                                             │
-│ QUALITY GATES (built-in):                                   │
-│   /code-review         ← Fast review (5 agents)            │
+│ QUALITY GATES (in order):                                   │
+│   /codex review        ← First review (Codex CLI)          │
 │   /pr-review-toolkit:review-pr  ← Deep review (6 agents)   │
-│   /codex review        ← Second opinion (Codex CLI)        │
+│   code-simplifier      ← Clean up code                     │
+│   verify-app           ← Run tests, lint, types (agent)    │
+│   /code-review         ← Address PR review comments (post) │
 │                                                             │
 │ MEMORY COMMANDS:                                            │
 │   /memory              ← View/edit memory files             │
@@ -1407,6 +1450,7 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 5.2 | 2026-02-20 | **FRONTEND DESIGN**: Added `frontend-design` plugin (built-in) and `rules/frontend-design.md` for TypeScript/fullstack projects — typography, color, spacing, responsive, accessibility, animation standards. Documented optional MCP add-ons (Vercel, Next.js DevTools). |
 | 5.1 | 2026-02-19 | **CLAUDE.MD SPLIT**: Slimmed CLAUDE.md to ~50 lines (user-owned: project description, tech stack, commands). Moved workflow, principles, worktree policy, critical rules, and memory instructions to `.claude/rules/` files that are auto-loaded and safe to overwrite on updates. Following official best practice of keeping CLAUDE.md under 60-100 lines. |
 | 5.0 | 2026-02-19 | **REMOVED COMPOUND ENGINEERING**: Replaced with built-in Claude Code quality gates (`/code-review`, `/pr-review-toolkit:review-pr`, `/codex review`). E2E testing via standalone Playwright MCP. Knowledge compounding via `docs/solutions/` + auto memory. Only Superpowers remains as third-party plugin. Added standalone MCP servers (Playwright, Context7) to project settings. |
 | 4.0 | 2026-02-19 | **PERSISTENT MEMORY**: Added global memory system (`--global` flag), PreCompact hooks to save learnings before context compression, global Stop hook for memory reminders, `~/.claude/CLAUDE.md` template with memory instructions. Inspired by OpenClaw's pre-compaction memory flush pattern. Auto memory enabled by default. |
