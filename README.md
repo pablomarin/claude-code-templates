@@ -159,7 +159,7 @@ These are project-level commands that Claude loads from your `.claude/commands/`
 | `/new-feature <name>` | Guides you through: Research → PRD → Design → TDD → Review → PR. Creates an isolated git worktree. |
 | `/fix-bug <name>` | Systematic 4-phase debugging → Fix → Review → Document solution. Creates an isolated worktree. |
 | `/quick-fix <name>` | For trivial changes (< 3 files). Verify and commit directly. |
-| `/finish-branch` | Commit → Push → Create PR → Wait for merge → Clean up worktree. |
+| `/finish-branch` | Commit → Push → Create PR → Merge (with confirmation) → Clean up worktree → Restart servers. |
 | `/codex <instruction>` | Get a second opinion from OpenAI's Codex CLI. |
 | `/prd:discuss` | Refine user stories interactively. |
 | `/prd:create` | Generate a structured product requirements document. |
@@ -575,10 +575,9 @@ cd /path/to/your/project
         "matcher": "",
         "hooks": [
           {
-            "type": "prompt",
-            "model": "haiku",
-            "prompt": "CONTEXT COMPACTION IMMINENT. Save any new learnings from this session to your auto memory (MEMORY.md or topic files). Include: bug root causes, patterns discovered, architecture insights. Do NOT save session-specific state. Keep MEMORY.md concise.",
-            "timeout": 30
+            "type": "command",
+            "command": "echo 'COMPACTION IMMINENT. Save learnings to auto memory: bug root causes, patterns, architecture insights, user preferences. NOT session state (that goes in CONTINUITY.md).' >&2; exit 2",
+            "timeout": 10
           }
         ]
       }
@@ -589,7 +588,8 @@ cd /path/to/your/project
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Evaluate the subagent's output quality. Did it complete its task? Is output useful? Respond 'accept' if good, 'reject' with explanation if issues."
+            "model": "sonnet",
+            "prompt": "Evaluate the subagent's output quality. Consider:\n1. Did the subagent complete its assigned task?\n2. Is the output useful and actionable?\n3. Were there any errors or issues?\n\nYou MUST respond with ONLY a JSON object in one of these formats:\n{\"ok\": true} - if the subagent completed successfully\n{\"ok\": false, \"reason\": \"explanation of what went wrong\"} - if issues were found\n\nRespond with ONLY the JSON object, no other text."
           }
         ]
       }
@@ -760,12 +760,13 @@ cd /project/.worktrees/auth && claude  # Hooks won't work!
 
 ### Cleanup
 
-The `/finish-branch` command handles cleanup automatically after PR merge. It will:
-1. Remove the worktree
-2. Delete the local branch
-3. Delete the remote branch
+The `/finish-branch` command handles merge and cleanup (with user confirmation). It will:
+1. Merge the PR to main (`gh pr merge --squash --delete-branch`)
+2. Remove the worktree
+3. Delete local and remote branches
 4. Prune stale references
 5. Switch to main and pull latest
+6. Restart development servers from main
 
 **Manual cleanup** (if needed):
 
@@ -921,7 +922,7 @@ Based on Boris Cherny's key insight:
 | `/new-feature <name>` | Full feature workflow | Research → PRD → Brainstorm → Plan → Execute → Review → Finish |
 | `/fix-bug <name>` | Bug fix workflow | Search solutions → Systematic debugging → Fix → Review → Compound |
 | `/quick-fix <name>` | Trivial changes only | < 3 files, no arch impact, still requires verify |
-| `/finish-branch` | Complete branch workflow | Commit → Push → PR → Wait for merge → Cleanup worktree |
+| `/finish-branch` | Complete branch workflow | Commit → Push → PR → Merge (with confirmation) → Cleanup → Restart servers |
 
 **Workflow commands guide the process.** SessionStart loads context, Stop hook validates completion.
 
@@ -990,10 +991,10 @@ Based on Boris Cherny's key insight:
 
 Global hooks (`~/.claude/settings.json`) and project hooks (`.claude/settings.json`) **both run**. They don't conflict — they complement each other:
 
-- **Global Stop hook**: Lightweight memory reminder (haiku model, 15s timeout, non-blocking)
-- **Project Stop hook**: Script checks if CONTINUITY.md + CHANGELOG are updated (blocks via exit code 2 if not)
-- **Global PreCompact hook**: Memory save reminder (haiku model)
-- **Project PreCompact hook**: Memory save + project-specific context script
+- **Global Stop hook**: No-op (`exit 0`) — memory saving handled by PreCompact and CLAUDE.md rules
+- **Project Stop hook**: Script checks if CONTINUITY.md + CHANGELOG are updated; only counts tracked modifications, ignores untracked files (blocks via exit code 2 if not updated)
+- **Global PreCompact hook**: Command that blocks with memory save reminder (`exit 2` + stderr)
+- **Project PreCompact hook**: Command reminder + project-specific context script
 
 ### Permissions (No Prompts Needed)
 
@@ -1409,7 +1410,7 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 │   /new-feature <name>  ← Full workflow (Research→PRD→Plan) │
 │   /fix-bug <name>      ← Debugging workflow (Systematic)   │
 │   /quick-fix <name>    ← Trivial only (< 3 files)          │
-│   /finish-branch       ← PR creation + worktree cleanup    │
+│   /finish-branch       ← PR + merge + cleanup + restart    │
 │                                                             │
 │ QUALITY GATES (in order):                                   │
 │   /codex review        ← First review (Codex CLI)          │
