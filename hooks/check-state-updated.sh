@@ -35,7 +35,7 @@ UNCOMMITTED_FILES=$(git diff --name-only 2>/dev/null | wc -l | tr -d ' ')
 TOTAL_CHANGED=$((BRANCH_CHANGED + UNCOMMITTED_FILES))
 
 # Check if CHANGELOG was updated anywhere on branch
-CHANGELOG_IN_BRANCH=$(git diff --name-only "$BRANCH_BASE" HEAD 2>/dev/null | grep -c "CHANGELOG.md" || echo "0")
+CHANGELOG_IN_BRANCH=$(git diff --name-only "$BRANCH_BASE" HEAD 2>/dev/null | grep -c "CHANGELOG.md" || true)
 
 ISSUES=""
 
