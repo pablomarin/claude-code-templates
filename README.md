@@ -87,7 +87,7 @@ Then inside Claude Code:
 
 Restart Claude Code.
 
-> **Note:** `code-review`, `pr-review-toolkit`, `code-simplifier`, `feature-dev`, and `frontend-design` are all **built-in** Claude Code plugins — no install needed. The setup script pre-configures them in `.claude/settings.json`.
+> **Note:** `pr-review-toolkit` and `frontend-design` are built-in Claude Code plugins pre-enabled in `.claude/settings.json`. The `code-simplifier` and `code-reviewer` agents come bundled with `pr-review-toolkit`. `superpowers` requires a separate install (step above).
 
 ### Step 5: Install Codex CLI (recommended)
 
@@ -172,7 +172,7 @@ These are project-level commands that Claude loads from your `.claude/commands/`
 | **Stop** | Claude finishes responding | Checks that CONTINUITY.md + CHANGELOG are updated (blocks if not) |
 | **PreCompact** | Before context compression | Saves all session learnings to persistent memory before they're lost |
 | **SubagentStop** | Subagent finishes | Validates the subagent's output quality |
-| **PostToolUse** | After file edits | Auto-formats code with ruff (Python) or prettier (JS/TS) |
+| **PostToolUse** | After file edits | Auto-formats code with ruff (Python) or prettier (JS/TS/JSON/Markdown) |
 
 ### Multi-Layer Quality Gates (no install needed)
 
@@ -980,12 +980,12 @@ Based on Boris Cherny's key insight:
 
 | Hook | Trigger | What Happens | Scope |
 |------|---------|--------------|-------|
-| `SessionStart` | New session, `/clear`, compact | Loads CONTINUITY.md, shows branch | Project |
-| `Stop` (global) | Claude finishes responding | Reminds Claude to save learnings to memory (lightweight, non-blocking) | Global |
+| `SessionStart` | New session, `/clear` | Loads CONTINUITY.md, shows branch | Project |
+| `Stop` (global) | Claude finishes responding | No-op pass-through (`exit 0`) — memory saving handled by PreCompact | Global |
 | `Stop` (project) | Claude finishes responding | Checks CONTINUITY.md + CHANGELOG updated (script only, blocks if needed) | Project |
-| `PreCompact` | Before context compression | Saves session knowledge to auto memory | Global + Project |
+| `PreCompact` | Before context compression | Reminds Claude to save learnings before context compression (blocks until done) | Global + Project |
 | `SubagentStop` | Subagent finishes | Validates subagent output quality | Project |
-| `PostToolUse` | After Edit/Write on code files | Auto-formats with ruff/prettier | Project |
+| `PostToolUse` | After Edit/Write on code files | Auto-formats with ruff (Python) / prettier (JS/TS/JSON/Markdown) | Project |
 
 ### How Global and Project Hooks Interact
 
@@ -1000,17 +1000,21 @@ Global hooks (`~/.claude/settings.json`) and project hooks (`.claude/settings.js
 
 | Action | Prompt? | Why |
 |--------|---------|-----|
-| Read any file (except secrets) | No | Allowed |
-| Edit/Write files (except .env) | No | Allowed |
-| Run tests (pytest, pnpm test) | No | Allowed |
-| Run linters (mypy, ruff) | No | Allowed |
-| Git operations (commit, push) | No | Allowed on feature branch |
+| Read any file | No | Allowed |
+| Edit/Write files | No | Allowed |
+| Run any Bash command (tests, linters, git) | No | Allowed |
+| Codex CLI (`codex` commands) | No | Allowed |
+| Skill invocation | No | Allowed |
+| Web search and fetch | No | Allowed |
 | Context7 MCP tools | No | Auto-approved for docs lookup |
 | Playwright MCP tools | No | Auto-approved for E2E testing |
 | **gh pr create** | Yes | Creating PR requires approval |
 | **gh pr merge** | Yes | Merging requires approval |
-| **rm -rf** | Yes | Destructive command |
-| sudo, dangerous commands | Denied | In deny list |
+| **rm -rf**, **rm -r** | Yes | Destructive deletion |
+| **npm publish** | Yes | Publishing requires approval |
+| `sudo`, `su` | Denied | Privilege escalation |
+| `chmod 777`, `dd`, `mkfs` | Denied | Dangerous system commands |
+| `rm -rf /`, `rm -rf ~` | Denied | Catastrophic deletion |
 
 ---
 
@@ -1044,12 +1048,9 @@ your-project/
 ├── .claude/
 │   ├── settings.json                  # Permissions + Hooks (NOT MCP servers)
 │   ├── hooks/
-│   │   ├── check-state-updated.sh     # Stop hook script (macOS/Linux)
-│   │   ├── check-state-updated.ps1    # Stop hook script (Windows)
-│   │   ├── pre-compact-memory.sh      # PreCompact hook script (macOS/Linux)
-│   │   ├── pre-compact-memory.ps1     # PreCompact hook script (Windows)
-│   │   ├── post-tool-format.sh        # Auto-formatter hook (macOS/Linux)
-│   │   └── post-tool-format.ps1       # Auto-formatter hook (Windows)
+│   │   ├── check-state-updated.sh     # Stop hook script (.ps1 on Windows)
+│   │   ├── pre-compact-memory.sh      # PreCompact hook script (.ps1 on Windows)
+│   │   └── post-tool-format.sh        # Auto-formatter hook (.ps1 on Windows)
 │   ├── agents/                        # Custom subagents
 │   │   └── verify-app.md              # Test verification agent
 │   ├── commands/                      # Custom slash commands (ENFORCED)
@@ -1351,25 +1352,36 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 
 ## Security
 
-### What's Protected
+### What's Denied (permissions deny list)
 
 | Item | Protection |
 |------|------------|
-| `.env` files | Cannot be read or written |
-| `secrets/` directory | Read blocked |
-| `.ssh/` directory | Read blocked |
-| `credentials*` files | Read blocked |
-| `sudo` commands | Denied |
-| `rm -rf /`, `rm -rf ~` | Denied |
-| `chmod 777` | Denied |
+| `sudo`, `su` | Denied — privilege escalation blocked |
+| `rm -rf /`, `rm -rf ~` | Denied — catastrophic deletion blocked |
+| `chmod 777`, `dd`, `mkfs` | Denied — dangerous system commands |
+| Windows: `Remove-Item -Recurse -Force C:\` | Denied (Windows template only) |
+| Windows: `Remove-Item -Recurse -Force $env:USERPROFILE` | Denied (Windows template only) |
 
-### What Requires Confirmation
+### What Requires Confirmation (permissions ask list)
 
 | Action | Why |
 |--------|-----|
-| `gh pr create` | Creating PR to main |
-| `gh pr merge` | Merging to main |
-| `rm -rf` with path | Destructive operation |
+| `gh pr create` | Creating PR requires approval |
+| `gh pr merge` | Merging requires approval |
+| `rm -rf`, `rm -r` | Destructive file deletion |
+| `npm publish` | Publishing packages requires approval |
+| Windows: `Remove-Item -Recurse` | Destructive deletion (Windows template only) |
+
+### What's Skipped by Auto-Formatter
+
+The `PostToolUse` hook skips formatting these files for safety (but does not block reading them):
+
+| Item | Behavior |
+|------|----------|
+| `.env*`, `*.key`, `*.pem`, `*credential*`, `*password*` | Skipped by auto-formatter |
+| `secrets/`, `.ssh/`, `.git/`, `node_modules/` | Skipped by auto-formatter |
+
+> **Note:** The `security.md` rule instructs Claude to never commit secrets to version control, but there are no permissions deny rules that block reading sensitive files.
 
 ---
 
@@ -1403,8 +1415,8 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 │ DAILY WORKFLOW (Hooks enforce this!)                        │
 ├─────────────────────────────────────────────────────────────┤
 │ START:                                                      │
-│   claude                               ← CONTINUITY loads   │
-│   Answer: "What type of task?"         ← SessionStart asks  │
+│   claude                               ← Start Claude Code  │
+│   CONTINUITY.md loads automatically    ← SessionStart hook   │
 │                                                             │
 │ THEN RUN ONE OF THESE COMMANDS:                             │
 │   /new-feature <name>  ← Full workflow (Research→PRD→Plan) │

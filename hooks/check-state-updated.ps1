@@ -23,10 +23,9 @@ if ($data.stop_hook_active -eq $true) {
 }
 
 # All git commands run in current directory (Claude cd's into worktrees)
-
-# Check for uncommitted changes
-$uncommittedOutput = git status --porcelain 2>$null
-$uncommitted = if ($uncommittedOutput) { ($uncommittedOutput | Measure-Object -Line).Lines } else { 0 }
+# Only count tracked modifications (staged + unstaged), NOT untracked files (??)
+$uncommittedOutput = git status --porcelain 2>$null | Where-Object { $_ -notmatch '^\?\?' }
+$uncommitted = if ($uncommittedOutput) { @($uncommittedOutput).Count } else { 0 }
 
 # Check if CONTINUITY.md was modified
 $continuityOutput = git status --porcelain CONTINUITY.md 2>$null
