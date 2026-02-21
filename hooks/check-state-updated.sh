@@ -22,7 +22,8 @@ fi
 [ "$STOP_HOOK_ACTIVE" = "true" ] && exit 0
 
 # All git commands run in current directory (Claude cd's into worktrees)
-UNCOMMITTED=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+# Only count tracked modifications (staged + unstaged), NOT untracked files (??)
+UNCOMMITTED=$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d ' ')
 
 # Files modified (uncommitted)
 CONTINUITY_MODIFIED=$(git status --porcelain CONTINUITY.md 2>/dev/null | wc -l | tr -d ' ')

@@ -64,7 +64,7 @@
           {
             "type": "prompt",
             "model": "sonnet",
-            "prompt": "Evaluate the subagent's output quality. Consider:\n\n1. **Task Completion:** Did the subagent complete its assigned task?\n2. **Output Quality:** Is the output useful and actionable?\n3. **Errors:** Were there any errors or issues reported?\n4. **Next Steps:** Is it clear what should happen next?\n\nRespond with ONE of:\n- 'accept' - Subagent completed task successfully, output is useful\n- 'reject' - Issues found, explain what went wrong and what to fix\n\nBe specific in rejection reasons so the main agent can address them."
+            "prompt": "Evaluate the subagent's output quality. Consider:\n1. Did the subagent complete its assigned task?\n2. Is the output useful and actionable?\n3. Were there any errors or issues?\n\nYou MUST respond with ONLY a JSON object in one of these formats:\n{\"ok\": true} - if the subagent completed successfully\n{\"ok\": false, \"reason\": \"explanation of what went wrong\"} - if issues were found\n\nRespond with ONLY the JSON object, no other text."
           }
         ]
       }
@@ -74,10 +74,9 @@
         "matcher": "",
         "hooks": [
           {
-            "type": "prompt",
-            "model": "haiku",
-            "prompt": "CONTEXT COMPACTION IMMINENT. Before your conversation history is compressed:\n\n1. Save any new learnings from this session to your auto memory (MEMORY.md or topic files)\n2. Include: bug root causes, patterns discovered, architecture insights, user preferences\n3. Do NOT save session-specific state (that belongs in CONTINUITY.md)\n4. Keep MEMORY.md concise — move details to topic files\n\nThis is your last chance to preserve session knowledge before compression.",
-            "timeout": 30
+            "type": "command",
+            "command": "echo 'COMPACTION IMMINENT. Save learnings to auto memory: bug root causes, patterns, architecture insights, user preferences. NOT session state (that goes in CONTINUITY.md).' >&2; exit 2",
+            "timeout": 10
           },
           {
             "type": "command",

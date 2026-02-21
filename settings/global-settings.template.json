@@ -5,10 +5,9 @@
         "matcher": "",
         "hooks": [
           {
-            "type": "prompt",
-            "model": "haiku",
-            "prompt": "IMPORTANT: Context is about to be compacted and current conversation details will be compressed.\n\nBefore compaction, save any valuable learnings from this session to your auto memory:\n\n1. Check if you discovered any new patterns, solved tricky bugs, or learned user preferences\n2. If yes, write them to your MEMORY.md or create topic files in your auto memory directory\n3. Focus on durable knowledge, not session-specific state\n4. Keep MEMORY.md concise — move details to topic files\n\nThis is your last chance to preserve session learnings before they're compressed.",
-            "timeout": 30
+            "type": "command",
+            "command": "echo 'COMPACTION IMMINENT. Save any valuable learnings from this session to auto memory (MEMORY.md or topic files): patterns, bug root causes, architecture insights, user preferences. NOT session-specific state.' >&2; exit 2",
+            "timeout": 10
           }
         ]
       }
@@ -18,10 +17,9 @@
         "matcher": "",
         "hooks": [
           {
-            "type": "prompt",
-            "model": "haiku",
-            "prompt": "Quick check: Did you learn anything in this response worth saving to auto memory? This includes:\n- New project patterns or conventions discovered\n- Bug root causes and their solutions\n- User preferences or workflow habits\n- Architecture insights\n\nIf yes, briefly update your MEMORY.md. If nothing new was learned, proceed normally.\n\nDo NOT block stopping — this is a lightweight reminder only.",
-            "timeout": 15
+            "type": "command",
+            "command": "exit 0",
+            "timeout": 5
           }
         ]
       }
