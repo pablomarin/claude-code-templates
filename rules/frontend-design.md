@@ -43,6 +43,62 @@ Build interfaces that look **intentionally designed**, not generated. Avoid the 
 - Ease functions: `ease-out` for entrances, `ease-in` for exits, `ease-in-out` for transitions
 - Animate transforms and opacity (GPU-accelerated), not width/height/margin
 
+## Visual Design & Immersive UI
+
+**Core philosophy:** Interfaces should feel alive. Static rectangles are drafts, not designs. Every landing page, hero section, and key visual moment should include at least one dynamic element.
+
+### Organic Shapes Over Rectangles
+- Use SVG `<path>` elements with cubic bezier curves for section dividers, backgrounds, and decorative shapes
+- Use CSS `clip-path: polygon()` or `clip-path: url(#svg-id)` for non-rectangular sections
+- Blob shapes: generate organic blobs with randomized bezier control points, not perfect circles
+- Border radius: use asymmetric values (`border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%`) for organic feel
+- Layered depth: overlap sections with `z-index` and negative margins for visual flow
+
+### Animated SVG Waves & Morphing (Framer Motion / CSS)
+- Create layered SVG `<path>` elements with sinusoidal wave shapes at different amplitudes
+- Animate the `d` attribute between wave forms using Framer Motion's `animate` or CSS `@keyframes`
+- Use 2-3 wave layers at different speeds and opacities for parallax depth
+- Wave dividers between sections instead of straight horizontal lines
+- SVG path morphing for state transitions (e.g., menu icon → close icon)
+
+### Lottie Animations
+- Library: `lottie-react` (~8KB) or `@lottiefiles/react-lottie-player`
+- Use for: icon transitions, loading states, hero background accents, onboarding illustrations
+- Source animations from [LottieFiles](https://lottiefiles.com) or create custom in After Effects
+- Always set `autoplay`, control `speed`, and handle `onComplete` for sequenced animations
+- Render as `<canvas>` (not SVG) for performance when multiple Lotties are on screen
+
+### WebGL Shader Gradients (Hero/Marketing Sections)
+- Library: `@shadergradient/react` for quick gradient meshes, or `react-three-fiber` + custom GLSL for full control
+- Use for: hero backgrounds, pricing section accents, feature showcases
+- Implement flowing color blobs that morph in real time (like Stripe.com, Linear.app)
+- Always provide a CSS gradient fallback for browsers without WebGL support
+- Wrap in `<Suspense>` with a static gradient fallback while Three.js loads (~150KB)
+
+### Canvas Particles & Noise
+- Library: `tsparticles` for ready-made configs, or custom Canvas API with `requestAnimationFrame`
+- Perlin noise fields for organic, flowing particle motion
+- Interactive: respond to mouse position (attract/repel particles on hover)
+- Keep particle count under 200 on mobile, 500 on desktop for 60fps
+- Always `cancelAnimationFrame` and remove event listeners on component unmount
+
+### Animation Priorities by Section
+| Section | Recommended Effect |
+|---|---|
+| Hero / Above the fold | WebGL shader gradient OR animated SVG waves + Lottie accent |
+| Section dividers | Animated SVG wave paths (2-3 layers) |
+| Feature cards | Framer Motion spring entrance + hover transforms |
+| Icons & micro-interactions | Lottie animations |
+| Backgrounds | Canvas particle noise OR subtle CSS gradient animation |
+| Loading / empty states | Lottie with branded animation |
+
+### Performance & Accessibility Guards
+- All visual effects MUST respect `prefers-reduced-motion`: disable animation, show static fallback
+- WebGL/Canvas effects: use `IntersectionObserver` to pause when off-screen
+- Lazy-load heavy libraries (Three.js, tsparticles) with dynamic `import()` — never in the critical bundle
+- Test on low-end devices: throttle CPU 4x in DevTools, ensure 30fps minimum
+- Provide `aria-hidden="true"` on all decorative animated elements
+
 ## Accessibility
 - Semantic HTML first: `<nav>`, `<main>`, `<article>`, `<button>`, `<dialog>`
 - All images need `alt` text (decorative images: `alt=""`)
