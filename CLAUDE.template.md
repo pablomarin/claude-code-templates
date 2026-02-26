@@ -39,6 +39,12 @@ project/
 - No generic "AI slop" — avoid Inter, purple gradients, evenly-spaced 3-card grids
 -->
 
+### Visual Design Preferences
+- Never generate plain static rectangles for hero sections, landing pages, or key visual moments
+- Always include at least one dynamic/animated element: SVG waves, Lottie, shader gradients, or canvas particles
+- Prefer organic shapes (blobs, curves, clip-paths) over straight edges and 90-degree corners
+- Animations must respect `prefers-reduced-motion` — provide static fallbacks
+
 ### Deployment (optional — delete if not needed)
 <!-- Remove this comment block and fill in your deployment setup:
 - Hosted on Vercel, auto-deploys from `main` branch
