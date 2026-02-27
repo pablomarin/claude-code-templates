@@ -355,6 +355,11 @@ git push -u origin HEAD
 
 ### 6.4 Create Pull Request
 
+**Ask the user for confirmation before creating the PR:**
+> "Branch pushed. Would you like me to create a PR to main?"
+
+**Wait for explicit user confirmation before proceeding.**
+
 ```bash
 gh pr create --base main --title "[PR title]" --body "[PR description]"
 ```
@@ -371,7 +376,9 @@ Wait for automated reviewers (GitHub Copilot, Claude, Codex) and peer developer 
 /code-review
 ```
 
-Address all review comments, fix issues, and push fixes. Repeat until the PR is approved.
+Address all review comments, fix issues, and push fixes.
+
+**After fixing review comments, re-run quality gates** (5.1 Code Review Loop, 5.2 Simplify, 5.3 Verify) on the new changes to ensure no regressions were introduced. Repeat until the PR is approved.
 
 ### 6.7 Finish the branch (Merge + Cleanup)
 
