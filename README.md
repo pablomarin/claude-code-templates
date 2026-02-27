@@ -159,7 +159,7 @@ These are project-level commands that Claude loads from your `.claude/commands/`
 | `/new-feature <name>` | Guides you through: Research → PRD → Design → TDD → Review → PR. Creates an isolated git worktree. |
 | `/fix-bug <name>` | Systematic 4-phase debugging → Fix → Review → Document solution. Creates an isolated worktree. |
 | `/quick-fix <name>` | For trivial changes (< 3 files). Verify and commit directly. |
-| `/finish-branch` | Commit → Push → Create PR → Merge (with confirmation) → Clean up worktree → Restart servers. |
+| `/finish-branch` | Merge PR to main (if not already merged) → Delete remote branch → Delete local branch/worktree → Restart servers. |
 | `/codex <instruction>` | Get a second opinion from OpenAI's Codex CLI. |
 | `/prd:discuss` | Refine user stories interactively. |
 | `/prd:create` | Generate a structured product requirements document. |
@@ -761,12 +761,14 @@ cd /project/.worktrees/auth && claude  # Hooks won't work!
 ### Cleanup
 
 The `/finish-branch` command handles merge and cleanup (with user confirmation). It will:
-1. Merge the PR to main (`gh pr merge --squash --delete-branch`)
-2. Remove the worktree
-3. Delete local and remote branches
+1. Merge the PR to main (if not already merged) via `gh pr merge --squash --delete-branch`
+2. Delete the remote branch
+3. Delete the local branch and remove the worktree
 4. Prune stale references
 5. Switch to main and pull latest
 6. Restart development servers from main
+
+**Note:** `/finish-branch` does NOT commit, push, or create PRs — those steps happen before calling this command.
 
 **Manual cleanup** (if needed):
 
@@ -795,37 +797,52 @@ git push origin --delete feat/auth
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ 1. START: Create Feature Branch                             │
-│    git checkout -b feat/{feature-name}                     │
+│ 1. START: Launch a Workflow Command                         │
+│    /new-feature {name} → creates isolated git worktree     │
+│    /fix-bug {name}     → creates isolated git worktree     │
+│    /quick-fix {name}   → creates a branch (small changes)  │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 2. RESEARCH (WebSearch/WebFetch/Context7)                   │
-│    → Current library docs and best practices               │
-│    → Breaking changes since AI knowledge cutoff            │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 3. PRD PHASE (Custom Commands)                              │
+│ 2. PRD PHASE (Custom Commands)                              │
 │    /prd:discuss {feature}  → Refine user stories           │
 │    /prd:create {feature}   → Generate structured PRD       │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. DESIGN (Superpowers Plugin)                              │
-│    /superpowers:brainstorming → Interactive design            │
-│    /superpowers:writing-plans → Detailed TDD tasks            │
+│ 3. RESEARCH (WebSearch/WebFetch/Context7)                   │
+│    → Current library docs and best practices               │
+│    → Breaking changes since AI knowledge cutoff            │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4b. DESIGN REVIEW (MANDATORY)                               │
-│    /codex review the plan                                    │
-│    → Independent validation before writing code             │
-│    → If no Codex: present plan to user for confirmation     │
+│ 4. DESIGN + REVIEW LOOP (iterates 4-6 times)               │
+│                                                             │
+│    ┌───────────────────────────────────────────┐            │
+│    │ a. /superpowers:brainstorming              │            │
+│    │    → Interactive design exploration        │            │
+│    └──────────────────┬────────────────────────┘            │
+│                       ▼                                     │
+│    ┌───────────────────────────────────────────┐            │
+│    │ b. /superpowers:writing-plans              │            │
+│    │    → Write detailed TDD tasks              │            │
+│    └──────────────────┬────────────────────────┘            │
+│                       ▼                                     │
+│    ┌───────────────────────────────────────────┐            │
+│    │ c. /codex review the plan                  │◄──┐       │
+│    │    → Independent validation                │   │       │
+│    │    → If no Codex: user reviews manually    │   │       │
+│    └──────────────────┬────────────────────────┘   │       │
+│                       ▼                             │       │
+│              ┌────────────────┐                     │       │
+│              │ P0/P1 issues?  │── Yes ──► Edit ─────┘       │
+│              └───────┬────────┘          plan                │
+│                      No                                     │
+│                      ▼                                      │
+│              No P0/P1s → Plan approved ✓                    │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -847,17 +864,23 @@ git push origin --delete feat/auth
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 6. SECOND OPINION (Codex CLI)                               │
-│    /codex review                                            │
-│    → Independent review from OpenAI Codex                  │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 7. DEEP REVIEW (PR Review Toolkit)                          │
-│    /pr-review-toolkit:review-pr                              │
-│    → 6 specialized agents (silent failures, test coverage, │
-│      type design, comment quality, code review, simplify)  │
+│ 6. CODE REVIEW LOOP (repeats until no P0/P1/P2 issues)     │
+│                                                             │
+│    ┌──────────────────────┐ ┌────────────────────────────┐  │
+│    │ /codex review        │ │ /pr-review-toolkit:review-pr│  │
+│    │ → Independent second │ │ → 6 specialized agents     │  │
+│    │   opinion from Codex │ │   (silent failures, tests, │  │
+│    │                      │ │    types, comments, code)  │  │
+│    └──────────┬───────────┘ └─────────────┬──────────────┘  │
+│               └──────────┬────────────────┘                 │
+│                          ▼                                  │
+│               ┌─────────────────────┐                       │
+│               │ P0/P1/P2 issues?    │── Yes ──► Fix ──┐    │
+│               └──────────┬──────────┘                  │    │
+│                          No (P3s acceptable)     ┌─────┘    │
+│                          ▼                       │          │
+│               Reviews passed ✓       ◄───────────┘          │
+│                                      (run both again)       │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -890,18 +913,36 @@ git push origin --delete feat/auth
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 12. FINISH                                                   │
+│ 12. COMMIT & CREATE PR                                       │
 │    → Update CONTINUITY.md (Done/Now/Next)                  │
 │    → Update docs/CHANGELOG.md (if 3+ files changed)        │
-│    → /finish-branch (commit, push, create PR)              │
+│    → git add, commit, push to origin                       │
+│    → gh pr create                                          │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 13. PR REVIEW COMMENTS (if automated reviews configured)    │
+│ 13. WAIT FOR PR REVIEWS                                      │
+│    → Copilot, Claude, Codex auto-review on GitHub          │
+│    → Peer reviews from other developers                    │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 14. PROCESS PR REVIEW COMMENTS                               │
 │    /code-review                                              │
-│    → Process comments from Copilot/Codex/Claude reviewers  │
+│    → Address comments from all reviewers                   │
 │    → Fix issues, push, wait for approval                   │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 15. FINISH                                                   │
+│    /finish-branch                                           │
+│    → Merge PR to main (if not already merged)              │
+│    → Delete remote branch                                  │
+│    → Delete local branch + worktree                        │
+│    → Restart servers from main                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -922,7 +963,7 @@ Based on Boris Cherny's key insight:
 | `/new-feature <name>` | Full feature workflow | Research → PRD → Brainstorm → Plan → Execute → Review → Finish |
 | `/fix-bug <name>` | Bug fix workflow | Search solutions → Systematic debugging → Fix → Review → Compound |
 | `/quick-fix <name>` | Trivial changes only | < 3 files, no arch impact, still requires verify |
-| `/finish-branch` | Complete branch workflow | Commit → Push → PR → Merge (with confirmation) → Cleanup → Restart servers |
+| `/finish-branch` | Merge + cleanup | Merge PR to main → Delete remote/local branch + worktree → Restart servers |
 
 **Workflow commands guide the process.** SessionStart loads context, Stop hook validates completion.
 
@@ -1057,7 +1098,7 @@ your-project/
 │   │   ├── new-feature.md             # /new-feature - Full feature workflow
 │   │   ├── fix-bug.md                 # /fix-bug - Bug fix workflow
 │   │   ├── quick-fix.md              # /quick-fix - Trivial changes only
-│   │   ├── finish-branch.md           # /finish-branch - PR + cleanup workflow
+│   │   ├── finish-branch.md           # /finish-branch - Merge PR + cleanup workflow
 │   │   ├── codex.md                   # /codex - Second opinion via Codex CLI
 │   │   └── prd/
 │   │       ├── discuss.md             # /prd:discuss command
@@ -1422,7 +1463,7 @@ The `PostToolUse` hook skips formatting these files for safety (but does not blo
 │   /new-feature <name>  ← Full workflow (Research→PRD→Plan) │
 │   /fix-bug <name>      ← Debugging workflow (Systematic)   │
 │   /quick-fix <name>    ← Trivial only (< 3 files)          │
-│   /finish-branch       ← PR + merge + cleanup + restart    │
+│   /finish-branch       ← Merge PR + cleanup + restart      │
 │                                                             │
 │ QUALITY GATES (in order):                                   │
 │   /codex review        ← First review (Codex CLI)          │

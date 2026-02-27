@@ -1,86 +1,40 @@
 # Finish Branch Workflow
 
-> **Use this command to complete a feature or fix branch.**
-> This command handles PR creation and worktree cleanup.
+> **Use this command after the PR is reviewed and approved.**
+> This command handles merging the PR and cleaning up the worktree/branch.
 
 ---
 
 ## When to Use
 
-- After all quality gates pass (review, tests, lint, types)
-- After CONTINUITY.md and CHANGELOG.md are updated
-- When you're ready to create a PR or merge to main
+- After all PR review comments have been addressed (via `/code-review`)
+- After the PR is approved by reviewers
+- When you're ready to merge to main and clean up
 
-**Note:** This command is called automatically at the end of `/new-feature` and `/fix-bug` workflows.
-
----
-
-## Phase 1: Commit and Push
-
-### 1.1 Check for uncommitted changes
-
-```bash
-git status --porcelain
-```
-
-**If there are uncommitted changes:**
-
-```bash
-git add -A
-git commit -m "feat: [descriptive message based on changes]"
-```
-
-### 1.2 Push to remote
-
-```bash
-git push -u origin HEAD
-```
+**Note:** This command does NOT commit, push, or create PRs. Those steps happen before this command. This command only merges and cleans up.
 
 ---
 
-## Phase 2: Create Pull Request
+## Phase 1: Merge PR
 
-### 2.1 Ask user for confirmation
-
-**Ask the user:**
-> "Branch pushed. Would you like me to create a PR to main?"
-
-**Wait for explicit user confirmation before proceeding.**
-
-### 2.2 Create PR (if user confirms)
+### 1.1 Find the PR
 
 ```bash
-gh pr create --base main --fill
+BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+gh pr view "$BRANCH_NAME" --json state,url,title
 ```
 
-Or with more details:
+**If no PR exists:** Tell the user they need to create a PR first. STOP.
+
+### 1.2 Check if already merged
+
 ```bash
-gh pr create --base main --title "[PR title]" --body "[PR description]"
+gh pr view "$BRANCH_NAME" --json state --jq '.state'
 ```
 
-**Show the user the PR URL.**
+If state is `MERGED`, skip to Phase 2 (cleanup).
 
----
-
-## Phase 3: Address PR Review Comments (if automated reviews configured)
-
-If the repository has automated PR reviewers (GitHub Copilot, OpenAI Codex, Claude), wait for their comments to arrive, then process them:
-
-```
-/code-review
-```
-
-This reads the review comments left on the PR and helps address them. Fix any issues, push the fixes, and wait for re-approval.
-
-> **No automated reviewers?** Skip this phase. See the README's "Recommended: Automated PR Reviews" section for how to set them up.
-
----
-
-## Phase 4: Merge PR
-
-After PR review is complete (automated reviews addressed or no reviewers configured):
-
-### 4.1 Ask user for merge confirmation
+### 1.3 Ask user for merge confirmation
 
 **Ask the user:**
 > "PR is ready: [URL]. Shall I merge it to main and clean up?"
@@ -89,7 +43,7 @@ After PR review is complete (automated reviews addressed or no reviewers configu
 
 If the user says no or wants to wait — STOP HERE. They can run `/finish-branch` again later.
 
-### 4.2 Merge the PR (only after user confirms)
+### 1.4 Merge the PR (only after user confirms)
 
 ```bash
 gh pr merge --squash --delete-branch
@@ -105,9 +59,9 @@ gh pr merge --squash --delete-branch
 
 ---
 
-## Phase 5: Cleanup (After Merge)
+## Phase 2: Cleanup (After Merge)
 
-### 5.1 Detect current context
+### 2.1 Detect current context
 
 ```bash
 # Check if we're in a worktree
@@ -121,14 +75,14 @@ else
 fi
 ```
 
-### 5.2 Get branch name
+### 2.2 Get branch name
 
 ```bash
 BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
 echo "BRANCH_NAME: $BRANCH_NAME"
 ```
 
-### 5.3 Navigate to main repository
+### 2.3 Navigate to main repository
 
 ```bash
 # Go back to main repo root (works from inside worktree)
@@ -136,14 +90,14 @@ cd "$(git rev-parse --git-common-dir)/.."
 echo "Now in: $(pwd)"
 ```
 
-### 5.4 Remove the worktree
+### 2.4 Remove the worktree
 
 ```bash
 git worktree remove ".worktrees/$WORKTREE_NAME" --force
 echo "✓ Removed worktree: .worktrees/$WORKTREE_NAME"
 ```
 
-### 5.5 Delete local branch
+### 2.5 Delete local branch
 
 ```bash
 git branch -d "$BRANCH_NAME"
@@ -155,13 +109,13 @@ echo "✓ Deleted local branch: $BRANCH_NAME"
 git branch -D "$BRANCH_NAME"
 ```
 
-### 5.6 Delete remote branch (if not already deleted)
+### 2.6 Delete remote branch (if not already deleted)
 
 ```bash
 git push origin --delete "$BRANCH_NAME" 2>/dev/null || echo "Remote branch already deleted (gh pr merge --delete-branch handled it)"
 ```
 
-### 5.7 Prune stale references
+### 2.7 Prune stale references
 
 ```bash
 git worktree prune
@@ -169,7 +123,7 @@ git fetch --prune
 echo "✓ Pruned stale references"
 ```
 
-### 5.8 Switch to main and pull
+### 2.8 Switch to main and pull
 
 ```bash
 git checkout main
@@ -179,7 +133,7 @@ echo "✓ Updated main branch"
 
 ---
 
-### 5.9 Restart development servers from main
+### 2.9 Restart development servers from main
 
 > ⚠️ **Servers may still be running from the deleted worktree directory, or not running at all.**
 
@@ -214,17 +168,21 @@ After successful cleanup, report to user:
 
 If the user is not in a worktree (e.g., working directly on a feature branch):
 
-1. **Skip worktree removal** (steps 5.3, 5.4)
-2. **Still delete branches** (steps 5.5, 5.6)
-3. **Still prune and update main** (steps 5.7, 5.8)
+1. **Skip worktree removal** (steps 2.3, 2.4)
+2. **Still delete branches** (steps 2.5, 2.6)
+3. **Still prune and update main** (steps 2.7, 2.8)
 
 ---
 
 ## Error Handling
 
-### PR creation fails
-- Check if `gh` CLI is authenticated: `gh auth status`
-- Check if remote is set: `git remote -v`
+### PR not found
+- Check if a PR exists for this branch: `gh pr list --head "$BRANCH_NAME"`
+- The user may need to create the PR first
+
+### Merge fails
+- Check for merge conflicts or required checks
+- Tell the user what failed and STOP
 
 ### Worktree removal fails
 - Check if worktree has uncommitted changes
@@ -238,9 +196,6 @@ If the user is not in a worktree (e.g., working directly on a feature branch):
 
 ## Checklist Summary
 
-- [ ] Changes committed and pushed
-- [ ] PR created (with user confirmation)
-- [ ] (If automated reviewers configured) Addressed PR review comments via `/code-review`
 - [ ] PR merged to main (with user confirmation)
 - [ ] Worktree removed (if applicable)
 - [ ] Local branch deleted
