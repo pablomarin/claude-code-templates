@@ -66,7 +66,7 @@ project/
 # Example project commands:
 cd src && uv run pytest                    # Run tests
 cd src && uv run ruff check .              # Lint
-git checkout -b feat/{name}                # Start feature
+/finish-branch                             # Merge PR + cleanup worktree
 ```
 
 ---

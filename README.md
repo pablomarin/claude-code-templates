@@ -960,7 +960,7 @@ Based on Boris Cherny's key insight:
 
 | Command | Purpose | Notes |
 |---------|---------|-------|
-| `/new-feature <name>` | Full feature workflow | Research → PRD → Brainstorm → Plan → Execute → Review → Finish |
+| `/new-feature <name>` | Full feature workflow | PRD → Research → Design (iterative) → Execute → Review (iterative) → PR → Finish |
 | `/fix-bug <name>` | Bug fix workflow | Search solutions → Systematic debugging → Fix → Review → Compound |
 | `/quick-fix <name>` | Trivial changes only | < 3 files, no arch impact, still requires verify |
 | `/finish-branch` | Merge + cleanup | Merge PR to main → Delete remote/local branch + worktree → Restart servers |
@@ -1509,7 +1509,7 @@ The `PostToolUse` hook skips formatting these files for safety (but does not blo
 | 5.0 | 2026-02-19 | **REMOVED COMPOUND ENGINEERING**: Replaced with built-in Claude Code quality gates (`/code-review`, `/pr-review-toolkit:review-pr`, `/codex review`). E2E testing via standalone Playwright MCP. Knowledge compounding via `docs/solutions/` + auto memory. Only Superpowers remains as third-party plugin. Added standalone MCP servers (Playwright, Context7) to project settings. |
 | 4.0 | 2026-02-19 | **PERSISTENT MEMORY**: Added global memory system (`--global` flag), PreCompact hooks to save learnings before context compression, global Stop hook for memory reminders, `~/.claude/CLAUDE.md` template with memory instructions. Inspired by OpenClaw's pre-compaction memory flush pattern. Auto memory enabled by default. |
 | 3.4 | 2026-02-16 | **CODEX COMMAND**: Added `/codex` command for getting second opinions from OpenAI's Codex CLI. Code review and general feedback modes. |
-| 3.3 | 2026-01-22 | **FINISH-BRANCH COMMAND**: Added `/finish-branch` command that handles PR creation + worktree cleanup. Removed `/superpowers:finishing-a-development-branch` from workflows (redundant testing, no worktree awareness). `/quick-fix` now just commits directly. |
+| 3.3 | 2026-01-22 | **FINISH-BRANCH COMMAND**: Added `/finish-branch` command that handles PR merge + worktree cleanup. Removed `/superpowers:finishing-a-development-branch` from workflows (redundant testing, no worktree awareness). `/quick-fix` now just commits directly. |
 | 3.2 | 2026-01-19 | **SIMPLIFIED WORKTREES**: Claude now `cd`s into worktrees instead of using path prefixes. Removed `.session_worktree` file - no shared state between sessions. Hooks and verify-app simplified to use current directory. |
 | 3.1 | 2026-01-19 | **PARALLEL DEVELOPMENT**: Workflow commands auto-create git worktrees for isolated parallel sessions. Hooks are worktree-aware. verify-app agent accepts worktree path. |
 | 3.0 | 2026-01-18 | **WORKFLOW COMMANDS**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E via Playwright MCP. |

@@ -191,6 +191,15 @@ command -v codex &>/dev/null && echo "Codex available" || echo "Codex not instal
 - Ask: "Does this fix approach look right before I start implementing?"
 - Wait for user confirmation before proceeding to Phase 4
 
+#### 3.4 Iterate until approved
+
+**If the review finds P0 or P1 issues:**
+1. Edit the plan to address the issues
+2. Run `/codex review` again (or ask the user again)
+3. Repeat until there are **no P0 or P1 issues** in the review response
+
+Do NOT proceed to Phase 4 until the plan is approved.
+
 > **Why mandatory?** A wrong fix plan leads to wasted effort and potentially new bugs. A quick review here prevents that.
 
 ---
@@ -214,23 +223,23 @@ Or for simple fixes, write a failing test first, then fix.
 > - Perform equivalent checks manually (see fallbacks below)
 > - Do NOT skip quality gates
 
-### 5.1 Second Opinion (Codex CLI)
+### 5.1 Code Review Loop (repeats until no P0/P1/P2 issues — P3s acceptable)
 
-**Check if Codex CLI is available:**
+Run both reviews **in parallel**:
+
+**a) Second Opinion (Codex CLI):**
+
+Check if Codex CLI is available:
 ```bash
 command -v codex &>/dev/null && echo "Codex available" || echo "Codex not installed"
 ```
 
-**If available**, get an independent review:
+If available:
 ```
 /codex review
 ```
 
-**If not available:** Skip this step.
-
-### 5.2 Deep Review (PR Review Toolkit)
-
-Run the comprehensive multi-analyzer review:
+**b) Deep Review (PR Review Toolkit):**
 
 ```
 /pr-review-toolkit:review-pr
@@ -240,7 +249,12 @@ This runs 6 specialized agents: code-reviewer, silent-failure-hunter, pr-test-an
 
 **Fallback if unavailable:** Use `pr-review-toolkit:code-reviewer` agent on modified files.
 
-### 5.3 Simplify
+**Iterate:** If either review finds P0, P1, or P2 issues:
+1. Fix the issues
+2. Run **both** reviews again
+3. Repeat until there are **no P0/P1/P2 issues** (P3s are acceptable)
+
+### 5.2 Simplify
 
 Use the code-simplifier agent on all modified files:
 
@@ -253,7 +267,7 @@ Use the code-simplifier agent on all modified files:
 - Functions > 50 lines that could be split
 - Over-engineered abstractions
 
-### 5.4 Verify (USE SUBAGENT - saves context window)
+### 5.3 Verify (USE SUBAGENT - saves context window)
 
 **MUST use the verify-app subagent** - Do NOT run tests yourself.
 
@@ -273,7 +287,7 @@ pytest && ruff check . && mypy .  # Python
 npm test && npm run lint && npm run typecheck  # Node
 ```
 
-### 5.5 E2E Tests (MANDATORY if API changed)
+### 5.4 E2E Tests (MANDATORY if API changed)
 
 **If you modified ANY API endpoint, you MUST run E2E tests.**
 
@@ -331,20 +345,47 @@ This creates a searchable solution so the same bug is never debugged twice.
 1. **CONTINUITY.md**: Update Done (keep 2-3 recent), Now, Next
 2. **docs/CHANGELOG.md**: If 3+ files changed on branch
 
-### 6.3 Finish the branch (PR + Cleanup)
+### 6.3 Commit and push
+
+```bash
+git add -A
+git commit -m "fix: [descriptive message based on changes]"
+git push -u origin HEAD
+```
+
+### 6.4 Create Pull Request
+
+```bash
+gh pr create --base main --title "[PR title]" --body "[PR description]"
+```
+
+**Show the user the PR URL.**
+
+### 6.5 Wait for PR reviews
+
+Wait for automated reviewers (GitHub Copilot, Claude, Codex) and peer developer reviews to arrive on the PR.
+
+### 6.6 Process PR review comments
+
+```
+/code-review
+```
+
+Address all review comments, fix issues, and push fixes. Repeat until the PR is approved.
+
+### 6.7 Finish the branch (Merge + Cleanup)
+
+Once the PR is approved:
 
 ```
 /finish-branch
 ```
 
 This command will:
-1. Commit and push any uncommitted changes
-2. **Ask user** if they want to create a PR
-3. Create PR (if confirmed)
-4. **Wait** for user to confirm PR is merged
-5. Clean up worktree, local branch, and remote branch
-
-**Note:** The cleanup happens automatically after PR merge confirmation. No manual worktree cleanup needed.
+1. Merge the PR to main (if not already merged)
+2. Delete the remote branch
+3. Delete the local branch and remove the worktree
+4. Restart development servers from main
 
 ---
 
@@ -371,17 +412,17 @@ The hooks exist to enforce quality. Bypassing them defeats their purpose.
 - [ ] Searched docs/solutions/ for existing fixes
 - [ ] Ran `/superpowers:systematic-debugging` OR manual 4-phase analysis (MANDATORY)
 
-**Planning (if complex):**
+**Planning (if complex — iterative loop, repeat until no P0/P1s):**
 - [ ] Brainstormed via `/superpowers:brainstorming`
 - [ ] Plan written via `/superpowers:writing-plans`
 - [ ] **Design reviewed** via `/codex` OR user confirmation (MANDATORY)
+- [ ] No P0/P1 issues remaining in review
 
 **Implementation:**
 - [ ] Executed fix with TDD (failing test FIRST, then fix)
 
 **Quality Gates (ALL REQUIRED):**
-- [ ] Second opinion via `/codex review` (if Codex CLI installed)
-- [ ] Deep review via `/pr-review-toolkit:review-pr` (6 specialized agents)
+- [ ] Code review loop (Codex + PR Review Toolkit in parallel) — no P0/P1/P2 issues remaining
 - [ ] Simplified via `code-simplifier` agent
 - [ ] Verified via `verify-app` agent (tests, lint, types pass)
 - [ ] **E2E tested via Playwright MCP** (MANDATORY if API changed)
@@ -390,4 +431,6 @@ The hooks exist to enforce quality. Bypassing them defeats their purpose.
 - [ ] **Learning documented** in `docs/solutions/` + auto memory (MANDATORY)
 - [ ] CONTINUITY.md updated
 - [ ] CHANGELOG.md updated (if 3+ files)
-- [ ] Branch finished via `/finish-branch` (PR created, merged, worktree cleaned up)
+- [ ] Committed, pushed, and PR created
+- [ ] PR review comments addressed via `/code-review`
+- [ ] Branch finished via `/finish-branch` (merged, worktree cleaned up)
