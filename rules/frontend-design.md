@@ -1,3 +1,10 @@
+---
+paths:
+  - "**/*.{ts,tsx,js,jsx}"
+  - "**/*.{css,scss}"
+  - "**/*.html"
+---
+
 # Frontend Design Quality
 
 ## Core Principle

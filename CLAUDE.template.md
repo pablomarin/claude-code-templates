@@ -1,3 +1,5 @@
+@CONTINUITY.md
+
 # CLAUDE.md - [Project Name]
 
 ## Project Overview

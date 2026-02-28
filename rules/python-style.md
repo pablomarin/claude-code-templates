@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*.py"
+---
+
 # Python Style
 
 ## Tooling

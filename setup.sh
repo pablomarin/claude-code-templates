@@ -112,6 +112,7 @@ if [[ "$GLOBAL" == true ]]; then
     global_dirs=(
         "$HOME/.claude"
         "$HOME/.claude/hooks"
+        "$HOME/.claude/rules"
     )
 
     for dir in "${global_dirs[@]}"; do
@@ -169,37 +170,6 @@ with open('$GLOBAL_SETTINGS', 'w') as f: json.dump(existing, f, indent=2)
         copy_file "$TEMPLATE_SETTINGS" "$GLOBAL_SETTINGS" "~/.claude/settings.json (global hooks)"
     fi
 
-    # Enable auto memory
-    echo ""
-    echo -e "${YELLOW}Step 3: Enabling auto memory...${NC}"
-    echo "  This lets Claude save learnings to persistent memory files."
-
-    # Check if auto memory env var is set in shell profile
-    SHELL_RC=""
-    if [[ -f "$HOME/.zshrc" ]]; then
-        SHELL_RC="$HOME/.zshrc"
-    elif [[ -f "$HOME/.zprofile" ]]; then
-        SHELL_RC="$HOME/.zprofile"
-    elif [[ -f "$HOME/.bashrc" ]]; then
-        SHELL_RC="$HOME/.bashrc"
-    elif [[ -f "$HOME/.bash_profile" ]]; then
-        SHELL_RC="$HOME/.bash_profile"
-    fi
-
-    if [[ -n "$SHELL_RC" ]]; then
-        if grep -q "CLAUDE_CODE_DISABLE_AUTO_MEMORY" "$SHELL_RC" 2>/dev/null; then
-            echo -e "  ${BLUE}○${NC} Auto memory env var already in $SHELL_RC"
-        else
-            echo "" >> "$SHELL_RC"
-            echo "# Claude Code: Enable auto memory across sessions" >> "$SHELL_RC"
-            echo "export CLAUDE_CODE_DISABLE_AUTO_MEMORY=0" >> "$SHELL_RC"
-            echo -e "  ${GREEN}✓${NC} Added CLAUDE_CODE_DISABLE_AUTO_MEMORY=0 to $SHELL_RC"
-        fi
-    else
-        echo -e "  ${YELLOW}⚠${NC} Could not find .zshrc or .bashrc. Manually add:"
-        echo "     export CLAUDE_CODE_DISABLE_AUTO_MEMORY=0"
-    fi
-
     echo ""
     echo -e "${GREEN}============================================${NC}"
     echo -e "${GREEN}  Global Setup Complete!${NC}"
@@ -210,6 +180,7 @@ with open('$GLOBAL_SETTINGS', 'w') as f: json.dump(existing, f, indent=2)
     echo "  ~/.claude/CLAUDE.md         Instructions that tell Claude how to use its memory"
     echo "  ~/.claude/settings.json     Hooks that auto-save learnings before context loss"
     echo "  ~/.claude/hooks/            Scripts that provide context to memory hooks"
+    echo "  ~/.claude/rules/            Personal rules that apply to all your projects"
     echo ""
     echo -e "${YELLOW}What this means:${NC}"
     echo ""
@@ -219,17 +190,7 @@ with open('$GLOBAL_SETTINGS', 'w') as f: json.dump(existing, f, indent=2)
     echo "  - Load its memory at the start of every session"
     echo "  - Get smarter over time as it accumulates project knowledge"
     echo ""
-    if [[ -n "$SHELL_RC" ]]; then
-        echo -e "${YELLOW}IMPORTANT — Reload your shell now:${NC}"
-        echo ""
-        echo -e "  ${GREEN}source $SHELL_RC${NC}"
-    else
-        echo -e "${YELLOW}IMPORTANT — Add this to your shell profile and restart your terminal:${NC}"
-        echo ""
-        echo "  export CLAUDE_CODE_DISABLE_AUTO_MEMORY=0"
-    fi
-    echo ""
-    echo -e "${YELLOW}Then set up your first project:${NC}"
+    echo -e "${YELLOW}Now set up your first project:${NC}"
     echo ""
     echo "  cd /your/project"
     echo "  $SCRIPT_DIR/setup.sh -p \"Project Name\""

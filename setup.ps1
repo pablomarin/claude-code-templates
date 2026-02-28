@@ -115,7 +115,8 @@ if ($Global) {
 
     $globalDirs = @(
         (Join-Path $HOME ".claude"),
-        (Join-Path $HOME ".claude" "hooks")
+        (Join-Path $HOME ".claude" "hooks"),
+        (Join-Path $HOME ".claude" "rules")
     )
 
     foreach ($dir in $globalDirs) {
@@ -166,24 +167,6 @@ if ($Global) {
         Copy-TemplateFile $templateSettings $globalSettings "~\.claude\settings.json (global hooks)"
     }
 
-    # Enable auto memory via environment variable
-    Write-Host ""
-    Write-Color "Step 3: Enabling auto memory..." "Yellow"
-    Write-Host "  This lets Claude save learnings to persistent memory files."
-
-    $currentValue = [System.Environment]::GetEnvironmentVariable("CLAUDE_CODE_DISABLE_AUTO_MEMORY", "User")
-    if ($currentValue -eq "0") {
-        Write-Host "  " -NoNewline
-        Write-Color "o" "Blue"
-        Write-Host " Auto memory already enabled"
-    }
-    else {
-        [System.Environment]::SetEnvironmentVariable("CLAUDE_CODE_DISABLE_AUTO_MEMORY", "0", "User")
-        Write-Host "  " -NoNewline
-        Write-Color "+" "Green"
-        Write-Host " Set CLAUDE_CODE_DISABLE_AUTO_MEMORY=0 (user environment)"
-    }
-
     Write-Host ""
     Write-Color "============================================" "Green"
     Write-Color "  Global Setup Complete!" "Green"
@@ -194,6 +177,7 @@ if ($Global) {
     Write-Host "  ~\.claude\CLAUDE.md         Instructions that tell Claude how to use its memory"
     Write-Host "  ~\.claude\settings.json     Hooks that auto-save learnings before context loss"
     Write-Host "  ~\.claude\hooks\            Scripts that provide context to memory hooks"
+    Write-Host "  ~\.claude\rules\            Personal rules that apply to all your projects"
     Write-Host ""
     Write-Color "What this means:" "Yellow"
     Write-Host ""

@@ -1,3 +1,11 @@
+---
+paths:
+  - "**/*.py"
+  - "**/*.sql"
+  - "**/migrations/**"
+  - "**/models/**"
+---
+
 # Database
 
 ## Naming

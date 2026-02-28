@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -Command \"Write-Output '=== Current Branch ===' ; git branch --show-current ; Write-Output '' ; if (Test-Path CONTINUITY.md) { Get-Content CONTINUITY.md } else { Write-Output 'No CONTINUITY.md found in project root. Create one to track project state.' }\""
+            "command": "powershell -Command \"Write-Output '=== Current Branch ===' ; git branch --show-current\""
           }
         ]
       }

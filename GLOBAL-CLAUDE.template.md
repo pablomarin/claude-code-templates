@@ -23,7 +23,7 @@ Save to your auto memory (`MEMORY.md` or topic files) when you:
 
 - **Short notes** (preferences, commands, patterns): Write directly to `MEMORY.md`
 - **Detailed notes** (debugging walkthroughs, architecture deep-dives): Create topic files (e.g., `debugging.md`, `patterns.md`) and reference them from `MEMORY.md`
-- **Keep `MEMORY.md` under 150 lines** — it's loaded into every session. Move details to topic files.
+- **Keep `MEMORY.md` under 200 lines** — it's loaded into every session (first 200 lines). Move details to topic files.
 
 ### When NOT to Save
 
@@ -60,3 +60,13 @@ When context is about to be compacted, save any important learnings from the cur
 <!-- - Use conventional commits (feat:, fix:, chore:) -->
 <!-- - Always add type annotations in Python -->
 <!-- - Run tests before committing -->
+
+---
+
+## Personal Rules
+
+For detailed rules that apply to all your projects, add `.md` files to `~/.claude/rules/`.
+These are auto-loaded by Claude Code before project rules.
+
+<!-- Example: ~/.claude/rules/preferences.md with your coding preferences -->
+<!-- Example: ~/.claude/rules/workflows.md with your preferred workflows -->

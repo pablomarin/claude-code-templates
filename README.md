@@ -56,7 +56,6 @@ This installs Claude's memory system so it remembers things across ALL your proj
 **macOS / Linux:**
 ```bash
 ~/claude-code-templates/setup.sh --global
-source ~/.zshrc   # ← IMPORTANT: reload your shell
 ```
 
 **Windows (PowerShell):**
@@ -168,7 +167,7 @@ These are project-level commands that Claude loads from your `.claude/commands/`
 
 | Hook | When it fires | What it does |
 |------|--------------|-------------|
-| **SessionStart** | New session or `/clear` | Shows your current branch and loads CONTINUITY.md (your task state) |
+| **SessionStart** | New session or `/clear` | Shows your current branch (CONTINUITY.md auto-loaded via `@import` in CLAUDE.md) |
 | **Stop** | Claude finishes responding | Checks that CONTINUITY.md + CHANGELOG are updated (blocks if not) |
 | **PreCompact** | Before context compression | Saves all session learnings to persistent memory before they're lost |
 | **SubagentStop** | Subagent finishes | Validates the subagent's output quality |
@@ -265,6 +264,7 @@ Claude Code has **two layers of memory** that this template configures. Together
 │  ~/.claude/CLAUDE.md          ← Your personal instructions       │
 │  ~/.claude/settings.json      ← Global hooks (PreCompact, Stop)  │
 │  ~/.claude/hooks/             ← Global hook scripts               │
+│  ~/.claude/rules/             ← Personal rules (all projects)     │
 └──────────────────────────────────────────────────────────────────┘
          │ loaded every session
          ▼
@@ -296,7 +296,7 @@ Claude Code has **two layers of memory** that this template configures. Together
 | **Global CLAUDE.md** | You (once) | Memory instructions, personal preferences | Every session, all projects |
 | **Project CLAUDE.md** | You | Project description, tech stack, commands (slim) | Every session, this project |
 | **`.claude/rules/`** | Template | Workflow, principles, coding standards | Every session, this project |
-| **CONTINUITY.md** | Claude | Task state: Done/Now/Next/Blockers | SessionStart hook loads it |
+| **CONTINUITY.md** | Claude | Task state: Done/Now/Next/Blockers | Auto-loaded via `@CONTINUITY.md` in CLAUDE.md |
 | **Auto Memory** | Claude | Learned patterns, solutions, preferences | MEMORY.md first 200 lines auto-loaded |
 | **docs/solutions/** | Claude | Bug fixes, error solutions, patterns | On-demand when relevant |
 
@@ -345,8 +345,10 @@ Over time, Claude's auto memory accumulates:
 # Tell Claude to forget something
 "Forget the Redis requirement, we switched to in-memory cache"
 
-# Force enable auto memory (done by --global setup)
-export CLAUDE_CODE_DISABLE_AUTO_MEMORY=0
+# Force enable/disable auto memory (if needed)
+# Auto memory is ON by default — no env var needed
+# export CLAUDE_CODE_DISABLE_AUTO_MEMORY=1  # Force off
+# export CLAUDE_CODE_DISABLE_AUTO_MEMORY=0  # Force on
 ```
 
 ---
@@ -416,12 +418,7 @@ This creates:
 | `~/.claude/CLAUDE.md` | Global instructions with memory management rules |
 | `~/.claude/settings.json` | Global hooks: PreCompact (save before compression) + Stop (save learnings) |
 | `~/.claude/hooks/` | Global hook scripts |
-| `CLAUDE_CODE_DISABLE_AUTO_MEMORY=0` | Environment variable enabling auto memory |
-
-**After global setup, reload your shell:**
-```bash
-source ~/.zshrc  # or ~/.bashrc
-```
+| `~/.claude/rules/` | Personal rules that apply to all your projects |
 
 ### Step 3: Edit Global CLAUDE.md (Optional)
 
@@ -885,35 +882,35 @@ git push origin --delete feat/auth
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 8. CODE SIMPLIFY                                            │
+│ 7. CODE SIMPLIFY                                            │
 │    "Use the code-simplifier agent on modified files"       │
 │    → Cleans up architecture, improves readability          │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 9. VERIFY                                                   │
+│ 8. VERIFY                                                   │
 │    "Use the verify-app agent"                              │
 │    → Unit tests + migrations + lint + types                │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 10. E2E TESTING (if UI/API changed)                         │
+│ 9. E2E TESTING (if UI/API changed)                          │
 │    Playwright MCP server                                    │
 │    → Browser tests against affected routes                 │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 11. COMPOUND LEARNINGS                                      │
+│ 10. COMPOUND LEARNINGS                                      │
 │    docs/solutions/ + auto memory                            │
 │    → Bug root causes, patterns, solutions saved            │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 12. COMMIT & CREATE PR                                       │
+│ 11. COMMIT & CREATE PR                                       │
 │    → Update CONTINUITY.md (Done/Now/Next)                  │
 │    → Update docs/CHANGELOG.md (if 3+ files changed)        │
 │    → git add, commit, push to origin                       │
@@ -922,14 +919,14 @@ git push origin --delete feat/auth
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 13. WAIT FOR PR REVIEWS                                      │
+│ 12. WAIT FOR PR REVIEWS                                      │
 │    → Copilot, Claude, Codex auto-review on GitHub          │
 │    → Peer reviews from other developers                    │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 14. PROCESS PR REVIEW COMMENTS                               │
+│ 13. PROCESS PR REVIEW COMMENTS                               │
 │    /code-review                                              │
 │    → Address comments from all reviewers                   │
 │    → Fix issues, push, wait for approval                   │
@@ -937,7 +934,7 @@ git push origin --delete feat/auth
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 15. FINISH                                                   │
+│ 14. FINISH                                                   │
 │    /finish-branch                                           │
 │    → Merge PR to main (if not already merged)              │
 │    → Delete remote branch                                  │
@@ -965,7 +962,7 @@ Based on Boris Cherny's key insight:
 | `/quick-fix <name>` | Trivial changes only | < 3 files, no arch impact, still requires verify |
 | `/finish-branch` | Merge + cleanup | Merge PR to main → Delete remote/local branch + worktree → Restart servers |
 
-**Workflow commands guide the process.** SessionStart loads context, Stop hook validates completion.
+**Workflow commands guide the process.** CONTINUITY.md auto-loads via `@import`, Stop hook validates completion.
 
 ### PRD Commands (Requirements)
 
@@ -1021,7 +1018,7 @@ Based on Boris Cherny's key insight:
 
 | Hook | Trigger | What Happens | Scope |
 |------|---------|--------------|-------|
-| `SessionStart` | New session, `/clear` | Loads CONTINUITY.md, shows branch | Project |
+| `SessionStart` | New session, `/clear` | Shows current branch | Project |
 | `Stop` (global) | Claude finishes responding | No-op pass-through (`exit 0`) — memory saving handled by PreCompact | Global |
 | `Stop` (project) | Claude finishes responding | Checks CONTINUITY.md + CHANGELOG updated (script only, blocks if needed) | Project |
 | `PreCompact` | Before context compression | Reminds Claude to save learnings before context compression (blocks until done) | Global + Project |
@@ -1146,10 +1143,10 @@ This is expected if you already have Claude Code set up. See [Scenario C](#scena
 
 ### Memory not persisting?
 
-1. **Check auto memory is enabled:**
+1. **Check auto memory is enabled** (it's on by default):
    ```bash
-   echo $CLAUDE_CODE_DISABLE_AUTO_MEMORY
-   # Should output: 0
+   # Inside Claude Code, run:
+   /memory    # Should show auto-memory toggle
    ```
 
 2. **Check global setup was run:**
@@ -1457,7 +1454,7 @@ The `PostToolUse` hook skips formatting these files for safety (but does not blo
 ├─────────────────────────────────────────────────────────────┤
 │ START:                                                      │
 │   claude                               ← Start Claude Code  │
-│   CONTINUITY.md loads automatically    ← SessionStart hook   │
+│   CONTINUITY.md loads automatically    ← @import in CLAUDE.md │
 │                                                             │
 │ THEN RUN ONE OF THESE COMMANDS:                             │
 │   /new-feature <name>  ← Full workflow (Research→PRD→Plan) │
@@ -1480,7 +1477,7 @@ The `PostToolUse` hook skips formatting these files for safety (but does not blo
 │ SHORTCUTS                                                   │
 ├─────────────────────────────────────────────────────────────┤
 │ Shift+Tab  → Toggle auto-accept mode                       │
-│ /clear     → Fresh context (reloads CONTINUITY.md)         │
+│ /clear     → Fresh context (CONTINUITY.md re-imported)     │
 │ /compact   → Compact context (triggers PreCompact hook)    │
 │ /cost      → Check token usage                             │
 │ Escape     → Interrupt Claude                              │

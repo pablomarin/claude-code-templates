@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*.{ts,tsx}"
+---
+
 # TypeScript Style
 
 ## Tooling

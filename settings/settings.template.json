@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '=== Current Branch ===' && git branch --show-current && echo '' && cat CONTINUITY.md 2>/dev/null || echo 'No CONTINUITY.md found'"
+            "command": "echo '=== Current Branch ===' && git branch --show-current"
           }
         ]
       }
