@@ -5,9 +5,11 @@
 ## Project Overview
 
 ### What Is This?
+
 A production-grade template toolkit that transforms Claude Code from a simple coding assistant into an autonomous, memory-aware software engineering system. It provides enforced workflows, persistent memory, coding standards, and quality gates — all installed via a single `setup.sh` script.
 
 ### Tech Stack
+
 - **Scripts:** Bash (setup.sh) + PowerShell (setup.ps1) — cross-platform installers
 - **Config:** JSON (settings, MCP) + Markdown (commands, rules, templates)
 - **Hooks:** Bash (.sh) + PowerShell (.ps1) — auto-run quality gates
@@ -51,6 +53,8 @@ claude-code-templates/
 │   └── frontend-design.md      # UI/UX standards
 │
 ├── hooks/                      # Hook scripts (copied to .claude/hooks/)
+│   ├── session-start.sh        # SessionStart: silent context injection (branch)
+│   ├── session-start.ps1       # Windows version
 │   ├── check-state-updated.sh  # Stop hook: enforce CONTINUITY.md updates
 │   ├── check-state-updated.ps1 # Windows version
 │   ├── post-tool-format.sh     # PostToolUse: auto-format on save
@@ -88,29 +92,34 @@ claude-code-templates/
 ## Critical Conventions
 
 ### Template → Generated File Mapping
+
 Templates in the root are **source of truth**. `setup.sh` copies them to target projects:
 
-| Template (edit this) | Generated file (never edit directly) |
-|---|---|
-| `CLAUDE.template.md` | `CLAUDE.md` in target project |
-| `CONTINUITY.template.md` | `CONTINUITY.md` in target project |
-| `GLOBAL-CLAUDE.template.md` | `~/.claude/CLAUDE.md` |
-| `mcp.template.json` | `.mcp.json` in target project |
+| Template (edit this)              | Generated file (never edit directly)      |
+| --------------------------------- | ----------------------------------------- |
+| `CLAUDE.template.md`              | `CLAUDE.md` in target project             |
+| `CONTINUITY.template.md`          | `CONTINUITY.md` in target project         |
+| `GLOBAL-CLAUDE.template.md`       | `~/.claude/CLAUDE.md`                     |
+| `mcp.template.json`               | `.mcp.json` in target project             |
 | `settings/settings.template.json` | `.claude/settings.json` in target project |
-| `commands/*.md` | `.claude/commands/*.md` in target project |
-| `rules/*.md` | `.claude/rules/*.md` in target project |
-| `hooks/*` | `.claude/hooks/*` in target project |
+| `commands/*.md`                   | `.claude/commands/*.md` in target project |
+| `rules/*.md`                      | `.claude/rules/*.md` in target project    |
+| `hooks/*`                         | `.claude/hooks/*` in target project       |
 
 ### Platform Parity
+
 Every hook has both `.sh` (Unix) and `.ps1` (Windows) versions. **Always update both** when changing hook logic. Same for `setup.sh` / `setup.ps1`.
 
 ### setup.sh Behavior
+
 - `copy_file()` skips existing files unless `-f` (force) is passed
 - CLAUDE.md and CONTINUITY.md are **never overwritten** even with `-f` (user content)
 - Rules, commands, hooks, and settings CAN be safely refreshed with `-f`
 - `-t python|typescript|fullstack` controls which language-specific rules are copied
 
 ### Hook Design
+
+- **SessionStart hooks** (`session-start.sh`): Output JSON with `hookSpecificOutput.additionalContext` for silent context injection
 - **Stop hooks** (`check-state-updated.sh`): Use `exit 2` + stderr message to block
 - **PreCompact hooks**: Use `exit 0` (non-blocking) — just reminders
 - **PostToolUse hooks**: Match file extensions, run formatters, `exit 0` always
@@ -124,6 +133,7 @@ All coding standards, workflow rules, and policies are in `.claude/rules/`.
 These files are auto-loaded by Claude Code with the same priority as this file.
 
 **What's in `.claude/rules/`:**
+
 - `principles.md` — Top-level principles and design philosophy
 - `workflow.md` — Decision matrix for choosing the right command
 - `worktree-policy.md` — Git worktree isolation rules

@@ -313,6 +313,7 @@ Copy-TemplateFile (Join-Path $ScriptDir "settings" "settings-windows.template.js
 Copy-TemplateFile (Join-Path $ScriptDir "mcp.template.json") ".mcp.json" ".mcp.json (MCP servers: Playwright + Context7)"
 
 # Hooks (PowerShell versions for Windows)
+Copy-TemplateFile (Join-Path $ScriptDir "hooks" "session-start.ps1") ".claude\hooks\session-start.ps1" ".claude\hooks\session-start.ps1"
 Copy-TemplateFile (Join-Path $ScriptDir "hooks" "check-state-updated.ps1") ".claude\hooks\check-state-updated.ps1" ".claude\hooks\check-state-updated.ps1"
 Copy-TemplateFile (Join-Path $ScriptDir "hooks" "post-tool-format.ps1") ".claude\hooks\post-tool-format.ps1" ".claude\hooks\post-tool-format.ps1"
 Copy-TemplateFile (Join-Path $ScriptDir "hooks" "pre-compact-memory.ps1") ".claude\hooks\pre-compact-memory.ps1" ".claude\hooks\pre-compact-memory.ps1"

@@ -40,11 +40,11 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup",
+        "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -Command \"Write-Output '=== Current Branch ===' ; git branch --show-current\""
+            "command": "powershell -ExecutionPolicy Bypass -Command \"& (Join-Path $env:CLAUDE_PROJECT_DIR '.claude\\hooks\\session-start.ps1')\""
           }
         ]
       }
