@@ -3,3 +3,7 @@
 .env
 .env.*
 .claude/
+CLAUDE.md
+CONTINUITY.md
+.mcp.json
+docs/
