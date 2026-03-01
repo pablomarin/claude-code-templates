@@ -7,12 +7,13 @@
 
 This workflow requires the following plugins to be **installed AND enabled**:
 
-| Plugin | Skills/Commands Used |
-|--------|---------------------|
-| `superpowers@superpowers-marketplace` | `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:executing-plans`, `/superpowers:systematic-debugging` |
-| `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent, `/pr-review-toolkit:review-pr` |
+| Plugin                                      | Skills/Commands Used                                                                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `superpowers@superpowers-marketplace`       | `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:executing-plans`, `/superpowers:systematic-debugging` |
+| `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent, `/pr-review-toolkit:review-pr`                                                  |
 
 **To enable plugins**, add to `~/.claude/settings.json`:
+
 ```json
 {
   "enabledPlugins": {
@@ -30,6 +31,7 @@ This workflow requires the following plugins to be **installed AND enabled**:
 ### 1. Create Isolated Workspace (MANDATORY)
 
 **Check if already in a worktree:**
+
 ```bash
 if [[ "$(pwd)" == *".worktrees/"* ]]; then
   echo "STATE: ALREADY_IN_WORKTREE"
@@ -39,6 +41,7 @@ fi
 ```
 
 **If ALREADY_IN_WORKTREE:**
+
 - You're already isolated - continue with current workspace
 - No action needed
 
@@ -72,11 +75,13 @@ done
 ```
 
 **Then cd into the worktree:**
+
 ```bash
 cd "$WORKTREE_PATH"
 ```
 
 **Install dependencies (if needed):**
+
 ```bash
 # Node.js
 if [ -f "package.json" ] && [ ! -d "node_modules" ]; then
@@ -90,21 +95,25 @@ fi
 ```
 
 **⚠️ IMPORTANT: You are now working inside the worktree.**
+
 - All file paths are relative to the worktree (e.g., `src/main.py`, not `.worktrees/auth/src/main.py`)
 - All git commands operate on the worktree's branch
 - Hooks will automatically check the correct files
 
 ### 2. Read project state
+
 ```bash
 cat CONTINUITY.md
 ```
 
 ### 3. Verify required plugins are available (test ONE skill)
+
 ```
 /superpowers:brainstorming
 ```
 
 **If "Unknown skill" error:**
+
 - STOP immediately
 - Tell user: "Required plugins not loaded. Please enable in ~/.claude/settings.json and restart Claude Code."
 - Do NOT proceed with workarounds or skip mandatory steps
@@ -136,6 +145,7 @@ Then create the PRD:
 Before writing ANY code, research the problem space:
 
 1. **Search existing solutions**:
+
    ```bash
    grep -r "relevant keywords" docs/solutions/
    ```
@@ -168,16 +178,19 @@ Before writing ANY code, research the problem space:
 Get an independent review of the design before writing any code. This catches architectural mistakes early, when they're cheap to fix.
 
 **Check if Codex CLI is available:**
+
 ```bash
 command -v codex &>/dev/null && echo "Codex available" || echo "Codex not installed"
 ```
 
 **If Codex is available:**
+
 ```
 /codex review the implementation plan and flag any architectural concerns
 ```
 
 **If Codex is NOT available:**
+
 - Present a summary of the design plan to the user
 - Ask: "Does this design approach look right before I start implementing?"
 - Wait for user confirmation before proceeding to Phase 4
@@ -185,6 +198,7 @@ command -v codex &>/dev/null && echo "Codex available" || echo "Codex not instal
 ### 3.4 Iterate until approved
 
 **If the review finds P0 or P1 issues:**
+
 1. Edit the plan to address the issues
 2. Run `/codex review` again (or ask the user again)
 3. Repeat until there are **no P0 or P1 issues** in the review response
@@ -214,6 +228,7 @@ Implement using TDD (Red-Green-Refactor):
 ## Phase 5: Quality Gates (ALL REQUIRED)
 
 > **If any command below fails with "Unknown skill":**
+>
 > - Alert the user about missing plugins
 > - Perform equivalent checks manually (see fallbacks below)
 > - Do NOT skip quality gates
@@ -225,11 +240,13 @@ Run both reviews **in parallel**:
 **a) Second Opinion (Codex CLI):**
 
 Check if Codex CLI is available:
+
 ```bash
 command -v codex &>/dev/null && echo "Codex available" || echo "Codex not installed"
 ```
 
 If available:
+
 ```
 /codex review
 ```
@@ -245,22 +262,20 @@ This runs 6 specialized agents: code-reviewer, silent-failure-hunter, pr-test-an
 **Fallback if unavailable:** Use `pr-review-toolkit:code-reviewer` agent on modified files.
 
 **Iterate:** If either review finds P0, P1, or P2 issues:
+
 1. Fix the issues
 2. Run **both** reviews again
 3. Repeat until there are **no P0/P1/P2 issues** (P3s are acceptable)
 
 ### 5.2 Simplify
 
-Use the code-simplifier agent on all modified files:
+Run the built-in `/simplify` command on modified code:
 
 ```
-"Use the code-simplifier agent on [list modified files]"
+/simplify
 ```
 
-**Fallback if unavailable:** Manually review for:
-- Unnecessary complexity, dead code, duplicate logic
-- Functions > 50 lines that could be split
-- Over-engineered abstractions
+**Fallback (older Claude Code versions):** Use the `code-simplifier` agent on modified files.
 
 ### 5.3 Verify (USE SUBAGENT - saves context window)
 
@@ -277,6 +292,7 @@ Task tool → subagent_type: "verify-app", prompt: "Run verification and report 
 ```
 
 **Only use fallback if Task tool fails:**
+
 ```bash
 pytest && ruff check . && mypy .  # Python
 npm test && npm run lint && npm run typecheck  # Node
@@ -289,6 +305,7 @@ npm test && npm run lint && npm run typecheck  # Node
 The API doesn't exist in isolation - frontend code depends on it. Even if you didn't touch the frontend, API changes can break existing UI functionality.
 
 **Step 1: Find what uses the changed API**
+
 ```bash
 # Search frontend for API endpoint usage
 grep -r "your-endpoint-path" frontend/
@@ -307,6 +324,7 @@ Wait for servers to be ready before proceeding.
 Use the Playwright MCP server to run browser tests against affected routes. Navigate to the affected pages, interact with the changed functionality, and verify it works end-to-end.
 
 **DO NOT skip this step by saying:**
+
 - ❌ "No frontend exists for this endpoint" → Test the UI that USES the API
 - ❌ "Unit tests cover it" → Unit tests don't catch integration issues
 - ❌ "The API is new" → New APIs should be integration tested
@@ -322,6 +340,7 @@ Use the Playwright MCP server to run browser tests against affected routes. Navi
 If you fixed bugs or discovered patterns, document them:
 
 1. **Create solution doc** in `docs/solutions/[category]/`:
+
    ```bash
    mkdir -p docs/solutions/[category]
    # Create docs/solutions/[category]/[descriptive-name].md with:
@@ -349,6 +368,7 @@ git push -u origin HEAD
 ### 6.4 Create Pull Request
 
 **Ask the user for confirmation before creating the PR:**
+
 > "Branch pushed. Would you like me to create a PR to main?"
 
 **Wait for explicit user confirmation before proceeding.**
@@ -382,6 +402,7 @@ Once the PR is approved:
 ```
 
 This command will:
+
 1. Merge the PR to main (if not already merged)
 2. Delete the remote branch
 3. Delete the local branch and remove the worktree
@@ -392,6 +413,7 @@ This command will:
 ## ⚠️ IMPORTANT: Never Bypass Mandatory Steps
 
 If any MANDATORY step cannot be completed:
+
 1. **STOP** - Do not continue with workarounds
 2. **ALERT** - Tell the user which step failed and why
 3. **WAIT** - Get user guidance before proceeding
@@ -402,30 +424,36 @@ If any MANDATORY step cannot be completed:
 ## Checklist Summary
 
 **Pre-Flight:**
+
 - [ ] Created worktree and cd'd into it (unless already in worktree)
 - [ ] Read CONTINUITY.md
 - [ ] **Verified plugins loaded** (if "Unknown skill" → STOP, alert user)
 
 **Requirements & Research:**
+
 - [ ] PRD created via `/prd:create`
 - [ ] Researched existing solutions and best practices
 
 **Design (iterative loop — repeat until no P0/P1s):**
+
 - [ ] Brainstormed via `/superpowers:brainstorming`
 - [ ] Plan written via `/superpowers:writing-plans`
 - [ ] **Design reviewed** via `/codex` OR user confirmation (MANDATORY)
 - [ ] No P0/P1 issues remaining in review
 
 **Implementation:**
+
 - [ ] Executed via `/superpowers:executing-plans` (TDD)
 
 **Quality Gates (ALL REQUIRED):**
+
 - [ ] Code review loop (Codex + PR Review Toolkit in parallel) — no P0/P1/P2 issues remaining
-- [ ] Simplified via `code-simplifier` agent
+- [ ] Simplified via `/simplify`
 - [ ] Verified via `verify-app` agent (tests, lint, types pass)
 - [ ] **E2E tested via Playwright MCP** (MANDATORY if API changed)
 
 **Finish:**
+
 - [ ] Learnings documented in `docs/solutions/` + auto memory (if any)
 - [ ] CONTINUITY.md updated
 - [ ] CHANGELOG.md updated (if 3+ files)
