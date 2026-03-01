@@ -7,7 +7,7 @@
 
 ## When to Use
 
-- After all PR review comments have been addressed (via `/code-review`)
+- After all PR review comments have been addressed (via `/review-pr-comments`)
 - After the PR is approved by reviewers
 - When you're ready to merge to main and clean up
 
@@ -37,6 +37,7 @@ If state is `MERGED`, skip to Phase 2 (cleanup).
 ### 1.3 Ask user for merge confirmation
 
 **Ask the user:**
+
 > "PR is ready: [URL]. Shall I merge it to main and clean up?"
 
 **STOP and wait.** Do NOT proceed until the user explicitly says yes.
@@ -53,6 +54,7 @@ gh pr merge --squash --delete-branch
 > The `--delete-branch` flag auto-deletes the remote branch on GitHub.
 
 **If merge fails** (e.g., merge conflicts, required checks pending):
+
 - Tell the user what failed
 - STOP and let them resolve it
 - Do NOT force merge
@@ -105,6 +107,7 @@ echo "✓ Deleted local branch: $BRANCH_NAME"
 ```
 
 **If branch not fully merged (force delete with user confirmation):**
+
 ```bash
 git branch -D "$BRANCH_NAME"
 ```
@@ -177,18 +180,22 @@ If the user is not in a worktree (e.g., working directly on a feature branch):
 ## Error Handling
 
 ### PR not found
+
 - Check if a PR exists for this branch: `gh pr list --head "$BRANCH_NAME"`
 - The user may need to create the PR first
 
 ### Merge fails
+
 - Check for merge conflicts or required checks
 - Tell the user what failed and STOP
 
 ### Worktree removal fails
+
 - Check if worktree has uncommitted changes
 - Use `--force` flag if changes are already in the merged PR
 
 ### Branch deletion fails
+
 - If "not fully merged": The PR might not be merged yet. Confirm with user.
 - If "remote ref does not exist": GitHub may have auto-deleted on merge. This is fine.
 

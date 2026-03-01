@@ -6,24 +6,24 @@ This template adds structured workflows, automated quality gates, knowledge comp
 
 ## Why Use This?
 
-| Problem                                    | Solution                                                                                                                                                |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claude forgets everything between sessions | **Persistent memory** — auto memory + PreCompact hooks preserve knowledge across sessions                                                               |
-| Context lost during long sessions          | **PreCompact hook** — saves learnings before context compression (inspired by [OpenClaw](https://github.com/openclaw/openclaw))                         |
-| Claude makes changes without testing       | **Automated verification** — tests, lint, types checked before completion                                                                               |
-| Bugs get fixed but knowledge is lost       | **Knowledge compounding** — solutions saved to `docs/solutions/` AND auto memory                                                                        |
-| No consistent development process          | **Guided workflows** — `/new-feature`, `/fix-bug` commands enforce best practices                                                                       |
-| Context lost between sessions              | **State persistence** — CONTINUITY.md tracks Done/Now/Next across sessions                                                                              |
-| Can't run multiple features in parallel    | **Git worktrees** — isolated workspaces for parallel Claude sessions                                                                                    |
-| Code review happens too late               | **Multi-layer review** — `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep) → `/simplify` → `/code-review` (post-PR comments) |
-| E2E testing skipped                        | **Playwright MCP** — browser testing via standalone MCP server for UI/API changes                                                                       |
+| Problem                                    | Solution                                                                                                                                                       |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude forgets everything between sessions | **Persistent memory** — auto memory + PreCompact hooks preserve knowledge across sessions                                                                      |
+| Context lost during long sessions          | **PreCompact hook** — saves learnings before context compression (inspired by [OpenClaw](https://github.com/openclaw/openclaw))                                |
+| Claude makes changes without testing       | **Automated verification** — tests, lint, types checked before completion                                                                                      |
+| Bugs get fixed but knowledge is lost       | **Knowledge compounding** — solutions saved to `docs/solutions/` AND auto memory                                                                               |
+| No consistent development process          | **Guided workflows** — `/new-feature`, `/fix-bug` commands enforce best practices                                                                              |
+| Context lost between sessions              | **State persistence** — CONTINUITY.md tracks Done/Now/Next across sessions                                                                                     |
+| Can't run multiple features in parallel    | **Git worktrees** — isolated workspaces for parallel Claude sessions                                                                                           |
+| Code review happens too late               | **Multi-layer review** — `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep) → `/simplify` → `/review-pr-comments` (post-PR comments) |
+| E2E testing skipped                        | **Playwright MCP** — browser testing via standalone MCP server for UI/API changes                                                                              |
 
 ## Key Features
 
 - **Persistent Memory**: Global + project-level memory that survives across sessions and compaction
 - **3 Workflow Commands**: `/new-feature`, `/fix-bug`, `/quick-fix` — each guides you through the complete process
 - **7 Automated Hooks**: SessionStart, Stop, PreToolUse, PostToolUse, PreCompact, SubagentStop, ConfigChange — plus global memory hooks
-- **Multi-Layer Code Review**: `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep, 6 agents) → `/simplify` → `/code-review` (post-PR, process automated comments)
+- **Multi-Layer Code Review**: `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep, 6 agents) → `/simplify` → `/review-pr-comments` (post-PR, process automated comments)
 - **TDD Enforcement**: Red-Green-Refactor via Superpowers plugin
 - **Parallel Development**: Multiple Claude sessions working on different features simultaneously
 - **Knowledge Base**: Bug fixes automatically documented for future reference
@@ -201,9 +201,9 @@ These are project-level commands that Claude loads from your `.claude/commands/`
 
 **Post-PR (after automated reviewers comment on the pull request):**
 
-| Gate           | What it does                                                                                                                 |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `/code-review` | Processes review comments from GitHub Copilot / Codex / Claude and addresses them (requires automated PR reviews configured) |
+| Gate                  | What it does                                                                                                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `/review-pr-comments` | Processes review comments from GitHub Copilot / Codex / Claude and addresses them (requires automated PR reviews configured) |
 
 ### Frontend Design Quality (TypeScript/Fullstack)
 
@@ -225,7 +225,7 @@ These are optional — add them if your project uses Vercel or Next.js. After ad
 
 ### Recommended: Automated PR Reviews
 
-The `/code-review` command works by processing review comments left on your GitHub pull requests. For it to be useful, you need automated reviewers configured on your repo. Set up **at least one** of these:
+The `/review-pr-comments` command works by processing review comments left on your GitHub pull requests. For it to be useful, you need automated reviewers configured on your repo. Set up **at least one** of these:
 
 | Reviewer                   | How to enable                                                                                                  |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -233,9 +233,9 @@ The `/code-review` command works by processing review comments left on your GitH
 | **OpenAI Codex**           | Install the [Codex GitHub App](https://github.com/apps/openai-codex). Configurable via `.codex/` in your repo. |
 | **Claude (via Anthropic)** | Install the [Claude GitHub App](https://github.com/apps/claude). Add a `claude-pr-review.yml` workflow.        |
 
-Once configured, the workflow becomes: create PR → automated reviewers leave comments → `/code-review` processes those comments → push fixes → merge.
+Once configured, the workflow becomes: create PR → automated reviewers leave comments → `/review-pr-comments` processes those comments → push fixes → merge.
 
-> **No automated reviewers?** The workflow still works — you just skip the `/code-review` step. All pre-PR quality gates (Codex second opinion, deep review, /simplify, verify-app) still catch issues before the PR is created.
+> **No automated reviewers?** The workflow still works — you just skip the `/review-pr-comments` step. All pre-PR quality gates (Codex second opinion, deep review, /simplify, verify-app) still catch issues before the PR is created.
 
 ### Persistent Memory System
 
@@ -965,7 +965,7 @@ git push origin --delete feat/auth
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 13. PROCESS PR REVIEW COMMENTS                               │
-│    /code-review                                              │
+│    /review-pr-comments                                              │
 │    → Address comments from all reviewers                   │
 │    → Fix issues, push, wait for approval                   │
 └─────────────────────────────────────────────────────────────┘
@@ -1031,9 +1031,9 @@ Based on Boris Cherny's key insight:
 
 ### PR Review Comments (Post-PR)
 
-| Command        | Purpose                              | Notes                                                           |
-| -------------- | ------------------------------------ | --------------------------------------------------------------- |
-| `/code-review` | Address automated PR review comments | Requires GitHub Copilot, Codex, or Claude PR reviews configured |
+| Command               | Purpose                              | Notes                                                           |
+| --------------------- | ------------------------------------ | --------------------------------------------------------------- |
+| `/review-pr-comments` | Address automated PR review comments | Requires GitHub Copilot, Codex, or Claude PR reviews configured |
 
 ### Built-in Commands
 
@@ -1566,7 +1566,7 @@ Use `skills/SKILL.template.md` as a starting point for custom skills.
 │   /pr-review-toolkit:review-pr  ← Deep review (6 agents)   │
 │   /simplify            ← Clean up code (built-in)           │
 │   verify-app           ← Run tests, lint, types (agent)    │
-│   /code-review         ← Address PR review comments (post) │
+│   /review-pr-comments         ← Address PR review comments (post) │
 │                                                             │
 │ MEMORY COMMANDS:                                            │
 │   /memory              ← View/edit memory files             │
@@ -1598,24 +1598,24 @@ Use `skills/SKILL.template.md` as a starting point for custom skills.
 
 ## Version History
 
-| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                              |
-| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 5.3     | 2026-03-01 | **SILENT CONTEXT INJECTION**: SessionStart hook now uses `hookSpecificOutput.additionalContext` for clean, non-visible branch injection. Fires on all 4 events (startup, resume, clear, compact). External script replaces inline echo.                                                                                                                                              |
-| 5.2     | 2026-02-20 | **FRONTEND DESIGN**: Added `frontend-design` plugin (built-in) and `rules/frontend-design.md` for TypeScript/fullstack projects — typography, color, spacing, responsive, accessibility, animation standards. Documented optional MCP add-ons (Vercel, Next.js DevTools).                                                                                                            |
-| 5.1     | 2026-02-19 | **CLAUDE.MD SPLIT**: Slimmed CLAUDE.md to ~50 lines (user-owned: project description, tech stack, commands). Moved workflow, principles, worktree policy, critical rules, and memory instructions to `.claude/rules/` files that are auto-loaded and safe to overwrite on updates. Following official best practice of keeping CLAUDE.md under 60-100 lines.                         |
-| 5.0     | 2026-02-19 | **REMOVED COMPOUND ENGINEERING**: Replaced with built-in Claude Code quality gates (`/code-review`, `/pr-review-toolkit:review-pr`, `/codex review`). E2E testing via standalone Playwright MCP. Knowledge compounding via `docs/solutions/` + auto memory. Only Superpowers remains as third-party plugin. Added standalone MCP servers (Playwright, Context7) to project settings. |
-| 4.0     | 2026-02-19 | **PERSISTENT MEMORY**: Added global memory system (`--global` flag), PreCompact hooks to save learnings before context compression, global Stop hook for memory reminders, `~/.claude/CLAUDE.md` template with memory instructions. Inspired by OpenClaw's pre-compaction memory flush pattern. Auto memory enabled by default.                                                      |
-| 3.4     | 2026-02-16 | **CODEX COMMAND**: Added `/codex` command for getting second opinions from OpenAI's Codex CLI. Code review and general feedback modes.                                                                                                                                                                                                                                               |
-| 3.3     | 2026-01-22 | **FINISH-BRANCH COMMAND**: Added `/finish-branch` command that handles PR merge + worktree cleanup. Removed `/superpowers:finishing-a-development-branch` from workflows (redundant testing, no worktree awareness). `/quick-fix` now just commits directly.                                                                                                                         |
-| 3.2     | 2026-01-19 | **SIMPLIFIED WORKTREES**: Claude now `cd`s into worktrees instead of using path prefixes. Removed `.session_worktree` file - no shared state between sessions. Hooks and verify-app simplified to use current directory.                                                                                                                                                             |
-| 3.1     | 2026-01-19 | **PARALLEL DEVELOPMENT**: Workflow commands auto-create git worktrees for isolated parallel sessions. Hooks are worktree-aware. verify-app agent accepts worktree path.                                                                                                                                                                                                              |
-| 3.0     | 2026-01-18 | **WORKFLOW COMMANDS**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E via Playwright MCP.                                                                                                                                                                                              |
-| 2.7     | 2026-01-18 | Simplified CONTINUITY.md: Done section keeps only 2-3 recent items, removed redundant sections (Working Set, Test Status, Active Artifacts). Leaner template.                                                                                                                                                                                                                        |
-| 2.6     | 2026-01-18 | Hooks follow Anthropic best practices: path traversal protection, sensitive file skip, `$CLAUDE_PROJECT_DIR` for absolute paths. Added external post-tool-format.sh script.                                                                                                                                                                                                          |
-| 2.5     | 2026-01-17 | E2E testing via Playwright MCP. Removed E2E from verify-app agent.                                                                                                                                                                                                                                                                                                                   |
-| 2.4     | 2026-01-17 | Knowledge compounding now uses `docs/solutions/` instead of inline CLAUDE.md learnings. Searchable files with YAML frontmatter, auto-categorized by problem type.                                                                                                                                                                                                                    |
-| 2.3     | 2026-01-17 | Enhanced workflow with Superpowers skills: systematic-debugging, verification-before-completion. Updated Stop hook checklist.                                                                                                                                                                                                                                                        |
-| 2.2     | 2026-01-17 | Fixed MCP permissions - wildcards don't work, use explicit server names.                                                                                                                                                                                                                                                                                                             |
-| 2.1     | 2026-01-11 | Added native Windows/PowerShell support - hooks now work without jq on Windows, platform-specific settings templates.                                                                                                                                                                                                                                                                |
-| 2.0     | 2026-01-10 | Added code-simplifier, verify-app agent, SubagentStop hook, prompt-based Stop hook, project-agnostic templates, clear setup scenarios.                                                                                                                                                                                                                                               |
-| 1.0     | 2026-01-02 | Initial setup with Superpowers.                                                                                                                                                                                                                                                                                                                                                      |
+| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 5.3     | 2026-03-01 | **SILENT CONTEXT INJECTION**: SessionStart hook now uses `hookSpecificOutput.additionalContext` for clean, non-visible branch injection. Fires on all 4 events (startup, resume, clear, compact). External script replaces inline echo.                                                                                                                                                     |
+| 5.2     | 2026-02-20 | **FRONTEND DESIGN**: Added `frontend-design` plugin (built-in) and `rules/frontend-design.md` for TypeScript/fullstack projects — typography, color, spacing, responsive, accessibility, animation standards. Documented optional MCP add-ons (Vercel, Next.js DevTools).                                                                                                                   |
+| 5.1     | 2026-02-19 | **CLAUDE.MD SPLIT**: Slimmed CLAUDE.md to ~50 lines (user-owned: project description, tech stack, commands). Moved workflow, principles, worktree policy, critical rules, and memory instructions to `.claude/rules/` files that are auto-loaded and safe to overwrite on updates. Following official best practice of keeping CLAUDE.md under 60-100 lines.                                |
+| 5.0     | 2026-02-19 | **REMOVED COMPOUND ENGINEERING**: Replaced with built-in Claude Code quality gates (`/review-pr-comments`, `/pr-review-toolkit:review-pr`, `/codex review`). E2E testing via standalone Playwright MCP. Knowledge compounding via `docs/solutions/` + auto memory. Only Superpowers remains as third-party plugin. Added standalone MCP servers (Playwright, Context7) to project settings. |
+| 4.0     | 2026-02-19 | **PERSISTENT MEMORY**: Added global memory system (`--global` flag), PreCompact hooks to save learnings before context compression, global Stop hook for memory reminders, `~/.claude/CLAUDE.md` template with memory instructions. Inspired by OpenClaw's pre-compaction memory flush pattern. Auto memory enabled by default.                                                             |
+| 3.4     | 2026-02-16 | **CODEX COMMAND**: Added `/codex` command for getting second opinions from OpenAI's Codex CLI. Code review and general feedback modes.                                                                                                                                                                                                                                                      |
+| 3.3     | 2026-01-22 | **FINISH-BRANCH COMMAND**: Added `/finish-branch` command that handles PR merge + worktree cleanup. Removed `/superpowers:finishing-a-development-branch` from workflows (redundant testing, no worktree awareness). `/quick-fix` now just commits directly.                                                                                                                                |
+| 3.2     | 2026-01-19 | **SIMPLIFIED WORKTREES**: Claude now `cd`s into worktrees instead of using path prefixes. Removed `.session_worktree` file - no shared state between sessions. Hooks and verify-app simplified to use current directory.                                                                                                                                                                    |
+| 3.1     | 2026-01-19 | **PARALLEL DEVELOPMENT**: Workflow commands auto-create git worktrees for isolated parallel sessions. Hooks are worktree-aware. verify-app agent accepts worktree path.                                                                                                                                                                                                                     |
+| 3.0     | 2026-01-18 | **WORKFLOW COMMANDS**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E via Playwright MCP.                                                                                                                                                                                                     |
+| 2.7     | 2026-01-18 | Simplified CONTINUITY.md: Done section keeps only 2-3 recent items, removed redundant sections (Working Set, Test Status, Active Artifacts). Leaner template.                                                                                                                                                                                                                               |
+| 2.6     | 2026-01-18 | Hooks follow Anthropic best practices: path traversal protection, sensitive file skip, `$CLAUDE_PROJECT_DIR` for absolute paths. Added external post-tool-format.sh script.                                                                                                                                                                                                                 |
+| 2.5     | 2026-01-17 | E2E testing via Playwright MCP. Removed E2E from verify-app agent.                                                                                                                                                                                                                                                                                                                          |
+| 2.4     | 2026-01-17 | Knowledge compounding now uses `docs/solutions/` instead of inline CLAUDE.md learnings. Searchable files with YAML frontmatter, auto-categorized by problem type.                                                                                                                                                                                                                           |
+| 2.3     | 2026-01-17 | Enhanced workflow with Superpowers skills: systematic-debugging, verification-before-completion. Updated Stop hook checklist.                                                                                                                                                                                                                                                               |
+| 2.2     | 2026-01-17 | Fixed MCP permissions - wildcards don't work, use explicit server names.                                                                                                                                                                                                                                                                                                                    |
+| 2.1     | 2026-01-11 | Added native Windows/PowerShell support - hooks now work without jq on Windows, platform-specific settings templates.                                                                                                                                                                                                                                                                       |
+| 2.0     | 2026-01-10 | Added code-simplifier, verify-app agent, SubagentStop hook, prompt-based Stop hook, project-agnostic templates, clear setup scenarios.                                                                                                                                                                                                                                                      |
+| 1.0     | 2026-01-02 | Initial setup with Superpowers.                                                                                                                                                                                                                                                                                                                                                             |

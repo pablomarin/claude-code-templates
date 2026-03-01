@@ -329,6 +329,7 @@ Copy-TemplateFile (Join-Path $ScriptDir "commands" "fix-bug.md") ".claude\comman
 Copy-TemplateFile (Join-Path $ScriptDir "commands" "quick-fix.md") ".claude\commands\quick-fix.md" ".claude\commands\quick-fix.md"
 Copy-TemplateFile (Join-Path $ScriptDir "commands" "finish-branch.md") ".claude\commands\finish-branch.md" ".claude\commands\finish-branch.md"
 Copy-TemplateFile (Join-Path $ScriptDir "commands" "codex.md") ".claude\commands\codex.md" ".claude\commands\codex.md"
+Copy-TemplateFile (Join-Path $ScriptDir "commands" "review-pr-comments.md") ".claude\commands\review-pr-comments.md" ".claude\commands\review-pr-comments.md"
 
 # Commands - PRD
 Copy-TemplateFile (Join-Path $ScriptDir "commands" "prd" "discuss.md") ".claude\commands\prd\discuss.md" ".claude\commands\prd\discuss.md"

@@ -386,7 +386,7 @@ Wait for automated reviewers (GitHub Copilot, Claude, Codex) and peer developer 
 ### 6.6 Process PR review comments
 
 ```
-/code-review
+/review-pr-comments
 ```
 
 Address all review comments, fix issues, and push fixes.
@@ -458,5 +458,5 @@ If any MANDATORY step cannot be completed:
 - [ ] CONTINUITY.md updated
 - [ ] CHANGELOG.md updated (if 3+ files)
 - [ ] Committed, pushed, and PR created
-- [ ] PR review comments addressed via `/code-review`
+- [ ] PR review comments addressed via `/review-pr-comments`
 - [ ] Branch finished via `/finish-branch` (merged, worktree cleaned up)
