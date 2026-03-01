@@ -285,9 +285,11 @@ copy_file "$SCRIPT_DIR/settings/settings.template.json" ".claude/settings.json" 
 copy_file "$SCRIPT_DIR/mcp.template.json" ".mcp.json" ".mcp.json (MCP servers: Playwright + Context7)"
 
 # Hooks
+copy_file "$SCRIPT_DIR/hooks/session-start.sh" ".claude/hooks/session-start.sh" ".claude/hooks/session-start.sh"
 copy_file "$SCRIPT_DIR/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh"
 copy_file "$SCRIPT_DIR/hooks/post-tool-format.sh" ".claude/hooks/post-tool-format.sh" ".claude/hooks/post-tool-format.sh"
 copy_file "$SCRIPT_DIR/hooks/pre-compact-memory.sh" ".claude/hooks/pre-compact-memory.sh" ".claude/hooks/pre-compact-memory.sh"
+chmod +x .claude/hooks/session-start.sh 2>/dev/null || true
 chmod +x .claude/hooks/check-state-updated.sh 2>/dev/null || true
 chmod +x .claude/hooks/post-tool-format.sh 2>/dev/null || true
 chmod +x .claude/hooks/pre-compact-memory.sh 2>/dev/null || true
