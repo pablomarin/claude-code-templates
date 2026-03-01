@@ -111,6 +111,10 @@ response.set_cookie(
 
 NEVER install community skills without auditing their SKILL.md. See `rules/skill-audit.md` for the full checklist. 36.8% of free community skills have known security issues.
 
+## Bash Safety Audit
+
+The `PreToolUse` hook (`check-bash-safety.sh`) fires before every Bash command. It logs all commands to `~/.claude/audit.log` and blocks high-risk patterns: pipe-to-shell (`curl | sh`), reverse shells, credential exfiltration, and config tampering. Review the audit log periodically for anomalies.
+
 ## Config Change Monitoring
 
 The `ConfigChange` hook (`check-config-change.sh`) logs all mid-session config modifications. Enable strict mode (uncomment in the script) to block removal of deny rules — prevents permission escalation via settings.json tampering.

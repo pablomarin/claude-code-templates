@@ -318,6 +318,7 @@ Copy-TemplateFile (Join-Path $ScriptDir "hooks" "check-state-updated.ps1") ".cla
 Copy-TemplateFile (Join-Path $ScriptDir "hooks" "post-tool-format.ps1") ".claude\hooks\post-tool-format.ps1" ".claude\hooks\post-tool-format.ps1"
 Copy-TemplateFile (Join-Path $ScriptDir "hooks" "pre-compact-memory.ps1") ".claude\hooks\pre-compact-memory.ps1" ".claude\hooks\pre-compact-memory.ps1"
 Copy-TemplateFile (Join-Path $ScriptDir "hooks" "check-config-change.ps1") ".claude\hooks\check-config-change.ps1" ".claude\hooks\check-config-change.ps1"
+Copy-TemplateFile (Join-Path $ScriptDir "hooks" "check-bash-safety.ps1") ".claude\hooks\check-bash-safety.ps1" ".claude\hooks\check-bash-safety.ps1"
 
 # Agents
 Copy-TemplateFile (Join-Path $ScriptDir "agents" "verify-app.md") ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
