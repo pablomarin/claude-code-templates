@@ -55,6 +55,22 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/check-state-updated.sh"
           }
         ]
+      },
+      {
+        "_comment": "HTTP hook example: notify Slack when Claude finishes. Uncomment and set SLACK_WEBHOOK_URL env var. Payload sent: {session_id, cwd, hook_event_name, stop_hook_active, last_assistant_message}. HTTP hook failures are non-blocking.",
+        "_disabled": true,
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "$SLACK_WEBHOOK_URL",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "allowedEnvVars": ["SLACK_WEBHOOK_URL"],
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SubagentStop": [
