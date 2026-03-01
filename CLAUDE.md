@@ -50,17 +50,19 @@ claude-code-templates/
 │   ├── python-style.md         # Python-specific conventions
 │   ├── typescript-style.md     # TypeScript-specific conventions
 │   ├── database.md             # SQLAlchemy patterns, naming
-│   └── frontend-design.md      # UI/UX standards
+│   ├── frontend-design.md      # UI/UX standards
+│   └── skill-audit.md          # Third-party skill security checklist
 │
 ├── hooks/                      # Hook scripts (copied to .claude/hooks/)
-│   ├── session-start.sh        # SessionStart: silent context injection (branch)
-│   ├── session-start.ps1       # Windows version
-│   ├── check-state-updated.sh  # Stop hook: enforce CONTINUITY.md updates
-│   ├── check-state-updated.ps1 # Windows version
-│   ├── post-tool-format.sh     # PostToolUse: auto-format on save
-│   ├── post-tool-format.ps1    # Windows version
-│   ├── pre-compact-memory.sh   # PreCompact: save learnings before compression
-│   └── pre-compact-memory.ps1  # Windows version
+│   ├── session-start.sh/.ps1        # SessionStart: silent context injection (branch)
+│   ├── check-state-updated.sh/.ps1  # Stop: enforce CONTINUITY.md updates
+│   ├── check-bash-safety.sh/.ps1    # PreToolUse: audit log + block dangerous patterns
+│   ├── post-tool-format.sh/.ps1     # PostToolUse: auto-format on save
+│   ├── pre-compact-memory.sh/.ps1   # PreCompact: save learnings before compression
+│   └── check-config-change.sh/.ps1  # ConfigChange: log config modifications
+│
+├── skills/                     # Skill templates
+│   └── SKILL.template.md      # Template for creating custom skills
 │
 ├── agents/                     # Subagent definitions (copied to .claude/agents/)
 │   └── verify-app.md           # Full verification: tests + lint + types
@@ -121,8 +123,10 @@ Every hook has both `.sh` (Unix) and `.ps1` (Windows) versions. **Always update 
 
 - **SessionStart hooks** (`session-start.sh`): Output JSON with `hookSpecificOutput.additionalContext` for silent context injection
 - **Stop hooks** (`check-state-updated.sh`): Use `exit 2` + stderr message to block
-- **PreCompact hooks**: Use `exit 0` (non-blocking) — just reminders
+- **PreToolUse hooks** (`check-bash-safety.sh`): Audit log + `exit 2` to block dangerous Bash patterns
 - **PostToolUse hooks**: Match file extensions, run formatters, `exit 0` always
+- **PreCompact hooks**: Use `exit 0` (non-blocking) — just reminders
+- **ConfigChange hooks** (`check-config-change.sh`): Log config changes, optional `exit 2` strict mode
 - Prompt-type hooks must return `{"ok": true}` or `{"ok": false, "reason": "..."}`
 
 ---

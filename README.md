@@ -22,7 +22,7 @@ This template adds structured workflows, automated quality gates, knowledge comp
 
 - **Persistent Memory**: Global + project-level memory that survives across sessions and compaction
 - **3 Workflow Commands**: `/new-feature`, `/fix-bug`, `/quick-fix` — each guides you through the complete process
-- **5 Automated Hooks**: SessionStart, Stop, PreCompact, SubagentStop, PostToolUse — plus global memory hooks
+- **7 Automated Hooks**: SessionStart, Stop, PreToolUse, PostToolUse, PreCompact, SubagentStop, ConfigChange — plus global memory hooks
 - **Multi-Layer Code Review**: `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep, 6 agents) → `/simplify` → `/code-review` (post-PR, process automated comments)
 - **TDD Enforcement**: Red-Green-Refactor via Superpowers plugin
 - **Parallel Development**: Multiple Claude sessions working on different features simultaneously
@@ -176,13 +176,15 @@ These are project-level commands that Claude loads from your `.claude/commands/`
 
 ### Automated Hooks (run without you doing anything)
 
-| Hook             | When it fires                             | What it does                                                                                           |
-| ---------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **SessionStart** | New session, `/clear`, resume, compaction | Silently injects current git branch into Claude's context via `additionalContext` (no visible clutter) |
-| **Stop**         | Claude finishes responding                | Checks that CONTINUITY.md + CHANGELOG are updated (blocks if not)                                      |
-| **PreCompact**   | Before context compression                | Saves all session learnings to persistent memory before they're lost                                   |
-| **SubagentStop** | Subagent finishes                         | Validates the subagent's output quality                                                                |
-| **PostToolUse**  | After file edits                          | Auto-formats code with ruff (Python) or prettier (JS/TS/JSON/Markdown)                                 |
+| Hook             | When it fires                             | What it does                                                                                             |
+| ---------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **SessionStart** | New session, `/clear`, resume, compaction | Silently injects current git branch into Claude's context via `additionalContext` (no visible clutter)   |
+| **Stop**         | Claude finishes responding                | Checks that CONTINUITY.md + CHANGELOG are updated (blocks if not)                                        |
+| **PreToolUse**   | Before every Bash command                 | Logs all commands to `~/.claude/audit.log` and blocks dangerous patterns (pipe-to-shell, reverse shells) |
+| **PostToolUse**  | After file edits                          | Auto-formats code with ruff (Python) or prettier (JS/TS/JSON/Markdown)                                   |
+| **PreCompact**   | Before context compression                | Saves all session learnings to persistent memory before they're lost                                     |
+| **SubagentStop** | Subagent finishes                         | Validates the subagent's output quality                                                                  |
+| **ConfigChange** | Config file modified mid-session          | Logs config changes; optional strict mode blocks deny-rule removals                                      |
 
 ### Multi-Layer Quality Gates (no install needed)
 
@@ -1122,9 +1124,12 @@ your-project/
 ├── .claude/
 │   ├── settings.json                  # Permissions + Hooks (NOT MCP servers)
 │   ├── hooks/
-│   │   ├── check-state-updated.sh     # Stop hook script (.ps1 on Windows)
-│   │   ├── pre-compact-memory.sh      # PreCompact hook script (.ps1 on Windows)
-│   │   └── post-tool-format.sh        # Auto-formatter hook (.ps1 on Windows)
+│   │   ├── session-start.sh           # SessionStart: silent context injection (.ps1 on Windows)
+│   │   ├── check-state-updated.sh     # Stop: enforce state updates (.ps1 on Windows)
+│   │   ├── check-bash-safety.sh       # PreToolUse: audit log + block dangerous patterns (.ps1 on Windows)
+│   │   ├── post-tool-format.sh        # PostToolUse: auto-format on save (.ps1 on Windows)
+│   │   ├── pre-compact-memory.sh      # PreCompact: save learnings (.ps1 on Windows)
+│   │   └── check-config-change.sh     # ConfigChange: log config modifications (.ps1 on Windows)
 │   ├── agents/                        # Custom subagents
 │   │   └── verify-app.md              # Test verification agent
 │   ├── commands/                      # Custom slash commands (ENFORCED)

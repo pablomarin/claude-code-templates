@@ -109,7 +109,7 @@ response.set_cookie(
 
 ## Third-Party Skills
 
-NEVER install community skills without auditing their SKILL.md. See `rules/skill-audit.md` for the full checklist. 36.8% of free community skills have known security issues.
+NEVER install community skills without auditing their SKILL.md. See `rules/skill-audit.md` for the full checklist. Community skills may contain security vulnerabilities.
 
 ## Bash Safety Audit
 

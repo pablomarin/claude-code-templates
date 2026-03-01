@@ -4,7 +4,7 @@
 # Optionally blocks removal of deny rules from settings.json (strict mode).
 #
 # Input (JSON via stdin): {session_id, cwd, hook_event_name, source, file_path}
-# Output: JSON to stdout — {"decision":"block","reason":"..."} to reject changes.
+# Block: exit 2 + message on stderr (same pattern as other hooks).
 #
 # Requirements: jq (recommended), grep (fallback)
 
