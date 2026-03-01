@@ -1,6 +1,7 @@
 # Security
 
 ## Secrets
+
 NEVER commit secrets to version control. Use environment variables.
 
 ```python
@@ -34,11 +35,13 @@ payload = jwt.decode(token, secret)
 ```
 
 **Minimum secret length**: 64 characters for HS256. Generate with:
+
 ```bash
 openssl rand -base64 48
 ```
 
 ## Password Hashing
+
 ```python
 from passlib.context import CryptContext
 pwd = CryptContext(schemes=["bcrypt"], bcrypt__rounds=12)
@@ -50,6 +53,7 @@ valid = pwd.verify(password, hashed)  # Check this
 NEVER store plain text passwords. NEVER use MD5/SHA1 for passwords.
 
 ## SQL Injection
+
 ALWAYS use parameterized queries. ORMs handle this automatically.
 
 ```python
@@ -64,11 +68,13 @@ session.execute(f"SELECT * FROM users WHERE email = '{email}'")
 ```
 
 ## Input Validation
+
 ALWAYS validate with Pydantic before processing:
+
 ```python
 class WebhookCreate(BaseModel):
     url: HttpUrl
-    
+
     @field_validator("url")
     def https_only(cls, v):
         if v.scheme != "https":
@@ -77,7 +83,9 @@ class WebhookCreate(BaseModel):
 ```
 
 ## Logging
+
 NEVER log sensitive data:
+
 ```python
 # WRONG
 logger.info(f"User login with token: {token}")
@@ -88,6 +96,7 @@ logger.info(f"User {user_id} logged in")
 ```
 
 ## Cookies
+
 ```python
 response.set_cookie(
     key="session",
@@ -98,7 +107,12 @@ response.set_cookie(
 )
 ```
 
+## Config Change Monitoring
+
+The `ConfigChange` hook (`check-config-change.sh`) logs all mid-session config modifications. Enable strict mode (uncomment in the script) to block removal of deny rules — prevents permission escalation via settings.json tampering.
+
 ## Rules
+
 1. NEVER commit secrets to git — use environment variables
 2. NEVER trust JWT `alg` header — always whitelist algorithms
 3. NEVER store passwords in plain text — use bcrypt
@@ -107,3 +121,4 @@ response.set_cookie(
 6. ALWAYS validate all external input with Pydantic
 7. ALWAYS use HTTPS in production
 8. ALWAYS set `httponly`, `secure`, `samesite` on auth cookies
+9. ALWAYS monitor config changes — ConfigChange hook logs all modifications

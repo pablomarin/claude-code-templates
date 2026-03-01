@@ -289,10 +289,12 @@ copy_file "$SCRIPT_DIR/hooks/session-start.sh" ".claude/hooks/session-start.sh" 
 copy_file "$SCRIPT_DIR/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh" ".claude/hooks/check-state-updated.sh"
 copy_file "$SCRIPT_DIR/hooks/post-tool-format.sh" ".claude/hooks/post-tool-format.sh" ".claude/hooks/post-tool-format.sh"
 copy_file "$SCRIPT_DIR/hooks/pre-compact-memory.sh" ".claude/hooks/pre-compact-memory.sh" ".claude/hooks/pre-compact-memory.sh"
+copy_file "$SCRIPT_DIR/hooks/check-config-change.sh" ".claude/hooks/check-config-change.sh" ".claude/hooks/check-config-change.sh"
 chmod +x .claude/hooks/session-start.sh 2>/dev/null || true
 chmod +x .claude/hooks/check-state-updated.sh 2>/dev/null || true
 chmod +x .claude/hooks/post-tool-format.sh 2>/dev/null || true
 chmod +x .claude/hooks/pre-compact-memory.sh 2>/dev/null || true
+chmod +x .claude/hooks/check-config-change.sh 2>/dev/null || true
 
 # Agents
 copy_file "$SCRIPT_DIR/agents/verify-app.md" ".claude/agents/verify-app.md" ".claude/agents/verify-app.md"
