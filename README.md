@@ -964,8 +964,8 @@ git push origin --delete feat/auth
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 13. PROCESS PR REVIEW COMMENTS                               │
-│    /review-pr-comments                                              │
+│ 13. PROCESS PR REVIEW COMMENTS                              │
+│    /review-pr-comments                                     │
 │    → Address comments from all reviewers                   │
 │    → Fix issues, push, wait for approval                   │
 └─────────────────────────────────────────────────────────────┘
@@ -1566,7 +1566,7 @@ Use `skills/SKILL.template.md` as a starting point for custom skills.
 │   /pr-review-toolkit:review-pr  ← Deep review (6 agents)   │
 │   /simplify            ← Clean up code (built-in)           │
 │   verify-app           ← Run tests, lint, types (agent)    │
-│   /review-pr-comments         ← Address PR review comments (post) │
+│   /review-pr-comments  ← Address PR comments (post)   │
 │                                                             │
 │ MEMORY COMMANDS:                                            │
 │   /memory              ← View/edit memory files             │

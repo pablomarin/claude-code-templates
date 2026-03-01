@@ -15,11 +15,19 @@
 ```bash
 # Find the PR number for current branch
 PR_NUMBER=$(gh pr view --json number -q '.number' 2>/dev/null)
+
+if [ -z "$PR_NUMBER" ]; then
+  echo "No PR found for current branch. Create a PR first."
+  exit 1
+fi
+
 echo "PR #$PR_NUMBER"
 
-# List all review comments
-gh api repos/{owner}/{repo}/pulls/$PR_NUMBER/comments --jq '.[].body' 2>/dev/null || \
-gh pr view $PR_NUMBER --comments
+# Fetch review-level comments (approve/request changes with body)
+gh pr view $PR_NUMBER --json reviews --jq '.reviews[] | select(.body != "") | "[\(.author.login)] \(.body)"'
+
+# Fetch inline code review comments (line-level feedback)
+gh api "repos/{owner}/{repo}/pulls/$PR_NUMBER/comments" --jq '.[] | "[\(.user.login)] \(.path):\(.line) \(.body)"'
 ```
 
 **If no PR exists:** This command only applies after a PR has been created. Go back to the workflow and create a PR first.
