@@ -315,7 +315,7 @@ echo ""
 echo -e "${YELLOW}Copying rules for ${TECH_STACK}...${NC}"
 
 # Common rules (apply to all tech stacks)
-common_rules=("security.md" "api-design.md" "testing.md" "principles.md" "workflow.md" "worktree-policy.md" "critical-rules.md" "memory.md")
+common_rules=("security.md" "skill-audit.md" "api-design.md" "testing.md" "principles.md" "workflow.md" "worktree-policy.md" "critical-rules.md" "memory.md")
 for rule in "${common_rules[@]}"; do
     copy_file "$SCRIPT_DIR/rules/$rule" ".claude/rules/$rule" ".claude/rules/$rule"
 done

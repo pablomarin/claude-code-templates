@@ -339,7 +339,7 @@ Write-Color "Copying rules for $Tech..." "Yellow"
 
 # Common rules
 # Common rules (apply to all tech stacks)
-$commonRules = @("security.md", "api-design.md", "testing.md", "principles.md", "workflow.md", "worktree-policy.md", "critical-rules.md", "memory.md")
+$commonRules = @("security.md", "skill-audit.md", "api-design.md", "testing.md", "principles.md", "workflow.md", "worktree-policy.md", "critical-rules.md", "memory.md")
 foreach ($rule in $commonRules) {
     Copy-TemplateFile (Join-Path $ScriptDir "rules" $rule) ".claude\rules\$rule" ".claude\rules\$rule"
 }

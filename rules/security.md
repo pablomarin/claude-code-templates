@@ -107,6 +107,10 @@ response.set_cookie(
 )
 ```
 
+## Third-Party Skills
+
+NEVER install community skills without auditing their SKILL.md. See `rules/skill-audit.md` for the full checklist. 36.8% of free community skills have known security issues.
+
 ## Config Change Monitoring
 
 The `ConfigChange` hook (`check-config-change.sh`) logs all mid-session config modifications. Enable strict mode (uncomment in the script) to block removal of deny rules — prevents permission escalation via settings.json tampering.
