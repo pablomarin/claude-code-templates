@@ -91,7 +91,7 @@ Then inside Claude Code:
 
 Restart Claude Code.
 
-> **Note:** `pr-review-toolkit` and `frontend-design` are built-in Claude Code plugins pre-enabled in `.claude/settings.json`. The `/simplify` and `code-reviewer` agents come bundled with `pr-review-toolkit`. `superpowers` requires a separate install (step above).
+> **Note:** `pr-review-toolkit` and `frontend-design` are built-in Claude Code plugins pre-enabled in `.claude/settings.json`. `/simplify` is a built-in Claude Code command (no plugin needed). `superpowers` requires a separate install (step above).
 
 ### Step 5: Install Codex CLI (recommended)
 
@@ -141,7 +141,7 @@ codex --version   # Should show version 0.101.0+
 Inside Claude Code, run:
 
 ```
-/hooks       → Should show: SessionStart, Stop, PreCompact, SubagentStop, PostToolUse
+/hooks       → Should show: SessionStart, Stop, PreToolUse, PostToolUse, PreCompact, SubagentStop, ConfigChange
 /help        → Should show: /superpowers:*, /new-feature, /fix-bug, /prd:*
 /memory      → Should show your auto memory directory
 ```
@@ -717,7 +717,7 @@ claude
 
 # Check hooks loaded
 /hooks
-# Should show: SessionStart, Stop, PreCompact, SubagentStop, PostToolUse
+# Should show: SessionStart, Stop, PreToolUse, PostToolUse, PreCompact, SubagentStop, ConfigChange
 
 # Check commands available
 /help

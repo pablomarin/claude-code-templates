@@ -491,7 +491,7 @@ Write-Host "4. " -NoNewline
 Write-Color "Verify everything works" "Blue"
 Write-Host ":"
 Write-Host ""
-Write-Host "   /hooks       -> Should show: SessionStart, Stop, PreCompact, SubagentStop, PostToolUse"
+Write-Host "   /hooks       -> Should show: SessionStart, Stop, PreToolUse, PostToolUse, PreCompact, SubagentStop, ConfigChange"
 Write-Host "   /help        -> Should show: /superpowers:*, /new-feature, /fix-bug, /prd:*"
 Write-Host "   /memory      -> Should show your auto memory directory"
 Write-Host ""

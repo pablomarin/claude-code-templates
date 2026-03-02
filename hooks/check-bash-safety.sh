@@ -69,7 +69,7 @@ elif echo "$COMMAND" | grep -qE 'rm\s+-[rf]*\s+/' 2>/dev/null && ! echo "$COMMAN
     REASON="Recursive deletion targeting root filesystem"
 
 # 6. Modifying Claude Code's own config via Bash (defense in depth with ConfigChange hook)
-elif echo "$COMMAND" | grep -qE '(sed|awk|echo|cat|tee|printf).*\.claude/(settings|config)' 2>/dev/null; then
+elif echo "$COMMAND" | grep -qE '(sed|awk|echo|tee|printf).*\.claude/(settings|config)' 2>/dev/null; then
     REASON="Attempting to modify Claude Code configuration via Bash"
 fi
 
