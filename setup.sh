@@ -274,9 +274,17 @@ echo ""
 # Copy templates
 echo -e "${YELLOW}Copying configuration files...${NC}"
 
-# Main files (directly in SCRIPT_DIR, not in templates subfolder)
-copy_file "$SCRIPT_DIR/CLAUDE.template.md" "CLAUDE.md" "CLAUDE.md"
-copy_file "$SCRIPT_DIR/CONTINUITY.template.md" "CONTINUITY.md" "CONTINUITY.md"
+# Main files — CLAUDE.md and CONTINUITY.md are NEVER overwritten (user content)
+if [[ -f "CLAUDE.md" ]]; then
+    echo -e "  ${BLUE}○${NC} CLAUDE.md already exists (never overwritten — user content)"
+else
+    copy_file "$SCRIPT_DIR/CLAUDE.template.md" "CLAUDE.md" "CLAUDE.md"
+fi
+if [[ -f "CONTINUITY.md" ]]; then
+    echo -e "  ${BLUE}○${NC} CONTINUITY.md already exists (never overwritten — user content)"
+else
+    copy_file "$SCRIPT_DIR/CONTINUITY.template.md" "CONTINUITY.md" "CONTINUITY.md"
+fi
 
 # Settings
 copy_file "$SCRIPT_DIR/settings/settings.template.json" ".claude/settings.json" ".claude/settings.json"

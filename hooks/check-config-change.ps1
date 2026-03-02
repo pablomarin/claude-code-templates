@@ -13,8 +13,13 @@ $Source = if ($Data.source) { $Data.source } else { "unknown" }
 $FileName = Split-Path $FilePath -Leaf -ErrorAction SilentlyContinue
 if (-not $FileName) { $FileName = "unknown" }
 
-# Always log config changes for visibility
+# Always log config changes for visibility (stderr + durable audit log)
 [Console]::Error.WriteLine("Config changed: $FileName (source: $Source, path: $FilePath)")
+$AuditLog = Join-Path $env:USERPROFILE ".claude" "audit.log"
+$AuditDir = Split-Path $AuditLog -Parent
+if (-not (Test-Path $AuditDir)) { New-Item -ItemType Directory -Path $AuditDir -Force | Out-Null }
+$Timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+Add-Content -Path $AuditLog -Value "[$Timestamp] CONFIG_CHANGED: $FileName (source: $Source, path: $FilePath)" -ErrorAction SilentlyContinue
 
 ## --- STRICT MODE (uncomment to block deny-rule removals) ---
 #

@@ -32,7 +32,10 @@ fi
 AUDIT_LOG="${HOME}/.claude/audit.log"
 mkdir -p "$(dirname "$AUDIT_LOG")" 2>/dev/null
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
-printf '[%s] session=%s cwd=%s cmd=%s\n' "$TIMESTAMP" "$SESSION_ID" "$CWD" "$COMMAND" >> "$AUDIT_LOG" 2>/dev/null
+# Redact potential secrets from logged commands (API keys, tokens, passwords)
+SAFE_COMMAND=$(printf '%s' "$COMMAND" | sed -E \
+  's/(export\s+\w*(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)\w*=)[^ ]*/\1[REDACTED]/gi; s/(sk-|ghp_|gho_|github_pat_|xoxb-|xoxp-)[A-Za-z0-9_-]+/\1[REDACTED]/g')
+printf '[%s] session=%s cwd=%s cmd=%s\n' "$TIMESTAMP" "$SESSION_ID" "$CWD" "$SAFE_COMMAND" >> "$AUDIT_LOG" 2>/dev/null
 
 # --- High-risk pattern detection ---
 # Each check is a separate function for clarity and testability.

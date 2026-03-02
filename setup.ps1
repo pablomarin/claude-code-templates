@@ -302,9 +302,17 @@ Write-Host ""
 # Copy templates
 Write-Color "Copying configuration files..." "Yellow"
 
-# Main files
-Copy-TemplateFile (Join-Path $ScriptDir "CLAUDE.template.md") "CLAUDE.md" "CLAUDE.md"
-Copy-TemplateFile (Join-Path $ScriptDir "CONTINUITY.template.md") "CONTINUITY.md" "CONTINUITY.md"
+# Main files — CLAUDE.md and CONTINUITY.md are NEVER overwritten (user content)
+if (Test-Path "CLAUDE.md") {
+    Write-Host "  " -NoNewline; Write-Color "o" "Blue"; Write-Host " CLAUDE.md already exists (never overwritten - user content)"
+} else {
+    Copy-TemplateFile (Join-Path $ScriptDir "CLAUDE.template.md") "CLAUDE.md" "CLAUDE.md"
+}
+if (Test-Path "CONTINUITY.md") {
+    Write-Host "  " -NoNewline; Write-Color "o" "Blue"; Write-Host " CONTINUITY.md already exists (never overwritten - user content)"
+} else {
+    Copy-TemplateFile (Join-Path $ScriptDir "CONTINUITY.template.md") "CONTINUITY.md" "CONTINUITY.md"
+}
 
 # Settings (Windows-specific with PowerShell hooks)
 Copy-TemplateFile (Join-Path $ScriptDir "settings" "settings-windows.template.json") ".claude\settings.json" ".claude\settings.json"

@@ -25,7 +25,10 @@ $AuditLog = Join-Path $env:USERPROFILE ".claude" "audit.log"
 $AuditDir = Split-Path $AuditLog -Parent
 if (-not (Test-Path $AuditDir)) { New-Item -ItemType Directory -Path $AuditDir -Force | Out-Null }
 $Timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-$LogEntry = "[$Timestamp] session=$SessionId cwd=$Cwd cmd=$Command"
+# Redact potential secrets from logged commands
+$SafeCommand = $Command -replace '(export\s+\w*(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)\w*=)[^ ]*', '$1[REDACTED]'
+$SafeCommand = $SafeCommand -replace '(sk-|ghp_|gho_|github_pat_|xoxb-|xoxp-)[A-Za-z0-9_-]+', '$1[REDACTED]'
+$LogEntry = "[$Timestamp] session=$SessionId cwd=$Cwd cmd=$SafeCommand"
 Add-Content -Path $AuditLog -Value $LogEntry -ErrorAction SilentlyContinue
 
 # --- High-risk pattern detection ---

@@ -22,8 +22,12 @@ fi
 
 FILENAME=$(basename "$FILE_PATH" 2>/dev/null || echo "unknown")
 
-# Always log config changes for visibility
+# Always log config changes for visibility (stderr + durable audit log)
 echo "Config changed: $FILENAME (source: $SOURCE, path: $FILE_PATH)" >&2
+AUDIT_LOG="${HOME}/.claude/audit.log"
+mkdir -p "$(dirname "$AUDIT_LOG")" 2>/dev/null
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
+printf '[%s] CONFIG_CHANGED: %s (source: %s, path: %s)\n' "$TIMESTAMP" "$FILENAME" "$SOURCE" "$FILE_PATH" >> "$AUDIT_LOG" 2>/dev/null
 
 ## --- STRICT MODE (uncomment to block deny-rule removals) ---
 ## Checks if settings.json lost any deny rules compared to git HEAD.
