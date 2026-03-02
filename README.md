@@ -148,6 +148,18 @@ Inside Claude Code, run:
 
 **Done!** Now use `/new-feature my-feature` to start your first guided workflow.
 
+### Upgrading (existing projects)
+
+Already have the templates installed? Pull the latest and upgrade:
+
+```bash
+cd ~/claude-code-templates && git pull
+cd /path/to/your/project
+~/claude-code-templates/setup.sh --upgrade
+```
+
+This updates all hooks, commands, and rules while safely merging new settings into your existing `settings.json` and `.mcp.json`. Your customizations are preserved. See [Scenario C](#scenario-c-existing-project-with-claude-code-upgrade) for details.
+
 ---
 
 ## What You Get
@@ -158,7 +170,7 @@ After setup, Claude Code goes from a generic coding assistant to an autonomous e
 
 Your `CLAUDE.md` is **intentionally short** (~50 lines) — just your project description, tech stack, and commands. All workflow rules, coding standards, and principles live in `.claude/rules/` files that are auto-loaded by Claude Code with the same priority.
 
-**Why this matters:** When you re-run the setup script to get updated templates, your `CLAUDE.md` is preserved (never overwritten). The `.claude/rules/` files can be safely updated with `-f` since they don't contain your custom content.
+**Why this matters:** When you run `setup.sh --upgrade`, your `CLAUDE.md` is preserved (never overwritten), `settings.json` is intelligently merged (your custom permissions kept), and `.claude/rules/` files are safely updated to the latest standards.
 
 ### Custom Slash Commands (from `.claude/commands/`)
 
@@ -255,7 +267,7 @@ Claude remembers things across sessions through three mechanisms:
 4. [Setup Scenarios](#setup-scenarios)
    - [Scenario A: New Project](#scenario-a-new-project)
    - [Scenario B: Existing Project WITHOUT Claude Code](#scenario-b-existing-project-without-claude-code)
-   - [Scenario C: Existing Project WITH Claude Code](#scenario-c-existing-project-with-claude-code)
+   - [Scenario C: Existing Project WITH Claude Code](#scenario-c-existing-project-with-claude-code-upgrade)
 5. [After Setup: Customize Your Project](#after-setup-customize-your-project)
 6. [Parallel Development (Multiple Sessions)](#parallel-development-multiple-sessions)
 7. [Workflow Overview](#workflow-overview)
@@ -556,104 +568,60 @@ git push
 
 ---
 
-### Scenario C: Existing Project WITH Claude Code
+### Scenario C: Existing Project WITH Claude Code (Upgrade)
 
-You already have `.claude/settings.json` or `CLAUDE.md` from a previous setup.
+You already have `.claude/settings.json` or `CLAUDE.md` from a previous setup and want to get the latest hooks, commands, rules, and security fixes.
 
-#### What the Script Does (Safe by Default)
-
-The setup script **will NOT override** your user-owned files (`CLAUDE.md`, `CONTINUITY.md`, `.claude/settings.json`). However, `.claude/rules/` files **are always safe to overwrite** since they contain template-managed standards, not your custom content.
-
-| If file exists...              | What happens                                                    |
-| ------------------------------ | --------------------------------------------------------------- |
-| `CLAUDE.md`                    | **Skipped** - your file preserved                               |
-| `CONTINUITY.md`                | **Skipped** - your file preserved                               |
-| `.claude/settings.json`        | **Skipped** - your settings preserved                           |
-| `.claude/rules/*.md`           | **Skipped** by default (use `-f` to update to latest standards) |
-| `.claude/agents/verify-app.md` | Created (likely new for you)                                    |
-
-You'll see output like:
-
-```
-  ○ .claude/settings.json already exists (use -f to overwrite)
-  ○ CLAUDE.md already exists (never overwritten — user content)
-  ✓ Created .claude/agents/verify-app.md
-```
-
-#### Option 1: Add Only What's Missing (Recommended)
+#### Recommended: `--upgrade` (safe, preserves your customizations)
 
 ```bash
-# 1. Go to your project
 cd /path/to/your/project
-
-# 2. Run setup - only creates files that don't exist
-~/claude-code-templates/setup.sh -p "My Project"
-
-# 3. Manually add new features to your existing settings.json
+~/claude-code-templates/setup.sh --upgrade
 ```
 
-**New features to add manually to your `.claude/settings.json`:**
+**What `--upgrade` does:**
 
-```json
-{
-  "hooks": {
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo 'COMPACTION IMMINENT. Save learnings to auto memory: bug root causes, patterns, architecture insights, user preferences. NOT session state (that goes in CONTINUITY.md).' >&2; exit 2",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "prompt",
-            "model": "sonnet",
-            "prompt": "Evaluate the subagent's output quality. Consider:\n1. Did the subagent complete its assigned task?\n2. Is the output useful and actionable?\n3. Were there any errors or issues?\n\nYou MUST respond with ONLY a JSON object in one of these formats:\n{\"ok\": true} - if the subagent completed successfully\n{\"ok\": false, \"reason\": \"explanation of what went wrong\"} - if issues were found\n\nRespond with ONLY the JSON object, no other text."
-          }
-        ]
-      }
-    ]
-  }
-}
+| File type                    | What happens                                                            |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| `CLAUDE.md`, `CONTINUITY.md` | **Never touched** — your content is safe                                |
+| `.claude/settings.json`      | **Merged** — adds new hooks/permissions/plugins, keeps your custom ones |
+| `.mcp.json`                  | **Merged** — adds new MCP servers, keeps your custom ones               |
+| `.claude/hooks/*`            | **Updated** — gets latest hook script fixes                             |
+| `.claude/rules/*`            | **Updated** — gets latest coding standards                              |
+| `.claude/commands/*`         | **Updated** — gets latest workflow commands                             |
+| `.claude/agents/*`           | **Updated** — gets latest agent definitions                             |
+
+A timestamped backup (`.bak`) is created before any merge. You'll see a summary of what changed:
+
+```
+  ↑ Merging .claude/settings.json (upgrade mode)
+  Upgraded settings.json (backup: settings.bak.20260301212339):
+    Added hook events: ConfigChange, PreToolUse
+    Added permissions.deny: Bash(sudo:*), Bash(su:*)
+    Added plugins: pr-review-toolkit@claude-plugins-official
+  ↑ Merging .mcp.json (upgrade mode)
+  .mcp.json: already up to date
+  ✓ Created .claude/hooks/check-bash-safety.sh
+  ✓ Created .claude/hooks/check-config-change.sh
 ```
 
-#### Option 2: Backup and Replace Everything
+#### Alternative: Fresh install (destructive)
 
-If you want to fully adopt the new templates:
+If you want to start completely fresh with the latest templates:
 
 ```bash
 # 1. Backup your current setup
 cp -r .claude .claude-backup
 cp CLAUDE.md CLAUDE.md.backup
-cp CONTINUITY.md CONTINUITY.md.backup 2>/dev/null
 
-# 2. Force overwrite with new templates
-~/claude-code-templates/setup.sh -p "My Project" -f
+# 2. Force overwrite everything (except CLAUDE.md and CONTINUITY.md)
+~/claude-code-templates/setup.sh -f
 
-# 3. Manually merge back any project-specific content from backups
-# Compare: diff CLAUDE.md.backup CLAUDE.md
+# 3. Merge back any project-specific settings from backup
+# Compare: diff .claude-backup/settings.json .claude/settings.json
 ```
 
-#### What's New That You Probably Don't Have
-
-| File/Feature                           | What it does                                        | Priority |
-| -------------------------------------- | --------------------------------------------------- | -------- |
-| `PreCompact` hook                      | Saves learnings before context compression          | **High** |
-| Memory section in CLAUDE.md            | Tells Claude to actively use auto memory            | **High** |
-| Global `~/.claude/CLAUDE.md`           | Memory instructions for all projects                | **High** |
-| `.claude/agents/verify-app.md`         | Runs all tests, reports pass/fail                   | **High** |
-| `.mcp.json` with Playwright + Context7 | MCP servers at project root (not in settings.json!) | **High** |
-| `SubagentStop` hook                    | Validates subagent output                           | Medium   |
-| `/prd:discuss` command                 | Refine user stories                                 | Medium   |
-| `/prd:create` command                  | Generate structured PRD                             | Medium   |
+> **When to use `-f` instead of `--upgrade`:** Only if your settings are corrupted, you want a clean slate, or you haven't customized anything yet.
 
 ---
 
@@ -1184,7 +1152,7 @@ your-project/
 
 ### Setup script says files already exist
 
-This is expected if you already have Claude Code set up. See [Scenario C](#scenario-c-existing-project-with-claude-code) for options.
+This is expected if you already have Claude Code set up. See [Scenario C](#scenario-c-existing-project-with-claude-code-upgrade) for options.
 
 ### Memory not persisting?
 
@@ -1552,6 +1520,16 @@ Use `skills/SKILL.template.md` as a starting point for custom skills.
 │   & $HOME\claude-code-templates\setup.ps1 -p "Project Name"│
 │                                                             │
 │ # Then install Superpowers plugin in Claude Code            │
+├─────────────────────────────────────────────────────────────┤
+│ UPGRADE EXISTING PROJECT                                    │
+├─────────────────────────────────────────────────────────────┤
+│ cd ~/claude-code-templates && git pull                      │
+│ cd /your/project                                           │
+│ ~/claude-code-templates/setup.sh --upgrade                 │
+│                                                             │
+│ → Updates hooks, commands, rules (overwrites)              │
+│ → Merges settings.json + .mcp.json (adds new, keeps yours)│
+│ → Never touches CLAUDE.md or CONTINUITY.md                 │
 ├─────────────────────────────────────────────────────────────┤
 │ DAILY WORKFLOW (Hooks enforce this!)                        │
 ├─────────────────────────────────────────────────────────────┤
