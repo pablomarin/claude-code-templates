@@ -32,9 +32,59 @@ Based on [Boris Cherny's workflow](https://www.anthropic.com/engineering/claude-
 
 ---
 
+## Table of Contents
+
+1. [Quick Start](#quick-start)
+2. [Setup Scenarios](#setup-scenarios)
+3. [After Setup: Customize Your Project](#after-setup-customize-your-project)
+4. [Workflow Overview](#workflow-overview)
+5. [Commands Reference](#commands-reference)
+6. [How Memory Works](#how-memory-works)
+7. [What's Automated](#whats-automated)
+8. [Parallel Development (Multiple Sessions)](#parallel-development-multiple-sessions)
+9. [File Structure](#file-structure)
+10. [Creating Your Own Skills](#creating-your-own-skills)
+11. [Security](#security)
+12. [Troubleshooting](#troubleshooting)
+13. [Quick Reference Card](#quick-reference-card)
+14. [Getting Help](#getting-help)
+15. [Version History](#version-history)
+
+---
+
 ## Quick Start
 
 > **There are two setup steps**: (1) global setup (once per machine) and (2) project setup (once per project). Global setup MUST come first — it installs the memory system that all projects share.
+
+<details>
+<summary><strong>Prerequisites (expand to check)</strong></summary>
+
+#### macOS / Linux
+
+- [ ] **Claude Code** installed and working (`claude --version`)
+- [ ] **Node.js 22+** (for Codex CLI, npx commands, and Playwright MCP)
+- [ ] **Git 2.23+** initialized in your project
+- [ ] **jq** (recommended, not required): `brew install jq` (macOS) or `apt install jq` (Linux). Used for JSON merging during global setup (falls back to Python if unavailable). Hooks work without it.
+- [ ] **Codex CLI** (recommended): `npm i -g @openai/codex` or `brew install --cask codex` (macOS). Used for design review and code review second opinions. See [Step 5](#step-5-install-codex-cli-recommended) for full instructions.
+- [ ] **Python 3.12+** with `uv` (if Python project)
+- [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
+
+#### Windows
+
+- [ ] **Claude Code** installed and working (`claude --version`)
+- [ ] **WSL2** (recommended for Codex CLI): `wsl --install` from elevated PowerShell
+- [ ] **PowerShell 5.1+** (included with Windows 10/11)
+- [ ] **Node.js 22+** (for Codex CLI, npx commands, and Playwright MCP)
+- [ ] **Git 2.23+** initialized in your project
+- [ ] **Codex CLI** (recommended): `npm i -g @openai/codex` inside WSL. See [Step 5](#step-5-install-codex-cli-recommended) for full instructions.
+- [ ] **Python 3.12+** with `uv` (if Python project)
+- [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
+
+> **Note:** Windows does NOT require `jq` - PowerShell has native JSON support via `ConvertFrom-Json`.
+>
+> **Note:** Codex CLI works best via WSL2 on Windows. Native Windows support is experimental. See [OpenAI's Windows guide](https://developers.openai.com/codex/windows/).
+
+</details>
 
 ### Step 1: Clone this repo (once per machine)
 
@@ -146,7 +196,7 @@ Inside Claude Code, run:
 /memory      → Should show your auto memory directory
 ```
 
-**Done!** Now use `/new-feature my-feature` to start your first guided workflow.
+**Done!** Now use `/new-feature my-feature` to start your first guided workflow. See [Workflow Overview](#workflow-overview) for the full process and [Commands Reference](#commands-reference) for all available commands.
 
 ### Upgrading (existing projects)
 
@@ -162,326 +212,9 @@ This updates all hooks, commands, and rules while safely merging new settings in
 
 ---
 
-## What You Get
-
-After setup, Claude Code goes from a generic coding assistant to an autonomous engineering system:
-
-### Slim CLAUDE.md + Rules Split
-
-Your `CLAUDE.md` is **intentionally short** (~50 lines) — just your project description, tech stack, and commands. All workflow rules, coding standards, and principles live in `.claude/rules/` files that are auto-loaded by Claude Code with the same priority.
-
-**Why this matters:** When you run `setup.sh --upgrade`, your `CLAUDE.md` is preserved (never overwritten), `settings.json` is intelligently merged (your custom permissions kept), and `.claude/rules/` files are safely updated to the latest standards.
-
-### Custom Slash Commands (from `.claude/commands/`)
-
-These are project-level commands that Claude loads from your `.claude/commands/` folder:
-
-| Command                | What it does                                                                                                      |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `/new-feature <name>`  | Guides you through: Research → PRD → Design → TDD → Review → PR. Creates an isolated git worktree.                |
-| `/fix-bug <name>`      | Systematic 4-phase debugging → Fix → Review → Document solution. Creates an isolated worktree.                    |
-| `/quick-fix <name>`    | For trivial changes (< 3 files). Verify and commit directly.                                                      |
-| `/finish-branch`       | Merge PR to main (if not already merged) → Delete remote branch → Delete local branch/worktree → Restart servers. |
-| `/codex <instruction>` | Get a second opinion from OpenAI's Codex CLI.                                                                     |
-| `/prd:discuss`         | Refine user stories interactively.                                                                                |
-| `/prd:create`          | Generate a structured product requirements document.                                                              |
-
-### Automated Hooks (run without you doing anything)
-
-| Hook             | When it fires                             | What it does                                                                                             |
-| ---------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| **SessionStart** | New session, `/clear`, resume, compaction | Silently injects current git branch into Claude's context via `additionalContext` (no visible clutter)   |
-| **Stop**         | Claude finishes responding                | Checks that CONTINUITY.md + CHANGELOG are updated (blocks if not)                                        |
-| **PreToolUse**   | Before every Bash command                 | Logs all commands to `~/.claude/audit.log` and blocks dangerous patterns (pipe-to-shell, reverse shells) |
-| **PostToolUse**  | After file edits                          | Auto-formats code with ruff (Python) or prettier (JS/TS/JSON/Markdown)                                   |
-| **PreCompact**   | Before context compression                | Saves all session learnings to persistent memory before they're lost                                     |
-| **SubagentStop** | Subagent finishes                         | Validates the subagent's output quality                                                                  |
-| **ConfigChange** | Config file modified mid-session          | Logs config changes; optional strict mode blocks deny-rule removals                                      |
-
-### Multi-Layer Quality Gates (no install needed)
-
-**Pre-PR (local, before creating the pull request):**
-
-| Gate                           | What it does                                                                                          |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `/codex review`                | Independent second opinion from OpenAI Codex — first review after implementation (requires Codex CLI) |
-| `/pr-review-toolkit:review-pr` | Deep review: 6 specialized agents — silent failures, test coverage, type design (built-in)            |
-| `/simplify`                    | Cleans up code after reviews (built-in command)                                                       |
-| `verify-app` agent             | Runs unit tests, lint, types, migration check (custom agent in `.claude/agents/`)                     |
-| `frontend-design` plugin       | Typography, color, motion, and layout quality for web UIs (built-in)                                  |
-| Playwright MCP                 | E2E browser testing for UI/API changes (standalone MCP server)                                        |
-
-**Post-PR (after automated reviewers comment on the pull request):**
-
-| Gate                  | What it does                                                                                                                 |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `/review-pr-comments` | Processes review comments from GitHub Copilot / Codex / Claude and addresses them (requires automated PR reviews configured) |
-
-### Frontend Design Quality (TypeScript/Fullstack)
-
-For TypeScript and fullstack projects, the setup installs:
-
-- **`frontend-design` plugin** (built-in) — Improves typography, color, motion, and layout quality. Avoids the generic "AI slop" aesthetic.
-- **`rules/frontend-design.md`** — Design standards: type hierarchy, color systems, responsive breakpoints, accessibility, animation performance.
-
-### Optional MCP Add-ons
-
-The default `.mcp.json` includes Playwright and Context7. For web projects, you may want:
-
-| MCP Server           | What it does                                    | Install command                                                 |
-| -------------------- | ----------------------------------------------- | --------------------------------------------------------------- |
-| **Vercel**           | Deploy previews, manage projects, DNS, env vars | `claude mcp add --transport http vercel https://mcp.vercel.com` |
-| **Next.js DevTools** | Live runtime/build/type error diagnostics       | `npx next-devtools-mcp@latest init`                             |
-
-These are optional — add them if your project uses Vercel or Next.js. After adding, also add `"mcp__vercel"` to `permissions.allow` in `.claude/settings.json` to skip permission prompts.
-
-### Recommended: Automated PR Reviews
-
-The `/review-pr-comments` command works by processing review comments left on your GitHub pull requests. For it to be useful, you need automated reviewers configured on your repo. Set up **at least one** of these:
-
-| Reviewer                   | How to enable                                                                                                  |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **GitHub Copilot**         | Repo Settings → Code review → Copilot → Enable. Copilot reviews PRs automatically.                             |
-| **OpenAI Codex**           | Install the [Codex GitHub App](https://github.com/apps/openai-codex). Configurable via `.codex/` in your repo. |
-| **Claude (via Anthropic)** | Install the [Claude GitHub App](https://github.com/apps/claude). Add a `claude-pr-review.yml` workflow.        |
-
-Once configured, the workflow becomes: create PR → automated reviewers leave comments → `/review-pr-comments` processes those comments → push fixes → merge.
-
-> **No automated reviewers?** The workflow still works — you just skip the `/review-pr-comments` step. All pre-PR quality gates (Codex second opinion, deep review, /simplify, verify-app) still catch issues before the PR is created.
-
-### Persistent Memory System
-
-Claude remembers things across sessions through three mechanisms:
-
-1. **CONTINUITY.md** — Tracks your current task state (Done/Now/Next). Loaded every session.
-2. **Auto memory** (`~/.claude/projects/<project>/memory/MEMORY.md`) — Claude writes learnings here: bug patterns, your preferences, architecture notes. First 200 lines loaded every session.
-3. **docs/solutions/** — Searchable knowledge base of bug fixes organized by category.
-
----
-
-## Table of Contents
-
-1. [How Memory Works](#how-memory-works)
-2. [Prerequisites](#prerequisites)
-3. [One-Time Setup (Per Machine)](#one-time-setup-per-machine)
-4. [Setup Scenarios](#setup-scenarios)
-   - [Scenario A: New Project](#scenario-a-new-project)
-   - [Scenario B: Existing Project WITHOUT Claude Code](#scenario-b-existing-project-without-claude-code)
-   - [Scenario C: Existing Project WITH Claude Code](#scenario-c-existing-project-with-claude-code-upgrade)
-5. [After Setup: Customize Your Project](#after-setup-customize-your-project)
-6. [Parallel Development (Multiple Sessions)](#parallel-development-multiple-sessions)
-7. [Workflow Overview](#workflow-overview)
-8. [Commands Reference](#commands-reference)
-9. [What's Automated](#whats-automated)
-10. [File Structure](#file-structure)
-11. [Troubleshooting](#troubleshooting)
-12. [Security](#security)
-
----
-
-## How Memory Works
-
-Claude Code has **two layers of memory** that this template configures. Together, they ensure Claude never "wakes up with amnesia."
-
-### Memory Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                    GLOBAL (all projects)                          │
-│  ~/.claude/CLAUDE.md          ← Your personal instructions       │
-│  ~/.claude/settings.json      ← Global hooks (PreCompact, Stop)  │
-│  ~/.claude/hooks/             ← Global hook scripts               │
-│  ~/.claude/rules/             ← Personal rules (all projects)     │
-└──────────────────────────────────────────────────────────────────┘
-         │ loaded every session
-         ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                PROJECT-LEVEL (per project)                        │
-│  CLAUDE.md                    ← Project description (slim, yours) │
-│  .claude/rules/               ← Coding standards + workflow rules │
-│  CONTINUITY.md                ← Task state (Done/Now/Next)       │
-│  .claude/settings.json        ← Project hooks + permissions      │
-│  .mcp.json                    ← MCP servers (Playwright, Context7)│
-│  docs/solutions/              ← Compounded knowledge base        │
-└──────────────────────────────────────────────────────────────────┘
-         │ loaded every session
-         ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                AUTO MEMORY (Claude writes this)                   │
-│  ~/.claude/projects/<project>/memory/                             │
-│    MEMORY.md                  ← Index (first 200 lines loaded)   │
-│    debugging.md               ← Debugging patterns               │
-│    patterns.md                ← Code patterns discovered         │
-│    preferences.md             ← Your preferences learned         │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-### What Each Layer Does
-
-| Layer                 | Who writes it | What it contains                                 | When it loads                                 |
-| --------------------- | ------------- | ------------------------------------------------ | --------------------------------------------- |
-| **Global CLAUDE.md**  | You (once)    | Memory instructions, personal preferences        | Every session, all projects                   |
-| **Project CLAUDE.md** | You           | Project description, tech stack, commands (slim) | Every session, this project                   |
-| **`.claude/rules/`**  | Template      | Workflow, principles, coding standards           | Every session, this project                   |
-| **CONTINUITY.md**     | Claude        | Task state: Done/Now/Next/Blockers               | Auto-loaded via `@CONTINUITY.md` in CLAUDE.md |
-| **Auto Memory**       | Claude        | Learned patterns, solutions, preferences         | MEMORY.md first 200 lines auto-loaded         |
-| **docs/solutions/**   | Claude        | Bug fixes, error solutions, patterns             | On-demand when relevant                       |
-
-### How Memory Persists
-
-Three hooks work together to prevent memory loss:
-
-```
-Session Start                    During Session                Before Compaction
-     │                               │                              │
-     ▼                               ▼                              ▼
-┌──────────┐                  ┌──────────────┐              ┌──────────────┐
-│SessionStart│                │  Stop Hook   │              │PreCompact Hook│
-│  Hook     │                │  (global)    │              │  (global +   │
-│           │                │              │              │   project)   │
-│ Injects:  │                │ Reminds:     │              │ Saves:       │
-│ • Branch  │                │ "Save any    │              │ All session  │
-│   (silent │                │  learnings   │              │ learnings to │
-│   context)│                │  to memory"  │              │ auto memory  │
-│           │                │              │              │ before       │
-│ Via JSON  │                │ (lightweight │              │ compression  │
-│ additiona-│                │  - no block) │              │              │
-│ lContext  │                │              │              │              │
-└──────────┘                  └──────────────┘              └──────────────┘
-```
-
-### What Claude Remembers
-
-Over time, Claude's auto memory accumulates:
-
-- **Project patterns**: Build commands, test conventions, code style
-- **Bug solutions**: Root causes and fixes (also in `docs/solutions/`)
-- **Your preferences**: Tool choices, workflow habits, communication style
-- **Architecture notes**: Key files, module relationships, abstractions
-- **Debugging insights**: Common error causes, tricky edge cases
-
-### Managing Memory
-
-```bash
-# View/edit memory files in Claude Code
-/memory
-
-# Tell Claude to remember something explicitly
-"Remember that we use pnpm, not npm"
-"Save to memory that the API tests require a local Redis instance"
-
-# Tell Claude to forget something
-"Forget the Redis requirement, we switched to in-memory cache"
-
-# Force enable/disable auto memory (if needed)
-# Auto memory is ON by default — no env var needed
-# export CLAUDE_CODE_DISABLE_AUTO_MEMORY=1  # Force off
-# export CLAUDE_CODE_DISABLE_AUTO_MEMORY=0  # Force on
-```
-
----
-
-## Prerequisites
-
-Before starting, ensure you have:
-
-### macOS / Linux
-
-- [ ] **Claude Code** installed and working (`claude --version`)
-- [ ] **Node.js 22+** (for Codex CLI, npx commands, and Playwright MCP)
-- [ ] **Git 2.23+** initialized in your project
-- [ ] **jq** (recommended, not required): `brew install jq` (macOS) or `apt install jq` (Linux). Used for JSON merging during global setup (falls back to Python if unavailable). Hooks work without it.
-- [ ] **Codex CLI** (recommended): `npm i -g @openai/codex` or `brew install --cask codex` (macOS). Used for design review and code review second opinions. See [Step 5](#step-5-install-codex-cli-recommended) for full instructions.
-- [ ] **Python 3.12+** with `uv` (if Python project)
-- [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
-
-### Windows
-
-- [ ] **Claude Code** installed and working (`claude --version`)
-- [ ] **WSL2** (recommended for Codex CLI): `wsl --install` from elevated PowerShell
-- [ ] **PowerShell 5.1+** (included with Windows 10/11)
-- [ ] **Node.js 22+** (for Codex CLI, npx commands, and Playwright MCP)
-- [ ] **Git 2.23+** initialized in your project
-- [ ] **Codex CLI** (recommended): `npm i -g @openai/codex` inside WSL. See [Step 5](#step-5-install-codex-cli-recommended) for full instructions.
-- [ ] **Python 3.12+** with `uv` (if Python project)
-- [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
-
-> **Note:** Windows does NOT require `jq` - PowerShell has native JSON support via `ConvertFrom-Json`.
->
-> **Note:** Codex CLI works best via WSL2 on Windows. Native Windows support is experimental. See [OpenAI's Windows guide](https://developers.openai.com/codex/windows/).
-
----
-
-## One-Time Setup (Per Machine)
-
-**Do this once on each developer's machine. It sets up global memory that applies to ALL projects.**
-
-### Step 1: Clone Templates
-
-**macOS / Linux:**
-
-```bash
-git clone https://github.com/pablomarin/claude-code-templates.git ~/claude-code-templates
-chmod +x ~/claude-code-templates/setup.sh
-```
-
-**Windows (PowerShell):**
-
-```powershell
-git clone https://github.com/pablomarin/claude-code-templates.git $HOME\claude-code-templates
-```
-
-### Step 2: Set Up Global Memory
-
-**macOS / Linux:**
-
-```bash
-~/claude-code-templates/setup.sh --global
-```
-
-**Windows (PowerShell):**
-
-```powershell
-& $HOME\claude-code-templates\setup.ps1 -Global
-```
-
-This creates:
-
-| File                      | Purpose                                                                    |
-| ------------------------- | -------------------------------------------------------------------------- |
-| `~/.claude/CLAUDE.md`     | Global instructions with memory management rules                           |
-| `~/.claude/settings.json` | Global hooks: PreCompact (save before compression) + Stop (save learnings) |
-| `~/.claude/hooks/`        | Global hook scripts                                                        |
-| `~/.claude/rules/`        | Personal rules that apply to all your projects                             |
-
-### Step 3: Edit Global CLAUDE.md (Optional)
-
-Add your personal preferences to `~/.claude/CLAUDE.md`:
-
-```markdown
-## Personal Preferences
-
-- Always use uv for Python package management
-- Prefer concise commit messages
-- Use pnpm over npm for Node.js projects
-- Default to TypeScript for new JavaScript projects
-```
-
-To update templates later:
-
-```bash
-cd ~/claude-code-templates && git pull
-```
-
-> **Note:** If you get an execution policy error on Windows when running `setup.ps1`, run:
->
-> ```powershell
-> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-> ```
-
----
-
 ## Setup Scenarios
+
+These scenarios cover common project configurations. All assume you have already completed the [Quick Start](#quick-start) steps 1-2 (clone + global setup).
 
 ### Scenario A: New Project
 
@@ -627,9 +360,13 @@ cp CLAUDE.md CLAUDE.md.backup
 
 ## After Setup: Customize Your Project
 
+This section covers the files you should review and edit after running the setup script.
+
 ### 1. Edit CLAUDE.md
 
-CLAUDE.md is intentionally **slim** (~50 lines). It only contains your project-specific info. All workflow rules, coding standards, and principles live in `.claude/rules/` (auto-loaded with the same priority).
+Your `CLAUDE.md` is **intentionally short** (~50 lines) — just your project description, tech stack, and commands. All workflow rules, coding standards, and principles live in `.claude/rules/` files that are auto-loaded by Claude Code with the same priority.
+
+**Why this matters:** When you run `setup.sh --upgrade`, your `CLAUDE.md` is preserved (never overwritten), `settings.json` is intelligently merged (your custom permissions kept), and `.claude/rules/` files are safely updated to the latest standards.
 
 Fill in the placeholders:
 
@@ -654,7 +391,7 @@ cd frontend && pnpm build # Build frontend
 
 ### 2. Edit CONTINUITY.md
 
-Set your current project state:
+Set your current project state so Claude knows where you left off:
 
 ```markdown
 ## Goal
@@ -677,7 +414,39 @@ Working on user authentication
 - Frontend pages
 ```
 
-### 3. Verify Setup
+### 3. Frontend Design Quality (TypeScript/Fullstack)
+
+For TypeScript and fullstack projects, the setup installs:
+
+- **`frontend-design` plugin** (built-in) — Improves typography, color, motion, and layout quality. Avoids the generic "AI slop" aesthetic.
+- **`rules/frontend-design.md`** — Design standards: type hierarchy, color systems, responsive breakpoints, accessibility, animation performance.
+
+### 4. Optional MCP Add-ons
+
+The default `.mcp.json` includes Playwright and Context7. For web projects, you may want:
+
+| MCP Server           | What it does                                    | Install command                                                 |
+| -------------------- | ----------------------------------------------- | --------------------------------------------------------------- |
+| **Vercel**           | Deploy previews, manage projects, DNS, env vars | `claude mcp add --transport http vercel https://mcp.vercel.com` |
+| **Next.js DevTools** | Live runtime/build/type error diagnostics       | `npx next-devtools-mcp@latest init`                             |
+
+These are optional — add them if your project uses Vercel or Next.js. After adding, also add `"mcp__vercel"` to `permissions.allow` in `.claude/settings.json` to skip permission prompts.
+
+### 5. Automated PR Reviews (Recommended)
+
+The `/review-pr-comments` command works by processing review comments left on your GitHub pull requests. For it to be useful, you need automated reviewers configured on your repo. Set up **at least one** of these:
+
+| Reviewer                   | How to enable                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **GitHub Copilot**         | Repo Settings → Code review → Copilot → Enable. Copilot reviews PRs automatically.                             |
+| **OpenAI Codex**           | Install the [Codex GitHub App](https://github.com/apps/openai-codex). Configurable via `.codex/` in your repo. |
+| **Claude (via Anthropic)** | Install the [Claude GitHub App](https://github.com/apps/claude). Add a `claude-pr-review.yml` workflow.        |
+
+Once configured, the workflow becomes: create PR → automated reviewers leave comments → `/review-pr-comments` processes those comments → push fixes → merge.
+
+> **No automated reviewers?** The workflow still works — you just skip the `/review-pr-comments` step. All pre-PR quality gates (Codex second opinion, deep review, /simplify, verify-app) still catch issues before the PR is created.
+
+### 6. Verify Setup
 
 ```bash
 # Restart Claude Code
@@ -702,99 +471,9 @@ claude
 
 ---
 
-## Parallel Development (Multiple Sessions)
-
-Run multiple Claude Code sessions simultaneously on the same project — each working on a different feature without conflicts.
-
-### How It Works
-
-When you run `/new-feature` or `/fix-bug` from the `main` branch, the workflow automatically:
-
-1. **Creates an isolated worktree** at `.worktrees/<feature-name>/`
-2. **Copies environment files** (`.env*`) to the worktree
-3. **Installs dependencies** (Node.js/Python)
-4. **cd's into the worktree** — all subsequent commands run there
-
-Each session works in its own isolated directory with its own branch. No conflicts, no shared state files.
-
-### Example: 3 Parallel Sessions
-
-```bash
-# Terminal 1
-cd /project && claude
-> /new-feature auth        # Creates .worktrees/auth/, cd's into it
-
-# Terminal 2
-cd /project && claude
-> /new-feature api         # Creates .worktrees/api/, cd's into it
-
-# Terminal 3
-cd /project && claude
-> /fix-bug login-error     # Creates .worktrees/login-error/, cd's into it
-```
-
-### Critical: Always Run Claude from Project Root
-
-> **WARNING**: Always start `claude` from the **main project directory**, NOT from inside a worktree.
-
-```bash
-# Correct - run from project root
-cd /project && claude
-> /new-feature auth
-
-# Wrong - don't cd into worktree then run claude
-cd /project/.worktrees/auth && claude  # Hooks won't work!
-```
-
-**Why?** The `.claude/` folder (with hooks, settings, agents) lives in the main repo. Running Claude from inside a worktree means it won't find these configurations.
-
-### Important Notes
-
-- **Worktrees are created automatically** when starting from `main`
-- **No nested worktrees** — if already in a worktree or feature branch, the workflow uses the current directory
-- **Hooks run in current directory** — after Claude cd's into a worktree, hooks check files there
-- **File paths are relative** — use `src/main.py`, not `.worktrees/auth/src/main.py`
-- **`.worktrees/` is gitignored** automatically
-- **Dependencies are installed** automatically
-- **Quick-fix does NOT create worktrees** — use `/new-feature` or `/fix-bug` for parallel work
-- **Cleanup is safe** — each session is fully isolated, no shared state between sessions
-- **Memory is per-worktree** — git worktrees get separate auto memory directories, so each session tracks its own learnings independently
-
-### Cleanup
-
-The `/finish-branch` command handles merge and cleanup (with user confirmation). It will:
-
-1. Merge the PR to main (if not already merged) via `gh pr merge --squash --delete-branch`
-2. Delete the remote branch
-3. Delete the local branch and remove the worktree
-4. Prune stale references
-5. Switch to main and pull latest
-6. Restart development servers from main
-
-**Note:** `/finish-branch` does NOT commit, push, or create PRs — those steps happen before calling this command.
-
-**Manual cleanup** (if needed):
-
-```bash
-# Go back to main repo (from inside worktree)
-cd "$(git rev-parse --git-common-dir)/.."
-
-# Remove a specific worktree (after merging its branch)
-git worktree remove ".worktrees/auth"
-
-# Clean up stale worktree metadata
-git worktree prune
-
-# Delete the merged branch
-git branch -d feat/auth
-git push origin --delete feat/auth
-```
-
-**Tip**: Use `/finish-branch` to automate cleanup and avoid forgetting steps
-
----
-
 ## Workflow Overview
+
+How a feature goes from idea to merged PR.
 
 ### The Complete Workflow
 
@@ -959,6 +638,8 @@ Based on Boris Cherny's key insight:
 
 ## Commands Reference
 
+All slash commands available after setup.
+
 ### Workflow Commands (ENFORCED - Start Here)
 
 | Command               | Purpose               | Notes                                                                            |
@@ -1018,7 +699,111 @@ Based on Boris Cherny's key insight:
 
 ---
 
+## How Memory Works
+
+Claude Code has **two layers of memory** that this template configures. Together, they ensure Claude never "wakes up with amnesia."
+
+### Memory Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                    GLOBAL (all projects)                          │
+│  ~/.claude/CLAUDE.md          ← Your personal instructions       │
+│  ~/.claude/settings.json      ← Global hooks (PreCompact, Stop)  │
+│  ~/.claude/hooks/             ← Global hook scripts               │
+│  ~/.claude/rules/             ← Personal rules (all projects)     │
+└──────────────────────────────────────────────────────────────────┘
+         │ loaded every session
+         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                PROJECT-LEVEL (per project)                        │
+│  CLAUDE.md                    ← Project description (slim, yours) │
+│  .claude/rules/               ← Coding standards + workflow rules │
+│  CONTINUITY.md                ← Task state (Done/Now/Next)       │
+│  .claude/settings.json        ← Project hooks + permissions      │
+│  .mcp.json                    ← MCP servers (Playwright, Context7)│
+│  docs/solutions/              ← Compounded knowledge base        │
+└──────────────────────────────────────────────────────────────────┘
+         │ loaded every session
+         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                AUTO MEMORY (Claude writes this)                   │
+│  ~/.claude/projects/<project>/memory/                             │
+│    MEMORY.md                  ← Index (first 200 lines loaded)   │
+│    debugging.md               ← Debugging patterns               │
+│    patterns.md                ← Code patterns discovered         │
+│    preferences.md             ← Your preferences learned         │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### What Each Layer Does
+
+| Layer                 | Who writes it | What it contains                                 | When it loads                                 |
+| --------------------- | ------------- | ------------------------------------------------ | --------------------------------------------- |
+| **Global CLAUDE.md**  | You (once)    | Memory instructions, personal preferences        | Every session, all projects                   |
+| **Project CLAUDE.md** | You           | Project description, tech stack, commands (slim) | Every session, this project                   |
+| **`.claude/rules/`**  | Template      | Workflow, principles, coding standards           | Every session, this project                   |
+| **CONTINUITY.md**     | Claude        | Task state: Done/Now/Next/Blockers               | Auto-loaded via `@CONTINUITY.md` in CLAUDE.md |
+| **Auto Memory**       | Claude        | Learned patterns, solutions, preferences         | MEMORY.md first 200 lines auto-loaded         |
+| **docs/solutions/**   | Claude        | Bug fixes, error solutions, patterns             | On-demand when relevant                       |
+
+### How Memory Persists
+
+Three hooks work together to prevent memory loss:
+
+```
+Session Start                    During Session                Before Compaction
+     │                               │                              │
+     ▼                               ▼                              ▼
+┌──────────┐                  ┌──────────────┐              ┌──────────────┐
+│SessionStart│                │  Stop Hook   │              │PreCompact Hook│
+│  Hook     │                │  (global)    │              │  (global +   │
+│           │                │              │              │   project)   │
+│ Injects:  │                │ Reminds:     │              │ Saves:       │
+│ • Branch  │                │ "Save any    │              │ All session  │
+│   (silent │                │  learnings   │              │ learnings to │
+│   context)│                │  to memory"  │              │ auto memory  │
+│           │                │              │              │ before       │
+│ Via JSON  │                │ (lightweight │              │ compression  │
+│ additiona-│                │  - no block) │              │              │
+│ lContext  │                │              │              │              │
+└──────────┘                  └──────────────┘              └──────────────┘
+```
+
+### What Claude Remembers
+
+Over time, Claude's auto memory accumulates:
+
+- **Project patterns**: Build commands, test conventions, code style
+- **Bug solutions**: Root causes and fixes (also in `docs/solutions/`)
+- **Your preferences**: Tool choices, workflow habits, communication style
+- **Architecture notes**: Key files, module relationships, abstractions
+- **Debugging insights**: Common error causes, tricky edge cases
+
+### Managing Memory
+
+```bash
+# View/edit memory files in Claude Code
+/memory
+
+# Tell Claude to remember something explicitly
+"Remember that we use pnpm, not npm"
+"Save to memory that the API tests require a local Redis instance"
+
+# Tell Claude to forget something
+"Forget the Redis requirement, we switched to in-memory cache"
+
+# Force enable/disable auto memory (if needed)
+# Auto memory is ON by default — no env var needed
+# export CLAUDE_CODE_DISABLE_AUTO_MEMORY=1  # Force off
+# export CLAUDE_CODE_DISABLE_AUTO_MEMORY=0  # Force on
+```
+
+---
+
 ## What's Automated
+
+Hooks and permissions that run without any manual intervention.
 
 ### Hooks (Run Automatically)
 
@@ -1061,6 +846,98 @@ Global hooks (`~/.claude/settings.json`) and project hooks (`.claude/settings.js
 | `sudo`, `su`                               | Denied  | Privilege escalation          |
 | `chmod 777`, `dd`, `mkfs`                  | Denied  | Dangerous system commands     |
 | `rm -rf /`, `rm -rf ~`                     | Denied  | Catastrophic deletion         |
+
+---
+
+## Parallel Development (Multiple Sessions)
+
+Run multiple Claude Code sessions simultaneously on the same project — each working on a different feature without conflicts.
+
+### How It Works
+
+When you run `/new-feature` or `/fix-bug` from the `main` branch, the workflow automatically:
+
+1. **Creates an isolated worktree** at `.worktrees/<feature-name>/`
+2. **Copies environment files** (`.env*`) to the worktree
+3. **Installs dependencies** (Node.js/Python)
+4. **cd's into the worktree** — all subsequent commands run there
+
+Each session works in its own isolated directory with its own branch. No conflicts, no shared state files.
+
+### Example: 3 Parallel Sessions
+
+```bash
+# Terminal 1
+cd /project && claude
+> /new-feature auth        # Creates .worktrees/auth/, cd's into it
+
+# Terminal 2
+cd /project && claude
+> /new-feature api         # Creates .worktrees/api/, cd's into it
+
+# Terminal 3
+cd /project && claude
+> /fix-bug login-error     # Creates .worktrees/login-error/, cd's into it
+```
+
+### Critical: Always Run Claude from Project Root
+
+> **WARNING**: Always start `claude` from the **main project directory**, NOT from inside a worktree.
+
+```bash
+# Correct - run from project root
+cd /project && claude
+> /new-feature auth
+
+# Wrong - don't cd into worktree then run claude
+cd /project/.worktrees/auth && claude  # Hooks won't work!
+```
+
+**Why?** The `.claude/` folder (with hooks, settings, agents) lives in the main repo. Running Claude from inside a worktree means it won't find these configurations.
+
+### Important Notes
+
+- **Worktrees are created automatically** when starting from `main`
+- **No nested worktrees** — if already in a worktree or feature branch, the workflow uses the current directory
+- **Hooks run in current directory** — after Claude cd's into a worktree, hooks check files there
+- **File paths are relative** — use `src/main.py`, not `.worktrees/auth/src/main.py`
+- **`.worktrees/` is gitignored** automatically
+- **Dependencies are installed** automatically
+- **Quick-fix does NOT create worktrees** — use `/new-feature` or `/fix-bug` for parallel work
+- **Cleanup is safe** — each session is fully isolated, no shared state between sessions
+- **Memory is per-worktree** — git worktrees get separate auto memory directories, so each session tracks its own learnings independently
+
+### Cleanup
+
+The `/finish-branch` command handles merge and cleanup (with user confirmation). It will:
+
+1. Merge the PR to main (if not already merged) via `gh pr merge --squash --delete-branch`
+2. Delete the remote branch
+3. Delete the local branch and remove the worktree
+4. Prune stale references
+5. Switch to main and pull latest
+6. Restart development servers from main
+
+**Note:** `/finish-branch` does NOT commit, push, or create PRs — those steps happen before calling this command.
+
+**Manual cleanup** (if needed):
+
+```bash
+# Go back to main repo (from inside worktree)
+cd "$(git rev-parse --git-common-dir)/.."
+
+# Remove a specific worktree (after merging its branch)
+git worktree remove ".worktrees/auth"
+
+# Clean up stale worktree metadata
+git worktree prune
+
+# Delete the merged branch
+git branch -d feat/auth
+git push origin --delete feat/auth
+```
+
+**Tip**: Use `/finish-branch` to automate cleanup and avoid forgetting steps
 
 ---
 
@@ -1148,7 +1025,87 @@ your-project/
 
 ---
 
+## Creating Your Own Skills
+
+Use `skills/SKILL.template.md` as a starting point for custom skills.
+
+### Quick Steps
+
+1. Copy the template: `cp skills/SKILL.template.md .claude/skills/my-skill/SKILL.md`
+2. Edit the `name` and `description` in the YAML frontmatter
+3. Write your instructions in the markdown body
+4. Scope `allowed-tools` to the minimum needed
+5. Test it: `/my-skill`
+
+### Skill Storage Locations
+
+| Level    | Path                               | Scope             |
+| -------- | ---------------------------------- | ----------------- |
+| Personal | `~/.claude/skills/<name>/SKILL.md` | All your projects |
+| Project  | `.claude/skills/<name>/SKILL.md`   | This project only |
+
+### Progressive Disclosure (3 levels)
+
+| Level            | When Loaded            | Budget                                             |
+| ---------------- | ---------------------- | -------------------------------------------------- |
+| **Metadata**     | Always (system prompt) | ~100 tokens per skill — keep `description` concise |
+| **Instructions** | On skill activation    | < 5,000 tokens — the SKILL.md body                 |
+| **References**   | On demand              | Unlimited — files in `references/`, `scripts/`     |
+
+### Common Mistakes
+
+| Mistake                               | Fix                                                |
+| ------------------------------------- | -------------------------------------------------- |
+| Vague description ("helps with code") | Be specific: what it does AND when to trigger      |
+| Missing trigger phrases               | Include words users would naturally say            |
+| `allowed-tools: "*"`                  | Scope to specific tools: `Read, Grep, Bash(git:*)` |
+| Huge SKILL.md body (1000+ lines)      | Move details to `references/` files                |
+| First person ("I can help you...")    | Write in third person ("Processes PDF files...")   |
+
+> **Cross-platform:** Agent Skills is an open standard. Skills created here also work in Cursor, Codex, and Gemini CLI. See [agentskills.io/specification](https://agentskills.io/specification).
+
+---
+
+## Security
+
+Overview of permission boundaries enforced by the template.
+
+### What's Denied (permissions deny list)
+
+| Item                                                    | Protection                             |
+| ------------------------------------------------------- | -------------------------------------- |
+| `sudo`, `su`                                            | Denied — privilege escalation blocked  |
+| `rm -rf /`, `rm -rf ~`                                  | Denied — catastrophic deletion blocked |
+| `chmod 777`, `dd`, `mkfs`                               | Denied — dangerous system commands     |
+| Windows: `Remove-Item -Recurse -Force C:\`              | Denied (Windows template only)         |
+| Windows: `Remove-Item -Recurse -Force $env:USERPROFILE` | Denied (Windows template only)         |
+
+### What Requires Confirmation (permissions ask list)
+
+| Action                          | Why                                          |
+| ------------------------------- | -------------------------------------------- |
+| `gh pr create`                  | Creating PR requires approval                |
+| `gh pr merge`                   | Merging requires approval                    |
+| `rm -rf`, `rm -r`               | Destructive file deletion                    |
+| `npm publish`                   | Publishing packages requires approval        |
+| Windows: `Remove-Item -Recurse` | Destructive deletion (Windows template only) |
+
+### What's Skipped by Auto-Formatter
+
+The `PostToolUse` hook skips formatting these files for safety (but does not block reading them):
+
+| Item                                                    | Behavior                  |
+| ------------------------------------------------------- | ------------------------- |
+| `.env*`, `*.key`, `*.pem`, `*credential*`, `*password*` | Skipped by auto-formatter |
+| `secrets/`, `.ssh/`, `.git/`, `node_modules/`           | Skipped by auto-formatter |
+
+> **Note:** The `security.md` rule instructs Claude to never commit secrets to version control, but there are no permissions deny rules that block reading sensitive files.
+
+---
+
 ## Troubleshooting
+
+Common issues and their solutions.
 
 ### Setup script says files already exist
 
@@ -1415,82 +1372,6 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 ### /simplify not working?
 
 `/simplify` is a built-in Claude Code command (v2.1.63+). If unavailable, update Claude Code or use the `code-simplifier` agent from `pr-review-toolkit` as a fallback.
-
----
-
-## Security
-
-### What's Denied (permissions deny list)
-
-| Item                                                    | Protection                             |
-| ------------------------------------------------------- | -------------------------------------- |
-| `sudo`, `su`                                            | Denied — privilege escalation blocked  |
-| `rm -rf /`, `rm -rf ~`                                  | Denied — catastrophic deletion blocked |
-| `chmod 777`, `dd`, `mkfs`                               | Denied — dangerous system commands     |
-| Windows: `Remove-Item -Recurse -Force C:\`              | Denied (Windows template only)         |
-| Windows: `Remove-Item -Recurse -Force $env:USERPROFILE` | Denied (Windows template only)         |
-
-### What Requires Confirmation (permissions ask list)
-
-| Action                          | Why                                          |
-| ------------------------------- | -------------------------------------------- |
-| `gh pr create`                  | Creating PR requires approval                |
-| `gh pr merge`                   | Merging requires approval                    |
-| `rm -rf`, `rm -r`               | Destructive file deletion                    |
-| `npm publish`                   | Publishing packages requires approval        |
-| Windows: `Remove-Item -Recurse` | Destructive deletion (Windows template only) |
-
-### What's Skipped by Auto-Formatter
-
-The `PostToolUse` hook skips formatting these files for safety (but does not block reading them):
-
-| Item                                                    | Behavior                  |
-| ------------------------------------------------------- | ------------------------- |
-| `.env*`, `*.key`, `*.pem`, `*credential*`, `*password*` | Skipped by auto-formatter |
-| `secrets/`, `.ssh/`, `.git/`, `node_modules/`           | Skipped by auto-formatter |
-
-> **Note:** The `security.md` rule instructs Claude to never commit secrets to version control, but there are no permissions deny rules that block reading sensitive files.
-
----
-
-## Creating Your Own Skills
-
-Use `skills/SKILL.template.md` as a starting point for custom skills.
-
-### Quick Steps
-
-1. Copy the template: `cp skills/SKILL.template.md .claude/skills/my-skill/SKILL.md`
-2. Edit the `name` and `description` in the YAML frontmatter
-3. Write your instructions in the markdown body
-4. Scope `allowed-tools` to the minimum needed
-5. Test it: `/my-skill`
-
-### Skill Storage Locations
-
-| Level    | Path                               | Scope             |
-| -------- | ---------------------------------- | ----------------- |
-| Personal | `~/.claude/skills/<name>/SKILL.md` | All your projects |
-| Project  | `.claude/skills/<name>/SKILL.md`   | This project only |
-
-### Progressive Disclosure (3 levels)
-
-| Level            | When Loaded            | Budget                                             |
-| ---------------- | ---------------------- | -------------------------------------------------- |
-| **Metadata**     | Always (system prompt) | ~100 tokens per skill — keep `description` concise |
-| **Instructions** | On skill activation    | < 5,000 tokens — the SKILL.md body                 |
-| **References**   | On demand              | Unlimited — files in `references/`, `scripts/`     |
-
-### Common Mistakes
-
-| Mistake                               | Fix                                                |
-| ------------------------------------- | -------------------------------------------------- |
-| Vague description ("helps with code") | Be specific: what it does AND when to trigger      |
-| Missing trigger phrases               | Include words users would naturally say            |
-| `allowed-tools: "*"`                  | Scope to specific tools: `Read, Grep, Bash(git:*)` |
-| Huge SKILL.md body (1000+ lines)      | Move details to `references/` files                |
-| First person ("I can help you...")    | Write in third person ("Processes PDF files...")   |
-
-> **Cross-platform:** Agent Skills is an open standard. Skills created here also work in Cursor, Codex, and Gemini CLI. See [agentskills.io/specification](https://agentskills.io/specification).
 
 ---
 
