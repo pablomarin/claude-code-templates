@@ -17,9 +17,15 @@ param(
     [Alias("f")]
     [switch]$Force,
 
+    [Alias("u")]
+    [switch]$Upgrade,
+
     [Alias("g")]
     [switch]$Global
 )
+
+# Upgrade implies force for hooks/commands/rules
+if ($Upgrade) { $Force = $true }
 
 # Script directory (where templates live)
 $ScriptDir = $PSScriptRoot
@@ -314,11 +320,21 @@ if (Test-Path "CONTINUITY.md") {
     Copy-TemplateFile (Join-Path $ScriptDir "CONTINUITY.template.md") "CONTINUITY.md" "CONTINUITY.md"
 }
 
-# Settings (Windows-specific with PowerShell hooks)
-Copy-TemplateFile (Join-Path $ScriptDir "settings" "settings-windows.template.json") ".claude\settings.json" ".claude\settings.json"
+# Settings — merge on upgrade, copy otherwise
+if ($Upgrade -and (Test-Path ".claude\settings.json")) {
+    Write-Color "  ^ Merging .claude\settings.json (upgrade mode)" "Yellow"
+    python3 (Join-Path $ScriptDir "scripts" "merge-settings.py") (Join-Path $ScriptDir "settings" "settings-windows.template.json") ".claude\settings.json"
+} else {
+    Copy-TemplateFile (Join-Path $ScriptDir "settings" "settings-windows.template.json") ".claude\settings.json" ".claude\settings.json"
+}
 
-# MCP servers (MUST be at project root as .mcp.json - .claude\settings.json ignores mcpServers)
-Copy-TemplateFile (Join-Path $ScriptDir "mcp.template.json") ".mcp.json" ".mcp.json (MCP servers: Playwright + Context7)"
+# MCP servers — merge on upgrade, copy otherwise
+if ($Upgrade -and (Test-Path ".mcp.json")) {
+    Write-Color "  ^ Merging .mcp.json (upgrade mode)" "Yellow"
+    python3 (Join-Path $ScriptDir "scripts" "merge-settings.py") (Join-Path $ScriptDir "mcp.template.json") ".mcp.json"
+} else {
+    Copy-TemplateFile (Join-Path $ScriptDir "mcp.template.json") ".mcp.json" ".mcp.json (MCP servers: Playwright + Context7)"
+}
 
 # Hooks (PowerShell versions for Windows)
 Copy-TemplateFile (Join-Path $ScriptDir "hooks" "session-start.ps1") ".claude\hooks\session-start.ps1" ".claude\hooks\session-start.ps1"

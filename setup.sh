@@ -26,7 +26,8 @@ usage() {
     echo "  -h, --help          Show this help message"
     echo "  -p, --project NAME  Project name (default: directory name)"
     echo "  -t, --tech STACK    Tech stack: python, typescript, fullstack (default: fullstack)"
-    echo "  -f, --force         Overwrite existing files"
+    echo "  -f, --force         Overwrite existing files (destructive)"
+    echo "  -u, --upgrade       Smart upgrade: merge new hooks/permissions into existing settings"
     echo "  -g, --global        Set up global memory system (~/.claude/)"
     echo ""
     echo "Examples:"
@@ -34,6 +35,7 @@ usage() {
     echo "  $0 -p \"My Project\"          # Custom project name"
     echo "  $0 -t python                # Python-only project"
     echo "  $0 -f                       # Force overwrite existing files"
+    echo "  $0 --upgrade                # Upgrade: add new hooks/rules, merge settings"
     echo "  $0 --global                 # Set up global memory (run once per machine)"
     echo "  $0 --global -f              # Force overwrite global settings"
 }
@@ -42,6 +44,7 @@ usage() {
 PROJECT_NAME=""
 TECH_STACK="fullstack"
 FORCE=false
+UPGRADE=false
 GLOBAL=false
 
 while [[ $# -gt 0 ]]; do
@@ -60,6 +63,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         -f|--force)
             FORCE=true
+            shift
+            ;;
+        -u|--upgrade)
+            UPGRADE=true
+            FORCE=true  # upgrade implies force for hooks/commands/rules
             shift
             ;;
         -g|--global)
@@ -286,11 +294,21 @@ else
     copy_file "$SCRIPT_DIR/CONTINUITY.template.md" "CONTINUITY.md" "CONTINUITY.md"
 fi
 
-# Settings
-copy_file "$SCRIPT_DIR/settings/settings.template.json" ".claude/settings.json" ".claude/settings.json"
+# Settings — merge on upgrade, copy otherwise
+if [[ "$UPGRADE" == true ]] && [[ -f ".claude/settings.json" ]]; then
+    echo -e "  ${YELLOW}↑${NC} Merging .claude/settings.json (upgrade mode)"
+    python3 "$SCRIPT_DIR/scripts/merge-settings.py" "$SCRIPT_DIR/settings/settings.template.json" ".claude/settings.json"
+else
+    copy_file "$SCRIPT_DIR/settings/settings.template.json" ".claude/settings.json" ".claude/settings.json"
+fi
 
-# MCP servers (MUST be at project root as .mcp.json — .claude/settings.json ignores mcpServers)
-copy_file "$SCRIPT_DIR/mcp.template.json" ".mcp.json" ".mcp.json (MCP servers: Playwright + Context7)"
+# MCP servers — merge on upgrade, copy otherwise
+if [[ "$UPGRADE" == true ]] && [[ -f ".mcp.json" ]]; then
+    echo -e "  ${YELLOW}↑${NC} Merging .mcp.json (upgrade mode)"
+    python3 "$SCRIPT_DIR/scripts/merge-settings.py" "$SCRIPT_DIR/mcp.template.json" ".mcp.json"
+else
+    copy_file "$SCRIPT_DIR/mcp.template.json" ".mcp.json" ".mcp.json (MCP servers: Playwright + Context7)"
+fi
 
 # Hooks
 copy_file "$SCRIPT_DIR/hooks/session-start.sh" ".claude/hooks/session-start.sh" ".claude/hooks/session-start.sh"
