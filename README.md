@@ -576,7 +576,7 @@ You'll see output like:
 
 ```
   ○ .claude/settings.json already exists (use -f to overwrite)
-  ○ CLAUDE.md already exists (use -f to overwrite)
+  ○ CLAUDE.md already exists (never overwritten — user content)
   ✓ Created .claude/agents/verify-app.md
 ```
 
@@ -1059,9 +1059,11 @@ Based on Boris Cherny's key insight:
 | `SessionStart`   | New session, resume, `/clear`, compaction | Silently injects current branch via `additionalContext` (no visible clutter)    | Project          |
 | `Stop` (global)  | Claude finishes responding                | No-op pass-through (`exit 0`) — memory saving handled by PreCompact             | Global           |
 | `Stop` (project) | Claude finishes responding                | Checks CONTINUITY.md + CHANGELOG updated (script only, blocks if needed)        | Project          |
+| `PreToolUse`     | Before every Bash command                 | Logs commands to audit log, blocks dangerous patterns (pipe-to-shell, etc.)     | Project          |
+| `PostToolUse`    | After Edit/Write on code files            | Auto-formats with ruff (Python) / prettier (JS/TS/JSON/Markdown)                | Project          |
 | `PreCompact`     | Before context compression                | Reminds Claude to save learnings before context compression (blocks until done) | Global + Project |
 | `SubagentStop`   | Subagent finishes                         | Validates subagent output quality                                               | Project          |
-| `PostToolUse`    | After Edit/Write on code files            | Auto-formats with ruff (Python) / prettier (JS/TS/JSON/Markdown)                | Project          |
+| `ConfigChange`   | Config file modified mid-session          | Logs changes to audit log; optional strict mode blocks deny-rule removals       | Project          |
 
 ### How Global and Project Hooks Interact
 
@@ -1138,6 +1140,7 @@ your-project/
 │   │   ├── quick-fix.md              # /quick-fix - Trivial changes only
 │   │   ├── finish-branch.md           # /finish-branch - Merge PR + cleanup workflow
 │   │   ├── codex.md                   # /codex - Second opinion via Codex CLI
+│   │   ├── review-pr-comments.md     # /review-pr-comments - Process PR feedback
 │   │   └── prd/
 │   │       ├── discuss.md             # /prd:discuss command
 │   │       └── create.md             # /prd:create command
@@ -1153,7 +1156,8 @@ your-project/
 │       ├── python-style.md            # Python coding style
 │       ├── typescript-style.md        # TypeScript coding style
 │       ├── frontend-design.md        # Frontend design quality (TS/fullstack)
-│       └── database.md               # Database conventions
+│       ├── database.md               # Database conventions
+│       └── skill-audit.md            # Third-party skill security checklist
 └── ...
 ```
 

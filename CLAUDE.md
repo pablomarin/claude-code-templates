@@ -34,6 +34,7 @@ claude-code-templates/
 │   ├── quick-fix.md            # Trivial changes (< 3 files)
 │   ├── finish-branch.md        # Merge PR + cleanup worktree
 │   ├── codex.md                # Second opinion from Codex CLI
+│   ├── review-pr-comments.md   # Process PR review feedback
 │   └── prd/                    # PRD subcommands
 │       ├── discuss.md          # Interactive requirements refinement
 │       └── create.md           # Generate structured PRD

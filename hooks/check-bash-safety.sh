@@ -78,7 +78,7 @@ fi
 
 # --- Block or allow ---
 if [ -n "$REASON" ]; then
-    printf 'BLOCKED: %s\nCommand: %s\n' "$REASON" "$COMMAND" >> "$AUDIT_LOG" 2>/dev/null
+    printf 'BLOCKED: %s\nCommand: %s\n' "$REASON" "$SAFE_COMMAND" >> "$AUDIT_LOG" 2>/dev/null
     echo "BLOCKED by safety hook: $REASON" >&2
     exit 2
 fi

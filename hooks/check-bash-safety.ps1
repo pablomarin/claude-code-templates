@@ -86,7 +86,7 @@ elseif ($Command -match '(sed|awk|echo|tee|printf|Set-Content|Out-File).*\.claud
 
 # --- Block or allow ---
 if ($Reason) {
-    Add-Content -Path $AuditLog -Value "BLOCKED: $Reason`nCommand: $Command" -ErrorAction SilentlyContinue
+    Add-Content -Path $AuditLog -Value "BLOCKED: $Reason`nCommand: $SafeCommand" -ErrorAction SilentlyContinue
     [Console]::Error.WriteLine("BLOCKED by safety hook: $Reason")
     exit 2
 }
