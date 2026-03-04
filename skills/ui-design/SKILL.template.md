@@ -41,23 +41,46 @@ Choose distinctive, characterful fonts instead. Pair a display font with a refin
 
 **Anti-convergence** — No two designs should look the same. Vary between light and dark themes, different fonts, different aesthetics. NEVER converge on common choices across generations.
 
-## Step 3: Animation Priorities (MANDATORY)
+## Step 3: Visual Impact Requirements (MANDATORY)
 
-Every page MUST include at least one dynamic visual element. Static rectangles are drafts.
+Static pages are drafts. Every page needs **visible, impressive motion** — not subtle micro-animations that nobody notices.
 
-| Section                    | Recommended Effect                                          |
-| -------------------------- | ----------------------------------------------------------- |
-| Hero / Above the fold      | WebGL shader gradient OR animated SVG waves + Lottie accent |
-| Section dividers           | Animated SVG wave paths (2-3 layers)                        |
-| Feature cards              | Spring entrance animations + hover transforms               |
-| Icons & micro-interactions | Lottie animations or CSS transitions                        |
-| Backgrounds                | Canvas particle noise OR subtle CSS gradient animation      |
-| Loading / empty states     | Lottie with branded animation                               |
-| Page transitions           | Orchestrated staggered reveals (animation-delay)            |
+### Minimum requirements for any page:
 
-**High-impact rule**: One well-orchestrated page load with staggered reveals creates more delight than scattered micro-interactions. Focus on scroll-triggering and surprising hover states.
+1. **Hero section MUST have high-impact motion** — canvas particle network, WebGL shader gradient, OR layered animated SVG waves. NOT just subtle blurs or tiny floating dots. The hero is the first thing users see — it must create a "wow" moment.
+2. **Section dividers MUST be animated SVG waves** (2-3 layers at different speeds) — NOT flat lines or 1px borders. This is a default, not an option.
+3. **At least one interactive element** that responds to mouse position or scroll — particle connections that light up on hover, parallax layers, cursor-following effects, or scroll-triggered reveals.
+4. **Feature cards MUST have spring entrance animations** + hover transforms (scale, shadow, glow).
+5. **Staggered page load** — elements reveal in sequence with `animation-delay`, not all at once.
 
-**Animation with purpose**: If you can't explain why an animation exists, remove it. Motion should guide attention, provide feedback, or create delight — never just decorate.
+### Default effects by section:
+
+| Section                    | Default Implementation (not optional)                          |
+| -------------------------- | -------------------------------------------------------------- |
+| Hero / Above the fold      | Canvas particle network OR WebGL shader gradient (HIGH IMPACT) |
+| Section dividers           | Animated SVG wave paths (2-3 layers, different speeds)         |
+| Feature cards              | Spring entrance + hover scale/glow transforms                  |
+| Icons & micro-interactions | Lottie animations or animated SVG transitions                  |
+| Backgrounds                | Animated gradient, grid pattern overlay, or particle noise     |
+| Loading / empty states     | Lottie or skeleton with shimmer animation                      |
+| Page transitions           | Orchestrated staggered reveals (animation-delay)               |
+| Data flows / connections   | Animated dashed strokes, pulsing glow dots, flowing paths      |
+
+### "Too Subtle" anti-pattern (AVOID):
+
+These technically count as "animation" but create ZERO visual impact:
+
+- Tiny floating dots that blur away to nothing
+- Barely-visible opacity pulses (0.9 → 1.0)
+- Microscopic blur circles in the background
+- Single-pixel animated borders
+- Animations that only trigger on hover with no idle state
+
+**If a user has to squint to notice the animation, it's too subtle. Redo it.**
+
+**High-impact rule**: One well-orchestrated page load with staggered reveals + an interactive hero creates more delight than 20 subtle micro-animations. Focus on: canvas particles in hero, SVG wave dividers, scroll-triggered card entrances, and flowing data connections.
+
+**Animation with purpose**: Every animation should either (a) create a "wow" first impression, (b) guide attention to important content, (c) provide interaction feedback, or (d) show data/state relationships. If it does none of these, remove it.
 
 ## Step 4: Spatial Composition
 
@@ -92,8 +115,11 @@ For detailed implementation techniques, consult these references:
 Before delivering ANY UI work, verify:
 
 1. Does it look **intentionally designed** or generated? If it looks like AI output, redo it.
-2. Is there at least one **dynamic visual element** (animation, gradient, particles, motion)?
-3. Are fonts **distinctive** (not generic defaults)?
-4. Does the color palette have **dominant colors with sharp accents** (not timid, evenly-distributed)?
-5. Does it **respect `prefers-reduced-motion`** and meet WCAG AA contrast?
-6. Run through `references/polish-checklist.md`
+2. Does the **hero section have high-impact motion** (canvas particles, WebGL gradient, or layered SVG waves)? If it's static or has barely-visible effects, redo it.
+3. Are **section dividers animated SVG waves** (not flat lines)?
+4. Is there at least one **interactive element** (responds to mouse or scroll)?
+5. Are fonts **distinctive** (not generic defaults)?
+6. Does the color palette have **dominant colors with sharp accents** (not timid, evenly-distributed)?
+7. Would a **non-technical person say "wow"** when the page loads? If not, add more visual impact.
+8. Does it **respect `prefers-reduced-motion`** and meet WCAG AA contrast?
+9. Run through `references/polish-checklist.md`

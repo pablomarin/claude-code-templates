@@ -46,13 +46,28 @@ Use layered `<path>` elements with sinusoidal shapes at different amplitudes:
 </Suspense>
 ```
 
-## Canvas Particles
+## Canvas Particles (Hero Default)
+
+Canvas particle networks are the **default hero background** for tech/SaaS/platform sites. They create immediate "wow" factor and interactivity.
 
 - `tsparticles` for ready-made configs, or custom Canvas API + `requestAnimationFrame`
 - **Perlin noise** fields create organic, flowing motion (not random jitter)
-- Interactive: respond to mouse position with attract/repel forces
+- **Connection lines** between nearby particles (distance threshold ~120px) — this is what makes it feel like a network, not just dots
+- **Mouse proximity glow** — particles within cursor radius get brighter, connection lines light up (e.g., cyan glow). This is the interactive element users notice immediately
 - Count limits for 60fps: **under 200 on mobile**, **500 max on desktop**
+- Particle size: 2-4px, NOT 0.5px dots that disappear. **Visible** particles.
 - Always `cancelAnimationFrame` and remove event listeners on unmount
+
+### Minimum viable particle network:
+
+```typescript
+// Key properties for visible, impressive particles:
+// - size: 2-4px (not sub-pixel)
+// - connections: draw lines between particles within ~120px
+// - mouse interaction: glow/attract within ~150px radius
+// - color: match accent color with 0.6 opacity, full opacity on hover
+// - speed: slow drift (0.3-0.8), not frantic
+```
 
 ## Framer Motion Patterns
 
@@ -80,6 +95,50 @@ Use layered `<path>` elements with sinusoidal shapes at different amplitudes:
 - **will-change lifecycle**: set via GSAP `onStart` callback, remove via `onComplete` — **NEVER leave permanently** (causes layer promotion and memory waste)
 - **Scrub animations**: use `ease: "none"` for linear scroll-linked motion (easing fights the scroll)
 - **Prevent flash**: `immediateRender: false` on `fromTo` tweens so initial state doesn't render before scroll position is calculated
+
+## Animated Data Flows & Connectors
+
+For architecture diagrams, tech stacks, feature relationships, or any content showing connections:
+
+- **Animated dashed strokes** — SVG paths with `stroke-dasharray` + `stroke-dashoffset` animated via CSS `@keyframes` to show flow direction
+- **Pulsing glow dots** at connection endpoints — small circles with `animation: pulse 2s ease-in-out infinite`
+- **Horizontal/vertical glow sweeps** — a translucent light beam that sweeps across sections every 3-5 seconds using CSS gradient + translateX animation
+- **Grid pattern overlays** — subtle dot grid or line grid in hero/background using SVG pattern or CSS `radial-gradient` repeat
+
+```css
+/* Flowing dash animation for SVG connector lines */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+.connector-line {
+  stroke-dasharray: 8 4;
+  animation: dash-flow 1.5s linear infinite;
+}
+
+/* Glow sweep across a section */
+@keyframes glow-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+.glow-sweep {
+  position: absolute;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(56, 189, 248, 0.08),
+    transparent
+  );
+  animation: glow-sweep 4s ease-in-out infinite;
+}
+```
 
 ## Device Capability Detection
 
