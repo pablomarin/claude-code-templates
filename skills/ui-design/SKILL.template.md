@@ -112,7 +112,7 @@ Never leave `<img>` tags with placeholder URLs or gray boxes. Use real images du
 
 See `references/media-assets.md` for prompting best practices, common image sizes, and workflow patterns.
 
-## Step 7: Implementation
+## Step 7: Implementation References
 
 For detailed implementation techniques, consult these references:
 
@@ -121,7 +121,7 @@ For detailed implementation techniques, consult these references:
 - **Media assets** → See `references/media-assets.md` for image generation prompting, stock photo selection, common sizes, and optimization
 - **Post-build polish** → See `references/polish-checklist.md` for quality audit before delivery
 
-## Step 7: Final Check
+## Step 8: Final Check
 
 Before delivering ANY UI work, verify:
 

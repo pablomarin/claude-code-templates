@@ -1010,20 +1010,28 @@ your-project/
 │   │   └── prd/
 │   │       ├── discuss.md             # /prd:discuss command
 │   │       └── create.md             # /prd:create command
-│   └── rules/                         # Auto-loaded standards (safe to overwrite)
-│       ├── principles.md              # Top-level principles + design philosophy
-│       ├── workflow.md                # Decision matrix for choosing commands
-│       ├── worktree-policy.md         # Git worktree isolation rules
-│       ├── critical-rules.md          # Non-negotiable rules (branch safety, TDD)
-│       ├── memory.md                  # How to use persistent memory
-│       ├── security.md                # Security standards
-│       ├── testing.md                 # Testing standards
-│       ├── api-design.md              # API design standards
-│       ├── python-style.md            # Python coding style
-│       ├── typescript-style.md        # TypeScript coding style
-│       ├── frontend-design.md        # Frontend design quality (TS/fullstack)
-│       ├── database.md               # Database conventions
-│       └── skill-audit.md            # Third-party skill security checklist
+│   ├── rules/                         # Auto-loaded standards (safe to overwrite)
+│   │   ├── principles.md              # Top-level principles + design philosophy
+│   │   ├── workflow.md                # Decision matrix for choosing commands
+│   │   ├── worktree-policy.md         # Git worktree isolation rules
+│   │   ├── critical-rules.md          # Non-negotiable rules (branch safety, TDD)
+│   │   ├── memory.md                  # How to use persistent memory
+│   │   ├── security.md                # Security standards
+│   │   ├── testing.md                 # Testing standards
+│   │   ├── api-design.md              # API design standards
+│   │   ├── python-style.md            # Python coding style
+│   │   ├── typescript-style.md        # TypeScript coding style
+│   │   ├── frontend-design.md        # Frontend design baseline (TS/fullstack)
+│   │   ├── database.md               # Database conventions
+│   │   └── skill-audit.md            # Third-party skill security checklist
+│   └── skills/                        # Auto-triggering skills (TS/fullstack)
+│       └── ui-design/                 # /ui-design — full design system
+│           ├── SKILL.md               # Core: design thinking + creative direction
+│           └── references/            # Loaded on demand
+│               ├── animation-techniques.md  # SVG waves, particles, Framer Motion, GSAP
+│               ├── typography-and-color.md  # Fluid clamp, OKLCH, dark mode
+│               ├── polish-checklist.md      # Post-build quality audit
+│               └── media-assets.md          # Stock photos, AI image gen, video
 └── ...
 ```
 

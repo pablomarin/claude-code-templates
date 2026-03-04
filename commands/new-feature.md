@@ -446,6 +446,7 @@ If any MANDATORY step cannot be completed:
 
 **Design (iterative loop — repeat until no P0/P1s):**
 
+- [ ] Loaded design guidance via `/ui-design` (if UI work)
 - [ ] Brainstormed via `/superpowers:brainstorming`
 - [ ] Plan written via `/superpowers:writing-plans`
 - [ ] **Design reviewed** via `/codex` OR user confirmation (MANDATORY)

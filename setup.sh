@@ -437,6 +437,7 @@ if [[ "$UPGRADE" == true ]]; then
     echo "  .claude/hooks/           Hook scripts (refreshed)"
     echo "  .claude/rules/           Coding standards (refreshed)"
     echo "  .claude/agents/          Subagent definitions (refreshed)"
+    echo "  .claude/skills/          UI design skill (refreshed, if typescript/fullstack)"
     echo "  .claude/settings.json    Hooks and permissions (merged — your customizations kept)"
     echo "  .mcp.json                MCP servers (merged — your customizations kept)"
     echo ""

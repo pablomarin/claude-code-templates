@@ -69,7 +69,8 @@ claude-code-templates/
 │       └── references/        # Detailed technique guides (loaded on demand)
 │           ├── animation-techniques.md
 │           ├── typography-and-color.md
-│           └── polish-checklist.md
+│           ├── polish-checklist.md
+│           └── media-assets.md
 │
 ├── agents/                     # Subagent definitions (copied to .claude/agents/)
 │   └── verify-app.md           # Full verification: tests + lint + types

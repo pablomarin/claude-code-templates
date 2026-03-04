@@ -480,6 +480,7 @@ if ($Upgrade) {
     Write-Host "  .claude\hooks\           Hook scripts (refreshed)"
     Write-Host "  .claude\rules\           Coding standards (refreshed)"
     Write-Host "  .claude\agents\          Subagent definitions (refreshed)"
+    Write-Host "  .claude\skills\          UI design skill (refreshed, if typescript/fullstack)"
     Write-Host "  .claude\settings.json    Hooks and permissions (merged - your customizations kept)"
     Write-Host "  .mcp.json                MCP servers (merged - your customizations kept)"
     Write-Host ""
