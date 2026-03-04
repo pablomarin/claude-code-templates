@@ -79,14 +79,14 @@ function Copy-TemplateFile {
         Write-Host "  " -NoNewline
         Write-Color "x" "Red"
         Write-Host " Template not found: $Source"
-        return $false
+        return
     }
 
     if ((Test-Path $Destination) -and (-not $Force)) {
         Write-Host "  " -NoNewline
         Write-Color "o" "Blue"
         Write-Host " $Description already exists (use -f to overwrite)"
-        return $true
+        return
     }
 
     # Ensure parent directory exists
@@ -99,7 +99,6 @@ function Copy-TemplateFile {
     Write-Host "  " -NoNewline
     Write-Color "+" "Green"
     Write-Host " Created $Description"
-    return $true
 }
 
 # ============================================================================
@@ -121,8 +120,8 @@ if ($Global) {
 
     $globalDirs = @(
         (Join-Path $HOME ".claude"),
-        (Join-Path $HOME ".claude" "hooks"),
-        (Join-Path $HOME ".claude" "rules")
+        (Join-Path (Join-Path $HOME ".claude") "hooks"),
+        (Join-Path (Join-Path $HOME ".claude") "rules")
     )
 
     foreach ($dir in $globalDirs) {
@@ -143,14 +142,14 @@ if ($Global) {
     # Copy global CLAUDE.md
     Write-Color "Step 2: Installing global configuration..." "Yellow"
     Write-Host "  These files tell Claude how to manage its memory."
-    Copy-TemplateFile (Join-Path $ScriptDir "GLOBAL-CLAUDE.template.md") (Join-Path $HOME ".claude" "CLAUDE.md") "~\.claude\CLAUDE.md (global instructions)"
+    Copy-TemplateFile (Join-Path $ScriptDir "GLOBAL-CLAUDE.template.md") (Join-Path (Join-Path $HOME ".claude") "CLAUDE.md") "~\.claude\CLAUDE.md (global instructions)"
 
     # Copy global hooks
-    Copy-TemplateFile (Join-Path $ScriptDir "hooks" "pre-compact-memory.ps1") (Join-Path $HOME ".claude" "hooks" "pre-compact-memory.ps1") "~\.claude\hooks\pre-compact-memory.ps1"
+    Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "pre-compact-memory.ps1") (Join-Path (Join-Path (Join-Path $HOME ".claude") "hooks") "pre-compact-memory.ps1") "~\.claude\hooks\pre-compact-memory.ps1"
 
     # Merge global hooks into existing settings (preserves user's plugins, statusLine, etc.)
-    $globalSettings = Join-Path $HOME ".claude" "settings.json"
-    $templateSettings = Join-Path $ScriptDir "settings" "global-settings.template.json"
+    $globalSettings = Join-Path (Join-Path $HOME ".claude") "settings.json"
+    $templateSettings = Join-Path (Join-Path $ScriptDir "settings") "global-settings.template.json"
     if (Test-Path $globalSettings) {
         try {
             $existing = Get-Content $globalSettings -Raw | ConvertFrom-Json
@@ -234,7 +233,7 @@ if (-not $isGitRepo) {
 }
 
 # Check if global setup has been done
-$globalClaude = Join-Path $HOME ".claude" "CLAUDE.md"
+$globalClaude = Join-Path (Join-Path $HOME ".claude") "CLAUDE.md"
 if (-not (Test-Path $globalClaude)) {
     Write-Color "Warning: Global memory not set up. Run: & $ScriptDir\setup.ps1 -Global" "Yellow"
 }
@@ -320,44 +319,57 @@ if (Test-Path "CONTINUITY.md") {
     Copy-TemplateFile (Join-Path $ScriptDir "CONTINUITY.template.md") "CONTINUITY.md" "CONTINUITY.md"
 }
 
+# Resolve Python command (Windows uses 'python', Unix uses 'python3')
+$PythonCmd = $null
+if (Get-Command python -ErrorAction SilentlyContinue) { $PythonCmd = "python" }
+elseif (Get-Command python3 -ErrorAction SilentlyContinue) { $PythonCmd = "python3" }
+
 # Settings — merge on upgrade, copy otherwise
 if ($Upgrade -and (Test-Path ".claude\settings.json")) {
     Write-Color "  ^ Merging .claude\settings.json (upgrade mode)" "Yellow"
-    python3 (Join-Path $ScriptDir "scripts" "merge-settings.py") (Join-Path $ScriptDir "settings" "settings-windows.template.json") ".claude\settings.json"
+    if ($PythonCmd) {
+        & $PythonCmd (Join-Path (Join-Path $ScriptDir "scripts") "merge-settings.py") (Join-Path (Join-Path $ScriptDir "settings") "settings-windows.template.json") ".claude\settings.json"
+    } else {
+        Write-Color "  ! Python not found -- cannot merge settings. Install Python or merge manually." "Yellow"
+    }
 } else {
-    Copy-TemplateFile (Join-Path $ScriptDir "settings" "settings-windows.template.json") ".claude\settings.json" ".claude\settings.json"
+    Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "settings") "settings-windows.template.json") ".claude\settings.json" ".claude\settings.json"
 }
 
 # MCP servers — merge on upgrade, copy otherwise
 if ($Upgrade -and (Test-Path ".mcp.json")) {
     Write-Color "  ^ Merging .mcp.json (upgrade mode)" "Yellow"
-    python3 (Join-Path $ScriptDir "scripts" "merge-settings.py") (Join-Path $ScriptDir "mcp.template.json") ".mcp.json"
+    if ($PythonCmd) {
+        & $PythonCmd (Join-Path (Join-Path $ScriptDir "scripts") "merge-settings.py") (Join-Path $ScriptDir "mcp.template.json") ".mcp.json"
+    } else {
+        Write-Color "  ! Python not found -- cannot merge .mcp.json. Install Python or merge manually." "Yellow"
+    }
 } else {
     Copy-TemplateFile (Join-Path $ScriptDir "mcp.template.json") ".mcp.json" ".mcp.json (MCP servers: Playwright + Context7)"
 }
 
 # Hooks (PowerShell versions for Windows)
-Copy-TemplateFile (Join-Path $ScriptDir "hooks" "session-start.ps1") ".claude\hooks\session-start.ps1" ".claude\hooks\session-start.ps1"
-Copy-TemplateFile (Join-Path $ScriptDir "hooks" "check-state-updated.ps1") ".claude\hooks\check-state-updated.ps1" ".claude\hooks\check-state-updated.ps1"
-Copy-TemplateFile (Join-Path $ScriptDir "hooks" "post-tool-format.ps1") ".claude\hooks\post-tool-format.ps1" ".claude\hooks\post-tool-format.ps1"
-Copy-TemplateFile (Join-Path $ScriptDir "hooks" "pre-compact-memory.ps1") ".claude\hooks\pre-compact-memory.ps1" ".claude\hooks\pre-compact-memory.ps1"
-Copy-TemplateFile (Join-Path $ScriptDir "hooks" "check-config-change.ps1") ".claude\hooks\check-config-change.ps1" ".claude\hooks\check-config-change.ps1"
-Copy-TemplateFile (Join-Path $ScriptDir "hooks" "check-bash-safety.ps1") ".claude\hooks\check-bash-safety.ps1" ".claude\hooks\check-bash-safety.ps1"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "session-start.ps1") ".claude\hooks\session-start.ps1" ".claude\hooks\session-start.ps1"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-state-updated.ps1") ".claude\hooks\check-state-updated.ps1" ".claude\hooks\check-state-updated.ps1"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "post-tool-format.ps1") ".claude\hooks\post-tool-format.ps1" ".claude\hooks\post-tool-format.ps1"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "pre-compact-memory.ps1") ".claude\hooks\pre-compact-memory.ps1" ".claude\hooks\pre-compact-memory.ps1"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-config-change.ps1") ".claude\hooks\check-config-change.ps1" ".claude\hooks\check-config-change.ps1"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-bash-safety.ps1") ".claude\hooks\check-bash-safety.ps1" ".claude\hooks\check-bash-safety.ps1"
 
 # Agents
-Copy-TemplateFile (Join-Path $ScriptDir "agents" "verify-app.md") ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-app.md") ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
 
 # Commands - Workflow (ENFORCED)
-Copy-TemplateFile (Join-Path $ScriptDir "commands" "new-feature.md") ".claude\commands\new-feature.md" ".claude\commands\new-feature.md"
-Copy-TemplateFile (Join-Path $ScriptDir "commands" "fix-bug.md") ".claude\commands\fix-bug.md" ".claude\commands\fix-bug.md"
-Copy-TemplateFile (Join-Path $ScriptDir "commands" "quick-fix.md") ".claude\commands\quick-fix.md" ".claude\commands\quick-fix.md"
-Copy-TemplateFile (Join-Path $ScriptDir "commands" "finish-branch.md") ".claude\commands\finish-branch.md" ".claude\commands\finish-branch.md"
-Copy-TemplateFile (Join-Path $ScriptDir "commands" "codex.md") ".claude\commands\codex.md" ".claude\commands\codex.md"
-Copy-TemplateFile (Join-Path $ScriptDir "commands" "review-pr-comments.md") ".claude\commands\review-pr-comments.md" ".claude\commands\review-pr-comments.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "commands") "new-feature.md") ".claude\commands\new-feature.md" ".claude\commands\new-feature.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "commands") "fix-bug.md") ".claude\commands\fix-bug.md" ".claude\commands\fix-bug.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "commands") "quick-fix.md") ".claude\commands\quick-fix.md" ".claude\commands\quick-fix.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "commands") "finish-branch.md") ".claude\commands\finish-branch.md" ".claude\commands\finish-branch.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "commands") "codex.md") ".claude\commands\codex.md" ".claude\commands\codex.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "commands") "review-pr-comments.md") ".claude\commands\review-pr-comments.md" ".claude\commands\review-pr-comments.md"
 
 # Commands - PRD
-Copy-TemplateFile (Join-Path $ScriptDir "commands" "prd" "discuss.md") ".claude\commands\prd\discuss.md" ".claude\commands\prd\discuss.md"
-Copy-TemplateFile (Join-Path $ScriptDir "commands" "prd" "create.md") ".claude\commands\prd\create.md" ".claude\commands\prd\create.md"
+Copy-TemplateFile (Join-Path (Join-Path (Join-Path $ScriptDir "commands") "prd") "discuss.md") ".claude\commands\prd\discuss.md" ".claude\commands\prd\discuss.md"
+Copy-TemplateFile (Join-Path (Join-Path (Join-Path $ScriptDir "commands") "prd") "create.md") ".claude\commands\prd\create.md" ".claude\commands\prd\create.md"
 
 # Rules based on tech stack
 Write-Host ""
@@ -367,24 +379,24 @@ Write-Color "Copying rules for $Tech..." "Yellow"
 # Common rules (apply to all tech stacks)
 $commonRules = @("security.md", "skill-audit.md", "api-design.md", "testing.md", "principles.md", "workflow.md", "worktree-policy.md", "critical-rules.md", "memory.md")
 foreach ($rule in $commonRules) {
-    Copy-TemplateFile (Join-Path $ScriptDir "rules" $rule) ".claude\rules\$rule" ".claude\rules\$rule"
+    Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") $rule) ".claude\rules\$rule" ".claude\rules\$rule"
 }
 
 # Tech-specific rules
 switch ($Tech) {
     "python" {
-        Copy-TemplateFile (Join-Path $ScriptDir "rules" "python-style.md") ".claude\rules\python-style.md" ".claude\rules\python-style.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "rules" "database.md") ".claude\rules\database.md" ".claude\rules\database.md"
+        Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "python-style.md") ".claude\rules\python-style.md" ".claude\rules\python-style.md"
+        Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "database.md") ".claude\rules\database.md" ".claude\rules\database.md"
     }
     "typescript" {
-        Copy-TemplateFile (Join-Path $ScriptDir "rules" "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "rules" "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
+        Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
+        Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
     }
     default {
-        Copy-TemplateFile (Join-Path $ScriptDir "rules" "python-style.md") ".claude\rules\python-style.md" ".claude\rules\python-style.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "rules" "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "rules" "database.md") ".claude\rules\database.md" ".claude\rules\database.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "rules" "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
+        Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "python-style.md") ".claude\rules\python-style.md" ".claude\rules\python-style.md"
+        Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
+        Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "database.md") ".claude\rules\database.md" ".claude\rules\database.md"
+        Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
     }
 }
 
@@ -505,7 +517,7 @@ if ($Upgrade) {
     Write-Host "  - frontend-design          (built-in, no install needed)"
     Write-Host ""
     # Check if global setup needed
-    $globalClaude = Join-Path $HOME ".claude" "CLAUDE.md"
+    $globalClaude = Join-Path (Join-Path $HOME ".claude") "CLAUDE.md"
     if (-not (Test-Path $globalClaude)) {
         Write-Color "+--------------------------------------------------------------+" "Red"
         Write-Color "|  WARNING: Global memory not set up yet!                       |" "Red"
