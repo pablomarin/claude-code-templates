@@ -161,6 +161,16 @@ Before writing ANY code, research the problem space:
 
 ## Phase 3: Design + Review Loop (iterates until no P0/P1 issues)
 
+### 3.0 Load Design Guidance (if UI work)
+
+If this feature involves ANY user-facing interface (web pages, components, dashboards, forms, landing pages):
+
+    /ui-design
+
+This loads the full design skill — creative direction, animation techniques, typography and color systems, and the polish checklist. It ensures the **plan** includes visual design decisions, not just technical architecture.
+
+**Skip this step if:** the feature is purely backend with no UI impact, or if `/ui-design` is not available (Python-only projects without the skill installed).
+
 ### 3.1 Brainstorm approaches
 
 ```

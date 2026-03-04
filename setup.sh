@@ -255,6 +255,7 @@ directories=(
     ".claude/rules"
     ".claude/commands/prd"
     ".claude/agents"
+    ".claude/skills/ui-design/references"
     "docs/prds"
     "docs/plans"
     "docs/solutions/build-errors"
@@ -358,12 +359,22 @@ case $TECH_STACK in
     typescript)
         copy_file "$SCRIPT_DIR/rules/typescript-style.md" ".claude/rules/typescript-style.md" ".claude/rules/typescript-style.md"
         copy_file "$SCRIPT_DIR/rules/frontend-design.md" ".claude/rules/frontend-design.md" ".claude/rules/frontend-design.md"
+        # UI Design skill (auto-triggers for frontend work)
+        copy_file "$SCRIPT_DIR/skills/ui-design/SKILL.template.md" ".claude/skills/ui-design/SKILL.md" ".claude/skills/ui-design/SKILL.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md"
         ;;
     fullstack|*)
         copy_file "$SCRIPT_DIR/rules/python-style.md" ".claude/rules/python-style.md" ".claude/rules/python-style.md"
         copy_file "$SCRIPT_DIR/rules/typescript-style.md" ".claude/rules/typescript-style.md" ".claude/rules/typescript-style.md"
         copy_file "$SCRIPT_DIR/rules/database.md" ".claude/rules/database.md" ".claude/rules/database.md"
         copy_file "$SCRIPT_DIR/rules/frontend-design.md" ".claude/rules/frontend-design.md" ".claude/rules/frontend-design.md"
+        # UI Design skill (auto-triggers for frontend work)
+        copy_file "$SCRIPT_DIR/skills/ui-design/SKILL.template.md" ".claude/skills/ui-design/SKILL.md" ".claude/skills/ui-design/SKILL.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md"
         ;;
 esac
 
@@ -460,6 +471,7 @@ else
     echo "  .claude/commands/        Workflow commands: /new-feature, /fix-bug, /quick-fix"
     echo "  .claude/hooks/           Auto-run scripts (format, verify, memory)"
     echo "  .claude/agents/          Subagent definitions (verify-app)"
+    echo "  .claude/skills/           UI design skill (auto-triggers for frontend work)"
     echo "  .claude/rules/           Coding standards + workflow rules (safe to update)"
     echo "  docs/                    Changelog, PRDs, solutions knowledge base"
     echo ""

@@ -62,8 +62,14 @@ claude-code-templates/
 │   ├── pre-compact-memory.sh/.ps1   # PreCompact: save learnings before compression
 │   └── check-config-change.sh/.ps1  # ConfigChange: log config modifications
 │
-├── skills/                     # Skill templates
-│   └── SKILL.template.md      # Template for creating custom skills
+├── skills/                     # Skill templates (copied to .claude/skills/)
+│   ├── SKILL.template.md      # Template for creating custom skills
+│   └── ui-design/             # UI Design skill (auto-triggers for frontend work)
+│       ├── SKILL.template.md  # Core: design thinking + creative direction
+│       └── references/        # Detailed technique guides (loaded on demand)
+│           ├── animation-techniques.md
+│           ├── typography-and-color.md
+│           └── polish-checklist.md
 │
 ├── agents/                     # Subagent definitions (copied to .claude/agents/)
 │   └── verify-app.md           # Full verification: tests + lint + types
@@ -98,16 +104,18 @@ claude-code-templates/
 
 Templates in the root are **source of truth**. `setup.sh` copies them to target projects:
 
-| Template (edit this)              | Generated file (never edit directly)      |
-| --------------------------------- | ----------------------------------------- |
-| `CLAUDE.template.md`              | `CLAUDE.md` in target project             |
-| `CONTINUITY.template.md`          | `CONTINUITY.md` in target project         |
-| `GLOBAL-CLAUDE.template.md`       | `~/.claude/CLAUDE.md`                     |
-| `mcp.template.json`               | `.mcp.json` in target project             |
-| `settings/settings.template.json` | `.claude/settings.json` in target project |
-| `commands/*.md`                   | `.claude/commands/*.md` in target project |
-| `rules/*.md`                      | `.claude/rules/*.md` in target project    |
-| `hooks/*`                         | `.claude/hooks/*` in target project       |
+| Template (edit this)                 | Generated file (never edit directly)          |
+| ------------------------------------ | --------------------------------------------- |
+| `CLAUDE.template.md`                 | `CLAUDE.md` in target project                 |
+| `CONTINUITY.template.md`             | `CONTINUITY.md` in target project             |
+| `GLOBAL-CLAUDE.template.md`          | `~/.claude/CLAUDE.md`                         |
+| `mcp.template.json`                  | `.mcp.json` in target project                 |
+| `settings/settings.template.json`    | `.claude/settings.json` in target project     |
+| `commands/*.md`                      | `.claude/commands/*.md` in target project     |
+| `rules/*.md`                         | `.claude/rules/*.md` in target project        |
+| `hooks/*`                            | `.claude/hooks/*` in target project           |
+| `skills/ui-design/SKILL.template.md` | `.claude/skills/ui-design/SKILL.md` in target |
+| `skills/ui-design/references/*.md`   | `.claude/skills/ui-design/references/*.md`    |
 
 ### Platform Parity
 
