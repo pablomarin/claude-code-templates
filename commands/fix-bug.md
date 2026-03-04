@@ -172,6 +172,16 @@ Proceed directly to Phase 4.
 
 ### For complex fixes (3+ files or architectural):
 
+#### 3.0 Load Design Guidance (if UI fix)
+
+If this bug fix involves ANY user-facing interface changes:
+
+    /ui-design
+
+This ensures UI fixes maintain visual quality — don't regress the design while fixing functionality.
+
+**Skip this step if:** the fix is purely backend/logic with no UI impact, or if `/ui-design` is not available.
+
 #### 3.1 Brainstorm approaches
 
 ```

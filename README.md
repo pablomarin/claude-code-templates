@@ -418,8 +418,17 @@ Working on user authentication
 
 For TypeScript and fullstack projects, the setup installs:
 
-- **`frontend-design` plugin** (built-in) — Improves typography, color, motion, and layout quality. Avoids the generic "AI slop" aesthetic.
-- **`rules/frontend-design.md`** — Design standards: type hierarchy, color systems, responsive breakpoints, accessibility, animation performance.
+- **`frontend-design` plugin** (built-in) — Auto-triggers creative direction for UI work
+- **`/ui-design` skill** (shipped with template) — Full design system: animation techniques (SVG waves, Lottie, WebGL, Framer Motion spring presets, GSAP), typography (fluid clamp scale, OKLCH color tokens), spatial composition, and a post-build polish checklist. Auto-triggers when building UI, or invoke manually
+- **`rules/frontend-design.md`** — Slim defensive baseline: accessibility, responsive, semantic HTML
+
+**Optional plugin enhancements** (audited — see `rules/skill-audit.md` for the checklist):
+
+| Plugin                            | What it adds                                                                                                                       | Install                                                            |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `freshtechbro/claudedesignskills` | Three.js, GSAP, Framer Motion, Lottie, Babylon.js deep dives (PASS)                                                                | `/plugin marketplace add freshtechbro/claudedesignskills`          |
+| `dgreenheck/webgpu-claude-skill`  | WebGPU + Three.js TSL shaders, particle systems (APPROVED)                                                                         | `/skill install webgpu-threejs-tsl@dgreenheck/webgpu-claude-skill` |
+| `ibelick/ui-skills`               | Polish layer: baseline-ui, motion-performance, accessibility (CONDITIONAL — copy SKILL.md files manually, skip curl\|sh installer) | Clone repo, copy `skills/*/SKILL.md` to `.claude/skills/`          |
 
 ### 4. Optional MCP Add-ons
 

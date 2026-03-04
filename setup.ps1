@@ -286,7 +286,8 @@ $directories = @(
     "docs\solutions\ui-bugs",
     "docs\solutions\integration-issues",
     "docs\solutions\logic-errors",
-    "docs\solutions\patterns"
+    "docs\solutions\patterns",
+    ".claude\skills\ui-design\references"
 )
 
 foreach ($dir in $directories) {
@@ -391,12 +392,22 @@ switch ($Tech) {
     "typescript" {
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
+        # UI Design skill (auto-triggers for frontend work)
+        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "SKILL.template.md") ".claude\skills\ui-design\SKILL.md" ".claude\skills\ui-design\SKILL.md"
+        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "animation-techniques.md") ".claude\skills\ui-design\references\animation-techniques.md" ".claude\skills\ui-design\references\animation-techniques.md"
+        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
+        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
     }
     default {
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "python-style.md") ".claude\rules\python-style.md" ".claude\rules\python-style.md"
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "database.md") ".claude\rules\database.md" ".claude\rules\database.md"
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
+        # UI Design skill (auto-triggers for frontend work)
+        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "SKILL.template.md") ".claude\skills\ui-design\SKILL.md" ".claude\skills\ui-design\SKILL.md"
+        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "animation-techniques.md") ".claude\skills\ui-design\references\animation-techniques.md" ".claude\skills\ui-design\references\animation-techniques.md"
+        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
+        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
     }
 }
 
@@ -508,6 +519,7 @@ if ($Upgrade) {
     Write-Host "  .claude\hooks\           Auto-run scripts (format, verify, memory)"
     Write-Host "  .claude\agents\          Subagent definitions (verify-app)"
     Write-Host "  .claude\rules\           Coding standards + workflow rules (safe to update)"
+    Write-Host "  .claude\skills\           UI design skill (auto-triggers for frontend work)"
     Write-Host "  docs\                    Changelog, PRDs, solutions knowledge base"
     Write-Host ""
     Write-Color "Plugins pre-enabled in .claude\settings.json:" "Yellow"
