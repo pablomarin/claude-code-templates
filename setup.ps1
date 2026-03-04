@@ -397,6 +397,7 @@ switch ($Tech) {
         Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "animation-techniques.md") ".claude\skills\ui-design\references\animation-techniques.md" ".claude\skills\ui-design\references\animation-techniques.md"
         Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
         Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
+        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "media-assets.md") ".claude\skills\ui-design\references\media-assets.md" ".claude\skills\ui-design\references\media-assets.md"
     }
     default {
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "python-style.md") ".claude\rules\python-style.md" ".claude\rules\python-style.md"
@@ -408,6 +409,7 @@ switch ($Tech) {
         Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "animation-techniques.md") ".claude\skills\ui-design\references\animation-techniques.md" ".claude\skills\ui-design\references\animation-techniques.md"
         Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
         Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
+        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "media-assets.md") ".claude\skills\ui-design\references\media-assets.md" ".claude\skills\ui-design\references\media-assets.md"
     }
 }
 

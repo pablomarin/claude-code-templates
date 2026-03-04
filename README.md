@@ -434,12 +434,24 @@ For TypeScript and fullstack projects, the setup installs:
 
 The default `.mcp.json` includes Playwright and Context7. For web projects, you may want:
 
+**Media & Images** (free API keys, no credit card):
+
+| MCP Server             | What it does                                          | API Key                                                           | Install                                                                                             |
+| ---------------------- | ----------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Nano Banana MCP**    | AI image generation via Gemini (~500 free images/day) | [aistudio.google.com](https://aistudio.google.com) (free)         | `claude mcp add nano-banana npx nano-banana-mcp`                                                    |
+| **Pexels MCP**         | Stock photos AND video search                         | [pexels.com/api](https://www.pexels.com/api/) (free)              | See [garylab/pexels-mcp-server](https://github.com/garylab/pexels-mcp-server)                       |
+| **Unsplash Smart MCP** | Context-aware stock photos with auto-attribution      | [unsplash.com/developers](https://unsplash.com/developers) (free) | See [drumnation/unsplash-smart-mcp-server](https://github.com/drumnation/unsplash-smart-mcp-server) |
+
+These let Claude search for stock photos and generate custom images during development instead of leaving placeholder boxes. The `/ui-design` skill's `references/media-assets.md` provides prompting best practices and workflow patterns.
+
+**Development Tools:**
+
 | MCP Server           | What it does                                    | Install command                                                 |
 | -------------------- | ----------------------------------------------- | --------------------------------------------------------------- |
 | **Vercel**           | Deploy previews, manage projects, DNS, env vars | `claude mcp add --transport http vercel https://mcp.vercel.com` |
 | **Next.js DevTools** | Live runtime/build/type error diagnostics       | `npx next-devtools-mcp@latest init`                             |
 
-These are optional — add them if your project uses Vercel or Next.js. After adding, also add `"mcp__vercel"` to `permissions.allow` in `.claude/settings.json` to skip permission prompts.
+After adding any MCP server, add its permission to `.claude/settings.json` → `permissions.allow` (e.g., `"mcp__nano_banana"`) to skip permission prompts.
 
 ### 5. Automated PR Reviews (Recommended)
 

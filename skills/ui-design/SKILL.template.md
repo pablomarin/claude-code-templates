@@ -102,12 +102,23 @@ Avoid plain solid-color backgrounds when possible. Create depth:
 - Dramatic shadows and decorative borders
 - Custom cursors for interactive sections
 
-## Step 6: Implementation
+## Step 6: Real Media Assets (NOT Placeholders)
+
+Never leave `<img>` tags with placeholder URLs or gray boxes. Use real images during development:
+
+- **Stock photography** → Use Pexels/Unsplash MCP to search for contextual photos (team meetings, office environments, product shots). Pick images that match your aesthetic tone.
+- **AI-generated imagery** → Use Nano Banana MCP or similar to generate custom hero images, illustrations, and visual assets that match your brand exactly.
+- **Optimize everything** → WebP/AVIF format, explicit `width`/`height`, responsive `srcset`, lazy-load below fold.
+
+See `references/media-assets.md` for prompting best practices, common image sizes, and workflow patterns.
+
+## Step 7: Implementation
 
 For detailed implementation techniques, consult these references:
 
 - **Animations & effects** → See `references/animation-techniques.md` for SVG waves, Lottie, WebGL, canvas particles, Framer Motion spring presets, GSAP, stagger patterns, form shake keyframes
 - **Typography & color** → See `references/typography-and-color.md` for fluid clamp() scale, OKLCH color tokens, font pairing, dark mode, CSS custom properties
+- **Media assets** → See `references/media-assets.md` for image generation prompting, stock photo selection, common sizes, and optimization
 - **Post-build polish** → See `references/polish-checklist.md` for quality audit before delivery
 
 ## Step 7: Final Check
@@ -121,5 +132,6 @@ Before delivering ANY UI work, verify:
 5. Are fonts **distinctive** (not generic defaults)?
 6. Does the color palette have **dominant colors with sharp accents** (not timid, evenly-distributed)?
 7. Would a **non-technical person say "wow"** when the page loads? If not, add more visual impact.
-8. Does it **respect `prefers-reduced-motion`** and meet WCAG AA contrast?
-9. Run through `references/polish-checklist.md`
+8. Are images **real** (stock photos or AI-generated), not placeholder boxes or gray rectangles?
+9. Does it **respect `prefers-reduced-motion`** and meet WCAG AA contrast?
+10. Run through `references/polish-checklist.md`

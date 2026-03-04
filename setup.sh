@@ -364,6 +364,7 @@ case $TECH_STACK in
         copy_file "$SCRIPT_DIR/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md"
         ;;
     fullstack|*)
         copy_file "$SCRIPT_DIR/rules/python-style.md" ".claude/rules/python-style.md" ".claude/rules/python-style.md"
@@ -375,6 +376,7 @@ case $TECH_STACK in
         copy_file "$SCRIPT_DIR/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md"
         ;;
 esac
 
