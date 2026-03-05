@@ -436,7 +436,23 @@ The default `.mcp.json` includes Playwright and Context7. For web projects, you 
 
 **AI Image Generation** (shipped with template — no MCP server needed):
 
-The `/generate-image` skill lets Claude generate images via Google's Gemini API directly. It checks the [official docs](https://ai.google.dev/gemini-api/docs/image-generation) for current model IDs before each generation, so it won't break when Google updates models. Requires a free API key from [aistudio.google.com](https://aistudio.google.com) set as `GEMINI_API_KEY` env var.
+The `/generate-image` skill lets Claude generate images via Google's Gemini API directly. It checks the [official docs](https://ai.google.dev/gemini-api/docs/image-generation) for current model IDs before each generation, so it won't break when Google updates models.
+
+**Setup** (the only environment variable this template needs):
+
+```bash
+# 1. Get a free API key (no credit card required):
+#    Go to https://aistudio.google.com → click "Get API Key"
+
+# 2. Add to your shell profile (one time):
+echo 'export GEMINI_API_KEY="your-key-here"' >> ~/.zshrc   # macOS/Linux
+source ~/.zshrc
+
+# Windows (PowerShell):
+[System.Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "your-key-here", "User")
+```
+
+Without this key, the `/generate-image` skill will prompt you to set it up. Everything else in the template works without any API keys.
 
 **Stock Photography MCP** (optional, free API keys):
 
