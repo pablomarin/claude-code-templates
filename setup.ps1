@@ -393,11 +393,13 @@ switch ($Tech) {
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
         # UI Design skill (auto-triggers for frontend work)
-        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "SKILL.template.md") ".claude\skills\ui-design\SKILL.md" ".claude\skills\ui-design\SKILL.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "animation-techniques.md") ".claude\skills\ui-design\references\animation-techniques.md" ".claude\skills\ui-design\references\animation-techniques.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "media-assets.md") ".claude\skills\ui-design\references\media-assets.md" ".claude\skills\ui-design\references\media-assets.md"
+        $skillDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "ui-design")
+        $refsDir = Join-Path $skillDir "references"
+        Copy-TemplateFile (Join-Path $skillDir "SKILL.template.md") ".claude\skills\ui-design\SKILL.md" ".claude\skills\ui-design\SKILL.md"
+        Copy-TemplateFile (Join-Path $refsDir "animation-techniques.md") ".claude\skills\ui-design\references\animation-techniques.md" ".claude\skills\ui-design\references\animation-techniques.md"
+        Copy-TemplateFile (Join-Path $refsDir "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
+        Copy-TemplateFile (Join-Path $refsDir "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
+        Copy-TemplateFile (Join-Path $refsDir "media-assets.md") ".claude\skills\ui-design\references\media-assets.md" ".claude\skills\ui-design\references\media-assets.md"
     }
     default {
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "python-style.md") ".claude\rules\python-style.md" ".claude\rules\python-style.md"
@@ -405,11 +407,13 @@ switch ($Tech) {
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "database.md") ".claude\rules\database.md" ".claude\rules\database.md"
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
         # UI Design skill (auto-triggers for frontend work)
-        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "SKILL.template.md") ".claude\skills\ui-design\SKILL.md" ".claude\skills\ui-design\SKILL.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "animation-techniques.md") ".claude\skills\ui-design\references\animation-techniques.md" ".claude\skills\ui-design\references\animation-techniques.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
-        Copy-TemplateFile (Join-Path $ScriptDir "skills" "ui-design" "references" "media-assets.md") ".claude\skills\ui-design\references\media-assets.md" ".claude\skills\ui-design\references\media-assets.md"
+        $skillDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "ui-design")
+        $refsDir = Join-Path $skillDir "references"
+        Copy-TemplateFile (Join-Path $skillDir "SKILL.template.md") ".claude\skills\ui-design\SKILL.md" ".claude\skills\ui-design\SKILL.md"
+        Copy-TemplateFile (Join-Path $refsDir "animation-techniques.md") ".claude\skills\ui-design\references\animation-techniques.md" ".claude\skills\ui-design\references\animation-techniques.md"
+        Copy-TemplateFile (Join-Path $refsDir "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
+        Copy-TemplateFile (Join-Path $refsDir "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
+        Copy-TemplateFile (Join-Path $refsDir "media-assets.md") ".claude\skills\ui-design\references\media-assets.md" ".claude\skills\ui-design\references\media-assets.md"
     }
 }
 
