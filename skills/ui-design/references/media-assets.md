@@ -12,9 +12,11 @@ When an MCP server for stock photos is available, use it proactively:
 - **Download and place immediately** — save to `public/images/` and use the actual path in your components. Never use external URLs for production images
 - **Attribution** — Unsplash and Pexels require attribution in some contexts. Include photographer credit in alt text or a credits section
 
-## AI Image Generation (Nano Banana / Gemini)
+## AI Image Generation (Gemini API)
 
-When a Nano Banana MCP server or image generation tool is available:
+Use the `/generate-image` skill to create custom images via Google's Gemini API directly. It checks the latest official docs for current model IDs, generates a script, runs it, and saves the image to your project. No community MCP servers needed.
+
+When generating images:
 
 ### Prompting Best Practices
 

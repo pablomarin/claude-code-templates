@@ -107,7 +107,7 @@ Avoid plain solid-color backgrounds when possible. Create depth:
 Never leave `<img>` tags with placeholder URLs or gray boxes. Use real images during development:
 
 - **Stock photography** → Use Pexels/Unsplash MCP to search for contextual photos (team meetings, office environments, product shots). Pick images that match your aesthetic tone.
-- **AI-generated imagery** → Use Nano Banana MCP or similar to generate custom hero images, illustrations, and visual assets that match your brand exactly.
+- **AI-generated imagery** → Use `/generate-image` skill to create custom hero images, illustrations, and visual assets via Gemini API. It checks the latest docs automatically.
 - **Optimize everything** → WebP/AVIF format, explicit `width`/`height`, responsive `srcset`, lazy-load below fold.
 
 See `references/media-assets.md` for prompting best practices, common image sizes, and workflow patterns.

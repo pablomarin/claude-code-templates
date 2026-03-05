@@ -434,15 +434,18 @@ For TypeScript and fullstack projects, the setup installs:
 
 The default `.mcp.json` includes Playwright and Context7. For web projects, you may want:
 
-**Media & Images** (free API keys, no credit card):
+**AI Image Generation** (shipped with template — no MCP server needed):
 
-| MCP Server             | What it does                                          | API Key                                                           | Install                                                                                             |
-| ---------------------- | ----------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Nano Banana MCP**    | AI image generation via Gemini (~500 free images/day) | [aistudio.google.com](https://aistudio.google.com) (free)         | `claude mcp add nano-banana npx nano-banana-mcp`                                                    |
-| **Pexels MCP**         | Stock photos AND video search                         | [pexels.com/api](https://www.pexels.com/api/) (free)              | See [garylab/pexels-mcp-server](https://github.com/garylab/pexels-mcp-server)                       |
-| **Unsplash Smart MCP** | Context-aware stock photos with auto-attribution      | [unsplash.com/developers](https://unsplash.com/developers) (free) | See [drumnation/unsplash-smart-mcp-server](https://github.com/drumnation/unsplash-smart-mcp-server) |
+The `/generate-image` skill lets Claude generate images via Google's Gemini API directly. It checks the [official docs](https://ai.google.dev/gemini-api/docs/image-generation) for current model IDs before each generation, so it won't break when Google updates models. Requires a free API key from [aistudio.google.com](https://aistudio.google.com) set as `GEMINI_API_KEY` env var.
 
-These let Claude search for stock photos and generate custom images during development instead of leaving placeholder boxes. The `/ui-design` skill's `references/media-assets.md` provides prompting best practices and workflow patterns.
+**Stock Photography MCP** (optional, free API keys):
+
+| MCP Server             | What it does                                     | API Key                                                           | Install                                                                                             |
+| ---------------------- | ------------------------------------------------ | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Pexels MCP**         | Stock photos AND video search                    | [pexels.com/api](https://www.pexels.com/api/) (free)              | See [garylab/pexels-mcp-server](https://github.com/garylab/pexels-mcp-server)                       |
+| **Unsplash Smart MCP** | Context-aware stock photos with auto-attribution | [unsplash.com/developers](https://unsplash.com/developers) (free) | See [drumnation/unsplash-smart-mcp-server](https://github.com/drumnation/unsplash-smart-mcp-server) |
+
+The `/ui-design` skill's `references/media-assets.md` provides prompting best practices and workflow patterns for both generated and stock images.
 
 **Development Tools:**
 

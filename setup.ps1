@@ -287,7 +287,8 @@ $directories = @(
     "docs\solutions\integration-issues",
     "docs\solutions\logic-errors",
     "docs\solutions\patterns",
-    ".claude\skills\ui-design\references"
+    ".claude\skills\ui-design\references",
+    ".claude\skills\generate-image"
 )
 
 foreach ($dir in $directories) {
@@ -400,6 +401,9 @@ switch ($Tech) {
         Copy-TemplateFile (Join-Path $refsDir "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
         Copy-TemplateFile (Join-Path $refsDir "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
         Copy-TemplateFile (Join-Path $refsDir "media-assets.md") ".claude\skills\ui-design\references\media-assets.md" ".claude\skills\ui-design\references\media-assets.md"
+        # Image generation skill (Gemini API — checks docs for current model)
+        $genImgDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "generate-image")
+        Copy-TemplateFile (Join-Path $genImgDir "SKILL.template.md") ".claude\skills\generate-image\SKILL.md" ".claude\skills\generate-image\SKILL.md"
     }
     default {
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "python-style.md") ".claude\rules\python-style.md" ".claude\rules\python-style.md"
@@ -414,6 +418,9 @@ switch ($Tech) {
         Copy-TemplateFile (Join-Path $refsDir "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
         Copy-TemplateFile (Join-Path $refsDir "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
         Copy-TemplateFile (Join-Path $refsDir "media-assets.md") ".claude\skills\ui-design\references\media-assets.md" ".claude\skills\ui-design\references\media-assets.md"
+        # Image generation skill (Gemini API — checks docs for current model)
+        $genImgDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "generate-image")
+        Copy-TemplateFile (Join-Path $genImgDir "SKILL.template.md") ".claude\skills\generate-image\SKILL.md" ".claude\skills\generate-image\SKILL.md"
     }
 }
 

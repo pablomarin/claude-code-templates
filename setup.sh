@@ -256,6 +256,7 @@ directories=(
     ".claude/commands/prd"
     ".claude/agents"
     ".claude/skills/ui-design/references"
+    ".claude/skills/generate-image"
     "docs/prds"
     "docs/plans"
     "docs/solutions/build-errors"
@@ -365,6 +366,8 @@ case $TECH_STACK in
         copy_file "$SCRIPT_DIR/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md"
+        # Image generation skill (Gemini API — checks docs for current model)
+        copy_file "$SCRIPT_DIR/skills/generate-image/SKILL.template.md" ".claude/skills/generate-image/SKILL.md" ".claude/skills/generate-image/SKILL.md"
         ;;
     fullstack|*)
         copy_file "$SCRIPT_DIR/rules/python-style.md" ".claude/rules/python-style.md" ".claude/rules/python-style.md"
@@ -377,6 +380,8 @@ case $TECH_STACK in
         copy_file "$SCRIPT_DIR/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md"
+        # Image generation skill (Gemini API — checks docs for current model)
+        copy_file "$SCRIPT_DIR/skills/generate-image/SKILL.template.md" ".claude/skills/generate-image/SKILL.md" ".claude/skills/generate-image/SKILL.md"
         ;;
 esac
 
