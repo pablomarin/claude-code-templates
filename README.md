@@ -438,21 +438,21 @@ The default `.mcp.json` includes Playwright and Context7. For web projects, you 
 
 The `/generate-image` skill lets Claude generate images via Google's Gemini API directly. It checks the [official docs](https://ai.google.dev/gemini-api/docs/image-generation) for current model IDs before each generation, so it won't break when Google updates models.
 
-**Setup** (the only environment variable this template needs):
+**Setup** (one time only — the only environment variable this template needs):
 
 ```bash
 # 1. Get a free API key (no credit card required):
 #    Go to https://aistudio.google.com → click "Get API Key"
 
-# 2. Add to your shell profile (one time):
+# 2. Add to your shell profile (one time — loads automatically in every future session):
 echo 'export GEMINI_API_KEY="your-key-here"' >> ~/.zshrc   # macOS/Linux
 source ~/.zshrc
 
-# Windows (PowerShell):
+# Windows (PowerShell — one time, persists across sessions):
 [System.Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "your-key-here", "User")
 ```
 
-Without this key, the `/generate-image` skill will prompt you to set it up. Everything else in the template works without any API keys.
+You do this once and never think about it again. Claude reads the key from your environment automatically whenever it generates images. Without this key, the `/generate-image` skill will prompt you to set it up. Everything else in the template works without any API keys.
 
 **Stock Photography MCP** (optional, free API keys):
 
