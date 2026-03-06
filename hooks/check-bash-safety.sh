@@ -74,6 +74,16 @@ elif echo "$COMMAND" | grep -qE 'rm\s+-[rf]*\s+/' 2>/dev/null && ! echo "$COMMAN
 # 6. Modifying Claude Code's own config via Bash (defense in depth with ConfigChange hook)
 elif echo "$COMMAND" | grep -qE '(sed|awk|echo|tee|printf).*\.claude/(settings|config)' 2>/dev/null; then
     REASON="Attempting to modify Claude Code configuration via Bash"
+
+# 7. Global package installs (supply chain attack vector — see Clinejection)
+elif echo "$COMMAND" | grep -qE 'npm\s+(install|i)\s+(-g|--global)|npm\s+(-g|--global)\s+(install|i)' 2>/dev/null; then
+    REASON="Global npm package install detected (supply chain risk)"
+elif echo "$COMMAND" | grep -qE 'yarn\s+global\s+add' 2>/dev/null; then
+    REASON="Global yarn package install detected (supply chain risk)"
+elif echo "$COMMAND" | grep -qE 'pnpm\s+(add|install|i)\s+(-g|--global)|pnpm\s+(-g|--global)\s+(add|install|i)' 2>/dev/null; then
+    REASON="Global pnpm package install detected (supply chain risk)"
+elif echo "$COMMAND" | grep -qE '(^|\s)pip3?\s+install\s+[^-]' 2>/dev/null && ! echo "$COMMAND" | grep -qE 'pip3?\s+install\s+(-r\s|-e\s|\.\s*$)|uv\s+pip' 2>/dev/null; then
+    REASON="Unscoped pip install detected (supply chain risk — use venv or uv)"
 fi
 
 # --- Block or allow ---
