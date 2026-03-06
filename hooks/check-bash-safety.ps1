@@ -83,6 +83,19 @@ elseif ($Command -match 'Remove-Item.*-Recurse.*[A-Z]:\\$') {
 elseif ($Command -match '(sed|awk|echo|tee|printf|Set-Content|Out-File).*\.claude[/\\](settings|config)') {
     $Reason = "Attempting to modify Claude Code configuration via Bash"
 }
+# 7. Global package installs (supply chain attack vector — see Clinejection)
+elseif ($Command -match 'npm\s+(install|i)\s+(-g|--global)|npm\s+(-g|--global)\s+(install|i)') {
+    $Reason = "Global npm package install detected (supply chain risk)"
+}
+elseif ($Command -match 'yarn\s+global\s+add') {
+    $Reason = "Global yarn package install detected (supply chain risk)"
+}
+elseif ($Command -match 'pnpm\s+(add|install|i)\s+(-g|--global)|pnpm\s+(-g|--global)\s+(add|install|i)') {
+    $Reason = "Global pnpm package install detected (supply chain risk)"
+}
+elseif ($Command -match '(^|\s)pip3?\s+install\s+[^-]' -and $Command -notmatch 'pip3?\s+install\s+(-r\s|-e\s|\.\s*$)|uv\s+pip') {
+    $Reason = "Unscoped pip install detected (supply chain risk — use venv or uv)"
+}
 
 # --- Block or allow ---
 if ($Reason) {
