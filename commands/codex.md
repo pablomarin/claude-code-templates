@@ -31,11 +31,11 @@ Triggered when `$ARGUMENTS` matches review-related keywords.
 
 Use `AskUserQuestion` with these options:
 
-| Option | Flag |
-|--------|------|
-| Uncommitted changes (staged + unstaged) | `--uncommitted` |
-| Changes vs main branch | `--base main` |
-| A specific commit | `--commit <SHA>` (ask user for SHA) |
+| Option                                  | Flag                                |
+| --------------------------------------- | ----------------------------------- |
+| Uncommitted changes (staged + unstaged) | `--uncommitted`                     |
+| Changes vs main branch                  | `--base main`                       |
+| A specific commit                       | `--commit <SHA>` (ask user for SHA) |
 
 ### Step 2: Run Codex review
 
@@ -43,7 +43,7 @@ Use `AskUserQuestion` with these options:
 
 ```bash
 codex exec review \
-  -c model="gpt-5.3-codex" \
+  -c model="gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
   -c developer_instructions="Focus on: correctness, security vulnerabilities, performance bottlenecks, error handling gaps, and maintainability. Flag anything that could break in production." \
   --sandbox read-only \
@@ -53,9 +53,10 @@ codex exec review \
 ```
 
 **If reviewing a branch**, add `--title` for context:
+
 ```bash
 codex exec review \
-  -c model="gpt-5.3-codex" \
+  -c model="gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
   -c developer_instructions="Focus on: correctness, security vulnerabilities, performance bottlenecks, error handling gaps, and maintainability. Flag anything that could break in production." \
   --sandbox read-only \
@@ -82,6 +83,7 @@ This is used during the **mandatory design review step** (Phase 3.3 of `/new-fea
 ### Step 1: Identify the plan
 
 Check for the most recent plan file:
+
 ```bash
 ls -t docs/plans/ 2>/dev/null | head -1
 ```
@@ -92,7 +94,7 @@ Also check if there's a plan in the current conversation context. If the user sp
 
 ```bash
 codex exec \
-  -c model="gpt-5.3-codex" \
+  -c model="gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
   --sandbox read-only \
   --ephemeral \
@@ -138,7 +140,7 @@ Construct the prompt by combining the user's instruction with the gathered conte
 
 ```bash
 codex exec \
-  -c model="gpt-5.3-codex" \
+  -c model="gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
   --sandbox read-only \
   --ephemeral \
@@ -165,10 +167,10 @@ Display Codex's output verbatim to the user. Do not summarize or edit it.
 
 ## Quick Reference
 
-| Use case | Command pattern |
-|----------|----------------|
-| Review uncommitted changes | `codex exec review --uncommitted` |
-| Review branch vs main | `codex exec review --base main --title "description"` |
-| Review a specific commit | `codex exec review --commit SHA` |
-| Review a design plan | `codex exec "Review the plan in docs/plans/..."` |
-| General second opinion | `codex exec "Your question or instruction"` |
+| Use case                   | Command pattern                                       |
+| -------------------------- | ----------------------------------------------------- |
+| Review uncommitted changes | `codex exec review --uncommitted`                     |
+| Review branch vs main      | `codex exec review --base main --title "description"` |
+| Review a specific commit   | `codex exec review --commit SHA`                      |
+| Review a design plan       | `codex exec "Review the plan in docs/plans/..."`      |
+| General second opinion     | `codex exec "Your question or instruction"`           |
