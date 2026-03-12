@@ -87,3 +87,37 @@ Ask yourself these questions. If ANY answer is "no", iterate until it's "yes":
 7. **"Can I see every animation without squinting?"** — if effects are barely visible, they need to be bolder
 
 > If you can't confidently answer "yes" to all seven, the work is not done.
+
+## 9. Social & SEO Metadata Audit
+
+Every deployed site MUST have these assets and metadata configured. Without them, links shared on Teams, Slack, Twitter, iMessage, and search results look broken and unprofessional.
+
+### Required files in `src/app/` (Next.js) or equivalent:
+
+- [ ] **`favicon.ico`** (48x48) — browser tab icon
+- [ ] **`icon.svg`** — scalable vector icon for modern browsers
+- [ ] **`apple-icon.png`** (180x180) — iOS home screen / macOS bookmarks
+- [ ] **`opengraph-image.png`** (1200x630) — branded, dark background with logo centered. This is what people see when sharing links on Teams/Slack/LinkedIn/iMessage
+
+### Required metadata in root layout:
+
+- [ ] **`metadataBase`** — full production URL (`new URL("https://example.com")`)
+- [ ] **`openGraph`** — `title`, `description`, `url`, `siteName`, `type: "website"`
+- [ ] **`twitter`** — `card: "summary_large_image"`, `title`, `description`
+- [ ] **`icons`** — favicon (.ico + .svg) and apple icon configured
+
+### Generation commands (ImageMagick):
+
+```bash
+# Favicon (48x48)
+magick logo.png -resize 48x48 src/app/favicon.ico
+
+# Apple icon (180x180)
+magick logo.png -resize 180x180 src/app/apple-icon.png
+
+# OG image (1200x630 dark background with centered logo)
+magick logo.png -resize 600x /tmp/logo-large.png
+magick -size 1200x630 xc:'#0a0f1a' /tmp/logo-large.png -gravity center -composite src/app/opengraph-image.png
+```
+
+> **Why this matters**: A missing OG image = a blank gray box when your link is shared. First impressions count.

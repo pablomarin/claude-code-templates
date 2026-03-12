@@ -134,4 +134,5 @@ Before delivering ANY UI work, verify:
 7. Would a **non-technical person say "wow"** when the page loads? If not, add more visual impact.
 8. Are images **real** (stock photos or AI-generated), not placeholder boxes or gray rectangles?
 9. Does it **respect `prefers-reduced-motion`** and meet WCAG AA contrast?
-10. Run through `references/polish-checklist.md`
+10. Are **social metadata assets** present — `favicon.ico`, `apple-icon.png`, `icon.svg`, `opengraph-image.png` (1200x630), `metadataBase`, OpenGraph + Twitter card in root layout? (See `references/polish-checklist.md` Section 9)
+11. Run through `references/polish-checklist.md`

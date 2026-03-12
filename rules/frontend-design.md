@@ -17,6 +17,7 @@ paths:
 - Focus styles on all interactive elements (`:focus-visible` ring/outline)
 - No placeholder-only labels on form inputs
 - Images: `alt` text, explicit `width`/`height`, WebP/AVIF with fallbacks
+- Social metadata: `favicon.ico`, `apple-icon.png`, `icon.svg`, `opengraph-image.png` (1200x630), `metadataBase`, OpenGraph + Twitter card in root layout — **every deployed site, no exceptions**
 
 ## Design Standard
 
