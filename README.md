@@ -419,7 +419,7 @@ Working on user authentication
 For TypeScript and fullstack projects, the setup installs:
 
 - **`frontend-design` plugin** (built-in) — Auto-triggers creative direction for UI work
-- **`/ui-design` skill** (shipped with template) — Full design system: animation techniques (SVG waves, Lottie, WebGL, Framer Motion spring presets, GSAP), typography (fluid clamp scale, OKLCH color tokens), spatial composition, and a post-build polish checklist. Auto-triggers when building UI, or invoke manually
+- **`/ui-design` skill** (shipped with template) — Three-mode design router that auto-selects **Marketing/Expressive** (5 visual systems, animations, conversion patterns), **Product UI** (dashboards, tables, app shells, dense layouts), or **Trust-First** (healthcare/finance/legal — calm aesthetic, AAA accessibility, data masking). Includes 10 reference files: animation techniques, typography with 12 curated font pairings, 12 industry color palettes, UX anti-patterns, landing page conversion patterns, product UI patterns, trust-first patterns, 21st.dev component search via Playwright, platform size reference, and a mode-aware polish checklist. Auto-triggers when building UI, or invoke manually
 - **`rules/frontend-design.md`** — Slim defensive baseline: accessibility, responsive, semantic HTML
 
 **Optional plugin enhancements** (audited — see `rules/skill-audit.md` for the checklist):

@@ -64,13 +64,19 @@ claude-code-templates/
 │
 ├── skills/                     # Skill templates (copied to .claude/skills/)
 │   ├── SKILL.template.md      # Template for creating custom skills
-│   ├── ui-design/             # UI Design skill (auto-triggers for frontend work)
-│   │   ├── SKILL.template.md  # Core: design thinking + creative direction
-│   │   └── references/        # Detailed technique guides (loaded on demand)
+│   ├── ui-design/             # UI Design skill (three-mode router, auto-triggers)
+│   │   ├── SKILL.template.md  # Core: mode selection + design rules per mode
+│   │   └── references/        # 10 reference guides (loaded on demand)
+│   │       ├── 21st-dev-components.md
 │   │       ├── animation-techniques.md
-│   │       ├── typography-and-color.md
+│   │       ├── industry-design-guide.md
+│   │       ├── landing-patterns.md
+│   │       ├── media-assets.md
 │   │       ├── polish-checklist.md
-│   │       └── media-assets.md
+│   │       ├── product-ui-patterns.md
+│   │       ├── trust-first-patterns.md
+│   │       ├── typography-and-color.md
+│   │       └── ux-antipatterns.md
 │   └── generate-image/        # Image generation via Gemini API (checks docs first)
 │       └── SKILL.template.md  # Script-based generation, no MCP dependency
 │
