@@ -26,6 +26,33 @@ Before touching any code, commit to a BOLD aesthetic direction:
 
 **CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work — the key is intentionality, not intensity.
 
+## Step 1.5: Domain Context Override
+
+**Check `references/industry-design-guide.md`** to see if the product context modifies the default rules below. Some products require LESS motion, not more:
+
+| Product Context                                          | Motion Override                                                                                                                                                                                                                                       |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trust-first** (healthcare, finance, legal, government) | **Override ALL motion MUSTs in Step 3.** No hero particles/WebGL, no animated SVG wave dividers, no spring card entrances. Use only smooth transitions (200-300ms), subtle hover states, and accordion/reveal animations. Steps 3.1–3.5 do NOT apply. |
+| **Balanced** (SaaS, e-commerce, education)               | Default motion rules apply. Lean purposeful over decorative.                                                                                                                                                                                          |
+| **Expressive** (agencies, gaming, fashion, events)       | Full motion rules. Go bold — this is where canvas particles and WebGL shine.                                                                                                                                                                          |
+
+If building a **landing page**, also consult `references/landing-patterns.md` for section sequencing and CTA hierarchy before choosing a layout.
+
+If building for a **specific industry**, use the palette ID (`P-XX`) and font pairing ID (`F-XX`) from the industry guide — they map to ready-to-use tokens in `references/typography-and-color.md`.
+
+## Step 1.7: Search 21st.dev Before Building
+
+**Before building any standard UI component from scratch, search [21st.dev](https://21st.dev) for existing high-quality implementations.** This marketplace has 1,400+ community-built shadcn/ui React components — heroes, pricing cards, forms, tables, buttons, and more.
+
+**How:** Use a Playwright subagent to browse 21st.dev, search for the component type, pick the best match by bookmark count, and either:
+
+- **Copy the prompt** — a pre-written implementation spec you use to build the component
+- **Direct install** — `npx shadcn@latest add "https://21st.dev/r/{author}/{component}/default"`
+
+No API key needed. See `references/21st-dev-components.md` for the full Playwright workflow, available categories, and decision guide.
+
+**Skip this step** only for highly custom, brand-specific components that wouldn't exist in a general marketplace.
+
 ## Step 2: Anti-AI-Slop Rules (MANDATORY)
 
 **Font defaults to AVOID** — Do not reach for: Inter, Roboto, Arial, Space Grotesk, system-ui defaults.
@@ -116,9 +143,13 @@ See `references/media-assets.md` for prompting best practices, common image size
 
 For detailed implementation techniques, consult these references:
 
+- **Component search** → See `references/21st-dev-components.md` for searching 21st.dev via Playwright — categories, workflow, and install patterns
+- **Industry context** → See `references/industry-design-guide.md` for product-type → style, palette, font pairing, motion budget, and anti-patterns
+- **Landing pages** → See `references/landing-patterns.md` for section sequencing, CTA hierarchy, and conversion patterns
+- **UX anti-patterns** → See `references/ux-antipatterns.md` for design-time Do/Don't checklist (navigation, touch, forms, accessibility, performance)
 - **Animations & effects** → See `references/animation-techniques.md` for SVG waves, Lottie, WebGL, canvas particles, Framer Motion spring presets, GSAP, stagger patterns, form shake keyframes
-- **Typography & color** → See `references/typography-and-color.md` for fluid clamp() scale, OKLCH color tokens, font pairing, dark mode, CSS custom properties
-- **Media assets** → See `references/media-assets.md` for image generation prompting, stock photo selection, common sizes, and optimization
+- **Typography & color** → See `references/typography-and-color.md` for fluid clamp() scale, OKLCH color tokens, curated font pairings (F-01–F-12), industry palettes (P-01–P-12), dark mode
+- **Media assets & sizes** → See `references/media-assets.md` for image generation prompting, stock photos, platform size reference (social, banners, OG), and optimization
 - **Post-build polish** → See `references/polish-checklist.md` for quality audit before delivery
 
 ## Step 8: Final Check

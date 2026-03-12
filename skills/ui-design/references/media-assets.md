@@ -115,3 +115,77 @@ If no stock photo MCP or image generator is available, at minimum:
 - Use Lottie animations for hero sections instead of static images
 - Add clear `TODO` comments marking where real images should be placed
 - **Never ship gray placeholder rectangles to production**
+
+---
+
+## Platform Size Reference
+
+Exact dimensions for social media, banners, and sharing assets. Sizes change — verify against official platform docs if in doubt.
+
+> Last reviewed: 2026-03-12
+
+### Social Media Posts
+
+| Platform  | Type            | Size (px)                  | Aspect Ratio |
+| --------- | --------------- | -------------------------- | ------------ |
+| Instagram | Post (square)   | 1080 x 1080                | 1:1          |
+| Instagram | Post (portrait) | 1080 x 1350                | 4:5          |
+| Instagram | Story / Reel    | 1080 x 1920                | 9:16         |
+| Instagram | Carousel        | 1080 x 1080 or 1080 x 1350 | 1:1 or 4:5   |
+| Facebook  | Post            | 1200 x 630                 | ~1.9:1       |
+| Facebook  | Story           | 1080 x 1920                | 9:16         |
+| Twitter/X | Post            | 1200 x 675                 | 16:9         |
+| LinkedIn  | Post            | 1200 x 627                 | ~1.9:1       |
+| Pinterest | Pin             | 1000 x 1500                | 2:3          |
+| TikTok    | Video           | 1080 x 1920                | 9:16         |
+| YouTube   | Thumbnail       | 1280 x 720                 | 16:9         |
+| Threads   | Post            | 1080 x 1080                | 1:1          |
+
+### Profile & Cover Images
+
+| Platform  | Type            | Size (px)                                  |
+| --------- | --------------- | ------------------------------------------ |
+| Facebook  | Cover           | 851 x 315                                  |
+| Facebook  | Profile         | 320 x 320                                  |
+| Twitter/X | Header          | 1500 x 500                                 |
+| Twitter/X | Profile         | 400 x 400                                  |
+| LinkedIn  | Personal banner | 1584 x 396                                 |
+| LinkedIn  | Company banner  | 1128 x 191                                 |
+| YouTube   | Channel art     | 2560 x 1440 (safe area: 1546 x 423 center) |
+
+### OG / Sharing Assets (REQUIRED — see `polish-checklist.md` Section 9)
+
+| Asset           | Size (px)  | Format | Location                      |
+| --------------- | ---------- | ------ | ----------------------------- |
+| OpenGraph image | 1200 x 630 | PNG    | `src/app/opengraph-image.png` |
+| Favicon         | 48 x 48    | ICO    | `src/app/favicon.ico`         |
+| SVG icon        | scalable   | SVG    | `src/app/icon.svg`            |
+| Apple icon      | 180 x 180  | PNG    | `src/app/apple-icon.png`      |
+
+### Ad Banners
+
+| Platform          | Type             | Size (px)   |
+| ----------------- | ---------------- | ----------- |
+| Google Ads        | Medium Rectangle | 300 x 250   |
+| Google Ads        | Leaderboard      | 728 x 90    |
+| Google Ads        | Large Rectangle  | 336 x 280   |
+| Google Ads        | Wide Skyscraper  | 160 x 600   |
+| Facebook/Meta Ads | Feed             | 1200 x 628  |
+| Facebook/Meta Ads | Story            | 1080 x 1920 |
+
+### Website
+
+| Use                | Size (px)       | Notes                   |
+| ------------------ | --------------- | ----------------------- |
+| Hero (desktop)     | 1920 x 600–1080 | Full-width, responsive  |
+| Hero (mobile)      | 750 x 1334      | iPhone viewport         |
+| Feature screenshot | 1200 x 900      | 4:3, product showcase   |
+| Team photo         | 400 x 400       | Square, avatar/headshot |
+| Blog featured      | 1200 x 630      | Doubles as OG image     |
+
+### Print (if needed)
+
+- **Business card**: 1050 x 600 px (3.5 x 2 inches at 300 DPI)
+- **A4 flyer**: 2480 x 3508 px (210 x 297 mm at 300 DPI)
+- **Poster A3**: 3508 x 4961 px (297 x 420 mm at 300 DPI)
+- Always use **CMYK** color space and **3-5mm bleed** for print
