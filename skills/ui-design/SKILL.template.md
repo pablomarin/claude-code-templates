@@ -23,6 +23,17 @@ description: >
 
 **Nuance:** Domain risk overrides surface type. A fintech landing page is **Trust-First**, not Marketing. A healthcare marketing site may blend Trust-First aesthetics with Marketing conversion patterns.
 
+### Mixed-Mode Surfaces
+
+Some pages cross mode boundaries. When this happens, **choose the primary mode for the page, then apply section-level overrides**:
+
+- **SaaS app with a marketing landing page** → Landing page = Marketing, app dashboard = Product UI. Different modes for different routes.
+- **Fintech homepage** → Trust-First overall, but the hero section can borrow Marketing's conversion patterns (just with conservative motion).
+- **Admin panel with destructive actions** → Product UI overall, but destructive flows (delete account, cancel subscription) follow Trust-First confirmation patterns.
+- **E-commerce with checkout** → Marketing for product pages, Trust-First for checkout/payment flow.
+
+**Rule:** When in doubt, choose the more conservative mode. It's easier to add polish than to fix broken trust.
+
 After choosing a mode, check `references/industry-design-guide.md` for industry-specific palette (`P-XX`), font pairing (`F-XX`), and anti-patterns. These map to ready-to-use tokens in `references/typography-and-color.md`.
 
 ---
@@ -77,6 +88,8 @@ See `references/21st-dev-components.md` for the full Playwright workflow.
 
 Skip only for highly custom, brand-specific components.
 
+**Fallback (no Playwright):** If Playwright MCP is not available, ask the user to browse [21st.dev](https://21st.dev) manually and paste either the component URL (for `npx shadcn` install) or the copied prompt text. The skill works with or without Playwright — it just automates the browsing step.
+
 ---
 
 ## Step 3: Anti-Slop Rules (MANDATORY)
@@ -119,24 +132,28 @@ Skip only for highly custom, brand-specific components.
 
 ### Marketing / Expressive
 
-Static pages are drafts. Every marketing page needs **visible, impressive motion**:
+Static pages are drafts. Every marketing page needs **visible, intentional motion** — but the TYPE depends on the visual system you choose:
 
-1. **Hero section MUST have high-impact motion** — canvas particle network, WebGL shader gradient, OR layered animated SVG waves. The hero is the first thing users see.
-2. **Section dividers MUST be animated SVG waves** (2-3 layers, different speeds) — not flat lines.
-3. **At least one interactive element** responding to mouse position or scroll.
-4. **Feature cards MUST have spring entrance animations** + hover transforms.
-5. **Staggered page load** — elements reveal in sequence, not all at once.
+#### Visual Systems (pick one, don't mix)
 
-| Section               | Default Implementation                             |
-| --------------------- | -------------------------------------------------- |
-| Hero / Above the fold | Canvas particle network OR WebGL shader gradient   |
-| Section dividers      | Animated SVG wave paths (2-3 layers)               |
-| Feature cards         | Spring entrance + hover scale/glow transforms      |
-| Backgrounds           | Animated gradient, grid pattern, or particle noise |
-| Page transitions      | Orchestrated staggered reveals                     |
+| System              | Hero Treatment                                   | Motion Level                               | Best For                                   | Font Pairing   |
+| ------------------- | ------------------------------------------------ | ------------------------------------------ | ------------------------------------------ | -------------- |
+| **Spectacle Tech**  | Canvas particles, WebGL shader gradient          | High — parallax, stagger, scroll-triggered | SaaS, AI, dev tools, startups              | `F-03`, `F-10` |
+| **Editorial Clean** | Full-bleed photography, slow ken burns           | Medium — subtle reveals, type animation    | Magazines, blogs, content, agencies        | `F-04`, `F-01` |
+| **Luxury Minimal**  | Slow parallax (400-600ms), video background      | Low-Medium — elegant reveals, no gimmicks  | Fashion, luxury, premium services          | `F-01`, `F-12` |
+| **Playful Vibrant** | Animated illustrations, Lottie, bright gradients | High — bouncy spring, playful interactions | Education, community, consumer, events     | `F-06`, `F-10` |
+| **Organic Natural** | Flowing SVG shapes, soft gradients, nature photo | Medium — morphing blobs, gentle scroll     | Wellness, non-profit, sustainability, food | `F-07`, `F-06` |
+
+#### Universal Marketing Requirements (all systems)
+
+1. **Hero MUST have intentional motion** — type depends on the visual system above.
+2. **At least one interactive element** responding to mouse position or scroll.
+3. **Feature cards MUST have entrance animations** + hover transforms.
+4. **Staggered page load** — elements reveal in sequence, not all at once.
+5. **Section transitions** — visual separation (waves for Spectacle, whitespace for Editorial, subtle gradient for Luxury).
 
 **Spatial composition**: Asymmetry, overlap, diagonal flow, grid-breaking, bold negative space.
-**Backgrounds**: Gradient meshes, noise textures, geometric patterns, custom cursors.
+**Backgrounds**: Match visual system — gradient meshes for Spectacle, clean white for Editorial, dark + gold for Luxury, bright gradients for Playful, soft organic textures for Natural.
 
 See `references/animation-techniques.md` for implementation details.
 
@@ -242,7 +259,7 @@ Consult these references for detailed implementation:
 
 ### Marketing / Expressive — also check:
 
-8. Does the **hero create a "wow" moment**? (Canvas particles, WebGL, layered SVG waves)
+8. Does the **hero create a "wow" moment** using the chosen visual system? (Spectacle: particles/WebGL, Editorial: photography/type, Luxury: slow parallax, Playful: illustrations, Organic: flowing shapes)
 9. Are **section dividers animated** (not flat lines)?
 10. Is there at least one **interactive element** (mouse/scroll responsive)?
 11. Are fonts **distinctive** (not generic defaults)?

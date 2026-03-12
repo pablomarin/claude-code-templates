@@ -360,12 +360,18 @@ case $TECH_STACK in
     typescript)
         copy_file "$SCRIPT_DIR/rules/typescript-style.md" ".claude/rules/typescript-style.md" ".claude/rules/typescript-style.md"
         copy_file "$SCRIPT_DIR/rules/frontend-design.md" ".claude/rules/frontend-design.md" ".claude/rules/frontend-design.md"
-        # UI Design skill (auto-triggers for frontend work)
+        # UI Design skill (auto-triggers for frontend work) — all 10 references
         copy_file "$SCRIPT_DIR/skills/ui-design/SKILL.template.md" ".claude/skills/ui-design/SKILL.md" ".claude/skills/ui-design/SKILL.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/industry-design-guide.md" ".claude/skills/ui-design/references/industry-design-guide.md" ".claude/skills/ui-design/references/industry-design-guide.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/ux-antipatterns.md" ".claude/skills/ui-design/references/ux-antipatterns.md" ".claude/skills/ui-design/references/ux-antipatterns.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/landing-patterns.md" ".claude/skills/ui-design/references/landing-patterns.md" ".claude/skills/ui-design/references/landing-patterns.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/21st-dev-components.md" ".claude/skills/ui-design/references/21st-dev-components.md" ".claude/skills/ui-design/references/21st-dev-components.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/product-ui-patterns.md" ".claude/skills/ui-design/references/product-ui-patterns.md" ".claude/skills/ui-design/references/product-ui-patterns.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/trust-first-patterns.md" ".claude/skills/ui-design/references/trust-first-patterns.md" ".claude/skills/ui-design/references/trust-first-patterns.md"
         # Image generation skill (Gemini API — checks docs for current model)
         copy_file "$SCRIPT_DIR/skills/generate-image/SKILL.template.md" ".claude/skills/generate-image/SKILL.md" ".claude/skills/generate-image/SKILL.md"
         ;;
@@ -374,12 +380,18 @@ case $TECH_STACK in
         copy_file "$SCRIPT_DIR/rules/typescript-style.md" ".claude/rules/typescript-style.md" ".claude/rules/typescript-style.md"
         copy_file "$SCRIPT_DIR/rules/database.md" ".claude/rules/database.md" ".claude/rules/database.md"
         copy_file "$SCRIPT_DIR/rules/frontend-design.md" ".claude/rules/frontend-design.md" ".claude/rules/frontend-design.md"
-        # UI Design skill (auto-triggers for frontend work)
+        # UI Design skill (auto-triggers for frontend work) — all 10 references
         copy_file "$SCRIPT_DIR/skills/ui-design/SKILL.template.md" ".claude/skills/ui-design/SKILL.md" ".claude/skills/ui-design/SKILL.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md" ".claude/skills/ui-design/references/animation-techniques.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md" ".claude/skills/ui-design/references/typography-and-color.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md" ".claude/skills/ui-design/references/polish-checklist.md"
         copy_file "$SCRIPT_DIR/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md" ".claude/skills/ui-design/references/media-assets.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/industry-design-guide.md" ".claude/skills/ui-design/references/industry-design-guide.md" ".claude/skills/ui-design/references/industry-design-guide.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/ux-antipatterns.md" ".claude/skills/ui-design/references/ux-antipatterns.md" ".claude/skills/ui-design/references/ux-antipatterns.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/landing-patterns.md" ".claude/skills/ui-design/references/landing-patterns.md" ".claude/skills/ui-design/references/landing-patterns.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/21st-dev-components.md" ".claude/skills/ui-design/references/21st-dev-components.md" ".claude/skills/ui-design/references/21st-dev-components.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/product-ui-patterns.md" ".claude/skills/ui-design/references/product-ui-patterns.md" ".claude/skills/ui-design/references/product-ui-patterns.md"
+        copy_file "$SCRIPT_DIR/skills/ui-design/references/trust-first-patterns.md" ".claude/skills/ui-design/references/trust-first-patterns.md" ".claude/skills/ui-design/references/trust-first-patterns.md"
         # Image generation skill (Gemini API — checks docs for current model)
         copy_file "$SCRIPT_DIR/skills/generate-image/SKILL.template.md" ".claude/skills/generate-image/SKILL.md" ".claude/skills/generate-image/SKILL.md"
         ;;

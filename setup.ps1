@@ -393,7 +393,7 @@ switch ($Tech) {
     "typescript" {
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
-        # UI Design skill (auto-triggers for frontend work)
+        # UI Design skill (auto-triggers for frontend work) — all 10 references
         $skillDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "ui-design")
         $refsDir = Join-Path $skillDir "references"
         Copy-TemplateFile (Join-Path $skillDir "SKILL.template.md") ".claude\skills\ui-design\SKILL.md" ".claude\skills\ui-design\SKILL.md"
@@ -401,6 +401,12 @@ switch ($Tech) {
         Copy-TemplateFile (Join-Path $refsDir "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
         Copy-TemplateFile (Join-Path $refsDir "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
         Copy-TemplateFile (Join-Path $refsDir "media-assets.md") ".claude\skills\ui-design\references\media-assets.md" ".claude\skills\ui-design\references\media-assets.md"
+        Copy-TemplateFile (Join-Path $refsDir "industry-design-guide.md") ".claude\skills\ui-design\references\industry-design-guide.md" ".claude\skills\ui-design\references\industry-design-guide.md"
+        Copy-TemplateFile (Join-Path $refsDir "ux-antipatterns.md") ".claude\skills\ui-design\references\ux-antipatterns.md" ".claude\skills\ui-design\references\ux-antipatterns.md"
+        Copy-TemplateFile (Join-Path $refsDir "landing-patterns.md") ".claude\skills\ui-design\references\landing-patterns.md" ".claude\skills\ui-design\references\landing-patterns.md"
+        Copy-TemplateFile (Join-Path $refsDir "21st-dev-components.md") ".claude\skills\ui-design\references\21st-dev-components.md" ".claude\skills\ui-design\references\21st-dev-components.md"
+        Copy-TemplateFile (Join-Path $refsDir "product-ui-patterns.md") ".claude\skills\ui-design\references\product-ui-patterns.md" ".claude\skills\ui-design\references\product-ui-patterns.md"
+        Copy-TemplateFile (Join-Path $refsDir "trust-first-patterns.md") ".claude\skills\ui-design\references\trust-first-patterns.md" ".claude\skills\ui-design\references\trust-first-patterns.md"
         # Image generation skill (Gemini API — checks docs for current model)
         $genImgDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "generate-image")
         Copy-TemplateFile (Join-Path $genImgDir "SKILL.template.md") ".claude\skills\generate-image\SKILL.md" ".claude\skills\generate-image\SKILL.md"
@@ -410,7 +416,7 @@ switch ($Tech) {
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "typescript-style.md") ".claude\rules\typescript-style.md" ".claude\rules\typescript-style.md"
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "database.md") ".claude\rules\database.md" ".claude\rules\database.md"
         Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "rules") "frontend-design.md") ".claude\rules\frontend-design.md" ".claude\rules\frontend-design.md"
-        # UI Design skill (auto-triggers for frontend work)
+        # UI Design skill (auto-triggers for frontend work) — all 10 references
         $skillDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "ui-design")
         $refsDir = Join-Path $skillDir "references"
         Copy-TemplateFile (Join-Path $skillDir "SKILL.template.md") ".claude\skills\ui-design\SKILL.md" ".claude\skills\ui-design\SKILL.md"
@@ -418,6 +424,12 @@ switch ($Tech) {
         Copy-TemplateFile (Join-Path $refsDir "typography-and-color.md") ".claude\skills\ui-design\references\typography-and-color.md" ".claude\skills\ui-design\references\typography-and-color.md"
         Copy-TemplateFile (Join-Path $refsDir "polish-checklist.md") ".claude\skills\ui-design\references\polish-checklist.md" ".claude\skills\ui-design\references\polish-checklist.md"
         Copy-TemplateFile (Join-Path $refsDir "media-assets.md") ".claude\skills\ui-design\references\media-assets.md" ".claude\skills\ui-design\references\media-assets.md"
+        Copy-TemplateFile (Join-Path $refsDir "industry-design-guide.md") ".claude\skills\ui-design\references\industry-design-guide.md" ".claude\skills\ui-design\references\industry-design-guide.md"
+        Copy-TemplateFile (Join-Path $refsDir "ux-antipatterns.md") ".claude\skills\ui-design\references\ux-antipatterns.md" ".claude\skills\ui-design\references\ux-antipatterns.md"
+        Copy-TemplateFile (Join-Path $refsDir "landing-patterns.md") ".claude\skills\ui-design\references\landing-patterns.md" ".claude\skills\ui-design\references\landing-patterns.md"
+        Copy-TemplateFile (Join-Path $refsDir "21st-dev-components.md") ".claude\skills\ui-design\references\21st-dev-components.md" ".claude\skills\ui-design\references\21st-dev-components.md"
+        Copy-TemplateFile (Join-Path $refsDir "product-ui-patterns.md") ".claude\skills\ui-design\references\product-ui-patterns.md" ".claude\skills\ui-design\references\product-ui-patterns.md"
+        Copy-TemplateFile (Join-Path $refsDir "trust-first-patterns.md") ".claude\skills\ui-design\references\trust-first-patterns.md" ".claude\skills\ui-design\references\trust-first-patterns.md"
         # Image generation skill (Gemini API — checks docs for current model)
         $genImgDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "generate-image")
         Copy-TemplateFile (Join-Path $genImgDir "SKILL.template.md") ".claude\skills\generate-image\SKILL.md" ".claude\skills\generate-image\SKILL.md"

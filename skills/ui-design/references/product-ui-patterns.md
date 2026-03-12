@@ -79,6 +79,36 @@ The most complex and important component in product UI.
 - **Data freshness**: Show "Last updated: 2 min ago" timestamp — users need to trust the data
 - **Loading**: Skeleton cards + skeleton charts, not a full-page spinner
 
+### Chart Styling Guide
+
+| Data Story                    | Chart Type               | Styling Notes                                                                   |
+| ----------------------------- | ------------------------ | ------------------------------------------------------------------------------- |
+| Trend over time               | Line chart               | Smooth curves (`tension: 0.4`), area fill at 10% opacity, branded primary color |
+| Comparison between categories | Horizontal bar chart     | Sorted by value, brand palette, rounded corners on bars                         |
+| Parts of whole (max 5)        | Donut chart              | 60% inner radius, legend below, muted border between segments                   |
+| Distribution                  | Histogram or box plot    | Neutral colors, clear axis labels                                               |
+| Correlation                   | Scatter plot             | Opacity 60% for density, branded accent for highlighted points                  |
+| Progress toward goal          | Radial progress or gauge | Brand primary fill, muted track, percentage label centered                      |
+
+**Chart rules:**
+
+- Use the project's palette tokens for chart colors — never random colors
+- Always include axis labels, tooltips on hover, and a legend
+- Responsive: charts should resize gracefully, not overflow
+- Empty chart state: "No data for this period" with suggestion to adjust filters
+- Animate on first load only (count-up for numbers, draw for lines) — no looping animations
+
+### Branded App Shell
+
+Product UI doesn't mean boring. Make app shells distinctive:
+
+- **Sidebar**: Brand primary as accent color for active item, subtle hover states, collapsible with icon-only mode
+- **Page headers**: Consistent layout — title left, actions right, optional breadcrumbs above
+- **Cards and panels**: Subtle shadows (`shadow-sm`), consistent border-radius, brand accent on focus/selection
+- **Empty states**: Branded illustrations (search 21st.dev for "empty state" components), not just text
+- **Loading skeletons**: Match the exact layout of the loaded content — same heights, widths, positions
+- **Dark mode**: Fully supported with `prefers-color-scheme` — not an afterthought
+
 ---
 
 ## Forms & Workflows
