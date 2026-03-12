@@ -1,169 +1,268 @@
 ---
 name: ui-design
 description: >
-  Design and build visually stunning, production-grade frontend interfaces.
-  Use when building web pages, UI components, landing pages, dashboards,
-  or any user-facing interface. Ensures every page has visual impact with
-  animations, immersive effects, and intentional design — not generic AI output.
+  Design and build production-grade frontend interfaces across three modes:
+  Marketing/Expressive (landing pages, portfolios), Product UI (dashboards,
+  admin panels, CRUD apps), and Trust-First (healthcare, finance, legal).
+  Auto-triggers on any user-facing interface work.
 ---
 
 # UI Design
 
-> Build interfaces that make people say "Wow, this is the best I've seen."
+> Build interfaces that are intentionally designed, fit for purpose, and impossible to mistake for AI-generated defaults.
+
+## Step 0: Choose Mode
+
+**Before anything else, determine the mode.** Every step after this branches based on the mode you select.
+
+| If the surface involves...                                                    | Mode                       | Optimize for                                      |
+| ----------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------- |
+| Sensitive decisions, money, health, legal, compliance, irreversible actions   | **Trust-First**            | Clarity, confidence, safety, accuracy             |
+| Authenticated workflows, dashboards, tables, CRUD, admin, settings, reporting | **Product UI**             | Efficiency, scanability, task completion, density |
+| Landing pages, marketing sites, portfolios, event pages, brand showcases      | **Marketing / Expressive** | Wow factor, conversion, memorability, emotion     |
+
+**Nuance:** Domain risk overrides surface type. A fintech landing page is **Trust-First**, not Marketing. A healthcare marketing site may blend Trust-First aesthetics with Marketing conversion patterns.
+
+After choosing a mode, check `references/industry-design-guide.md` for industry-specific palette (`P-XX`), font pairing (`F-XX`), and anti-patterns. These map to ready-to-use tokens in `references/typography-and-color.md`.
+
+---
 
 ## Step 1: Design Thinking (BEFORE writing code)
 
-Before touching any code, commit to a BOLD aesthetic direction:
+### Universal (all modes)
 
-1. **Purpose**: What problem does this interface solve? Who uses it?
-2. **Tone**: Pick a specific aesthetic — don't settle for "modern and clean":
+1. **Purpose**: What problem does this interface solve? Who uses it? What's the primary user task?
+2. **Success criteria**: How do you know the design worked? (Conversion? Task completion time? Error rate? Trust?)
+3. **Constraints**: Framework, performance budget, accessibility requirements, brand guidelines
+
+### Marketing / Expressive — add:
+
+4. **Tone**: Pick a specific aesthetic — don't settle for "modern and clean":
    - Brutally minimal | Maximalist chaos | Retro-futuristic | Organic/natural
    - Luxury/refined | Playful/toy-like | Editorial/magazine | Brutalist/raw
-   - Art deco/geometric | Soft/pastel | Industrial/utilitarian | Cyberpunk
    - Dark OLED luxury | SaaS minimal | Bento grid | Spatial UI
-3. **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
-4. **Constraints**: Framework, performance budget, accessibility requirements
+5. **Differentiation**: What's the ONE thing someone will remember after leaving?
+6. **Conversion path**: What's the primary CTA? Consult `references/landing-patterns.md`
 
-**CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work — the key is intentionality, not intensity.
+### Product UI — add:
 
-## Step 1.5: Domain Context Override
+4. **Information architecture**: What's the nav structure? Sidebar, topbar, breadcrumbs, tabs?
+5. **Data density**: How much information per screen? Dense (admin/dashboard) or focused (wizard/settings)?
+6. **Power users**: Do users need keyboard shortcuts, bulk actions, saved views, or command palettes?
 
-**Check `references/industry-design-guide.md`** to see if the product context modifies the default rules below. Some products require LESS motion, not more:
+### Trust-First — add:
 
-| Product Context                                          | Motion Override                                                                                                                                                                                                                                       |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Trust-first** (healthcare, finance, legal, government) | **Override ALL motion MUSTs in Step 3.** No hero particles/WebGL, no animated SVG wave dividers, no spring card entrances. Use only smooth transitions (200-300ms), subtle hover states, and accordion/reveal animations. Steps 3.1–3.5 do NOT apply. |
-| **Balanced** (SaaS, e-commerce, education)               | Default motion rules apply. Lean purposeful over decorative.                                                                                                                                                                                          |
-| **Expressive** (agencies, gaming, fashion, events)       | Full motion rules. Go bold — this is where canvas particles and WebGL shine.                                                                                                                                                                          |
+4. **Risk level**: What happens if the user makes a mistake? Can it be undone?
+5. **Trust signals**: What credentials, security cues, or verification steps does the user need to see?
+6. **Explanation needs**: Does the user need to understand WHY something is recommended, shown, or restricted?
 
-If building a **landing page**, also consult `references/landing-patterns.md` for section sequencing and CTA hierarchy before choosing a layout.
+---
 
-If building for a **specific industry**, use the palette ID (`P-XX`) and font pairing ID (`F-XX`) from the industry guide — they map to ready-to-use tokens in `references/typography-and-color.md`.
+## Step 2: Search 21st.dev Before Building
 
-## Step 1.7: Search 21st.dev Before Building
+**Before building any standard component from scratch**, search [21st.dev](https://21st.dev) for existing implementations. 1,400+ community-built shadcn/ui React components.
 
-**Before building any standard UI component from scratch, search [21st.dev](https://21st.dev) for existing high-quality implementations.** This marketplace has 1,400+ community-built shadcn/ui React components — heroes, pricing cards, forms, tables, buttons, and more.
+Use a Playwright subagent to browse, search, and either:
 
-**How:** Use a Playwright subagent to browse 21st.dev, search for the component type, pick the best match by bookmark count, and either:
-
-- **Copy the prompt** — a pre-written implementation spec you use to build the component
+- **Copy the prompt** — a pre-written implementation spec
 - **Direct install** — `npx shadcn@latest add "https://21st.dev/r/{author}/{component}/default"`
 
-No API key needed. See `references/21st-dev-components.md` for the full Playwright workflow, available categories, and decision guide.
+See `references/21st-dev-components.md` for the full Playwright workflow.
 
-**Skip this step** only for highly custom, brand-specific components that wouldn't exist in a general marketplace.
+**Mode-specific guidance:**
 
-## Step 2: Anti-AI-Slop Rules (MANDATORY)
+- **Marketing**: Search heroes, CTAs, pricing, testimonials, shaders — great for impressive blocks
+- **Product UI**: Search tables, forms, sidebars, tabs, inputs — great for functional primitives
+- **Trust-First**: Search forms, alerts, dialogs — but **never reuse regulated workflow logic** without review. Only use primitives.
 
-**Font defaults to AVOID** — Do not reach for: Inter, Roboto, Arial, Space Grotesk, system-ui defaults.
-Choose distinctive, characterful fonts instead. Pair a display font with a refined body font.
-(Exception: if the project has an established brand/design system that requires specific fonts, use those.)
+Skip only for highly custom, brand-specific components.
 
-**Patterns to AVOID** — Do not produce:
+---
 
+## Step 3: Anti-Slop Rules (MANDATORY)
+
+### Universal (all modes)
+
+- No unstyled component library defaults (raw Bootstrap, default shadcn without customization)
+- No placeholder images or gray rectangles — use real assets
+- No missing states (hover, focus, disabled, loading, error, empty)
+- Always `prefers-reduced-motion` respected
+- Always WCAG AA contrast (4.5:1 text, 3:1 large text/UI)
+
+### Marketing / Expressive — also avoid:
+
+- Inter, Roboto, Arial, Space Grotesk, system-ui defaults (choose distinctive fonts instead)
 - Purple gradients on white backgrounds
 - Evenly-padded card grids with identical rounded corners
 - Generic hero sections with centered text and a gradient button
-- Cookie-cutter component library defaults (unstyled Bootstrap, default shadcn)
+- **Anti-convergence**: No two designs should look the same. Vary themes, fonts, aesthetics
 
-**Anti-convergence** — No two designs should look the same. Vary between light and dark themes, different fonts, different aesthetics. NEVER converge on common choices across generations.
+### Product UI — also avoid:
 
-## Step 3: Visual Impact Requirements (MANDATORY)
+- Decorative animations that slow task completion
+- Custom fonts that hurt scanability at small sizes (system fonts and Inter are FINE here)
+- Marketing-style hero sections in app UIs
+- Ambiguous icons without labels
+- Inconsistent spacing, alignment, or component patterns across screens
 
-Static pages are drafts. Every page needs **visible, impressive motion** — not subtle micro-animations that nobody notices.
+### Trust-First — also avoid:
 
-### Minimum requirements for any page:
+- Playful or casual tone on serious workflows
+- Motion-heavy effects that feel unserious (particles, glitch, neon)
+- Hidden information or progressive disclosure of critical details
+- Color-only status indicators (always pair with icons + text)
+- AI purple/pink gradients on professional/regulated surfaces
 
-1. **Hero section MUST have high-impact motion** — canvas particle network, WebGL shader gradient, OR layered animated SVG waves. NOT just subtle blurs or tiny floating dots. The hero is the first thing users see — it must create a "wow" moment.
-2. **Section dividers MUST be animated SVG waves** (2-3 layers at different speeds) — NOT flat lines or 1px borders. This is a default, not an option.
-3. **At least one interactive element** that responds to mouse position or scroll — particle connections that light up on hover, parallax layers, cursor-following effects, or scroll-triggered reveals.
-4. **Feature cards MUST have spring entrance animations** + hover transforms (scale, shadow, glow).
-5. **Staggered page load** — elements reveal in sequence with `animation-delay`, not all at once.
+---
 
-### Default effects by section:
+## Step 4: Visual Rules (MODE-SPECIFIC)
 
-| Section                    | Default Implementation (not optional)                          |
-| -------------------------- | -------------------------------------------------------------- |
-| Hero / Above the fold      | Canvas particle network OR WebGL shader gradient (HIGH IMPACT) |
-| Section dividers           | Animated SVG wave paths (2-3 layers, different speeds)         |
-| Feature cards              | Spring entrance + hover scale/glow transforms                  |
-| Icons & micro-interactions | Lottie animations or animated SVG transitions                  |
-| Backgrounds                | Animated gradient, grid pattern overlay, or particle noise     |
-| Loading / empty states     | Lottie or skeleton with shimmer animation                      |
-| Page transitions           | Orchestrated staggered reveals (animation-delay)               |
-| Data flows / connections   | Animated dashed strokes, pulsing glow dots, flowing paths      |
+### Marketing / Expressive
 
-### "Too Subtle" anti-pattern (AVOID):
+Static pages are drafts. Every marketing page needs **visible, impressive motion**:
 
-These technically count as "animation" but create ZERO visual impact:
+1. **Hero section MUST have high-impact motion** — canvas particle network, WebGL shader gradient, OR layered animated SVG waves. The hero is the first thing users see.
+2. **Section dividers MUST be animated SVG waves** (2-3 layers, different speeds) — not flat lines.
+3. **At least one interactive element** responding to mouse position or scroll.
+4. **Feature cards MUST have spring entrance animations** + hover transforms.
+5. **Staggered page load** — elements reveal in sequence, not all at once.
 
-- Tiny floating dots that blur away to nothing
-- Barely-visible opacity pulses (0.9 → 1.0)
-- Microscopic blur circles in the background
-- Single-pixel animated borders
-- Animations that only trigger on hover with no idle state
+| Section               | Default Implementation                             |
+| --------------------- | -------------------------------------------------- |
+| Hero / Above the fold | Canvas particle network OR WebGL shader gradient   |
+| Section dividers      | Animated SVG wave paths (2-3 layers)               |
+| Feature cards         | Spring entrance + hover scale/glow transforms      |
+| Backgrounds           | Animated gradient, grid pattern, or particle noise |
+| Page transitions      | Orchestrated staggered reveals                     |
 
-**If a user has to squint to notice the animation, it's too subtle. Redo it.**
+**Spatial composition**: Asymmetry, overlap, diagonal flow, grid-breaking, bold negative space.
+**Backgrounds**: Gradient meshes, noise textures, geometric patterns, custom cursors.
 
-**High-impact rule**: One well-orchestrated page load with staggered reveals + an interactive hero creates more delight than 20 subtle micro-animations. Focus on: canvas particles in hero, SVG wave dividers, scroll-triggered card entrances, and flowing data connections.
+See `references/animation-techniques.md` for implementation details.
 
-**Animation with purpose**: Every animation should either (a) create a "wow" first impression, (b) guide attention to important content, (c) provide interaction feedback, or (d) show data/state relationships. If it does none of these, remove it.
+### Product UI
 
-## Step 4: Spatial Composition
+Efficiency beats spectacle. Every pixel should help the user complete their task:
 
-Don't default to symmetric grids:
+1. **Consistent app shell** — predictable sidebar/topbar/breadcrumb structure across all screens.
+2. **Dense but scannable** — group related info, use whitespace to separate groups, align labels consistently.
+3. **Functional motion only** — smooth transitions (150-200ms), skeleton loaders, optimistic updates. No decorative animation.
+4. **Complete state coverage** — every component needs: default, hover, focus, active, disabled, loading, error, empty states.
+5. **Keyboard-first** — all actions reachable via keyboard. Tab order follows visual order.
 
-- **Asymmetry** — intentional visual weight imbalance
-- **Overlap** — elements breaking out of their containers
-- **Diagonal flow** — guide the eye with angled elements
-- **Grid-breaking** — key elements that escape the grid for emphasis
-- **Negative space** — generous whitespace OR controlled density (commit to one)
+| Element             | Key Pattern                                                                 |
+| ------------------- | --------------------------------------------------------------------------- |
+| Tables              | Sticky headers, sort, filter, bulk actions, column visibility, pagination   |
+| Forms               | Inline validation on blur, clear error placement, autosave or explicit save |
+| Dashboards          | KPI cards with comparison periods, chart selection by data type, drilldown  |
+| Navigation          | Breadcrumbs for depth, tabs for parallel views, sidebar for global nav      |
+| Empty states        | Helpful guidance + primary action, not blank screens                        |
+| Destructive actions | Confirmation dialog with explicit consequences, undo when possible          |
 
-## Step 5: Backgrounds & Atmosphere
+See `references/product-ui-patterns.md` for comprehensive patterns.
 
-Avoid plain solid-color backgrounds when possible. Create depth:
+### Trust-First
 
-- Gradient meshes and CSS gradient animations
-- Noise textures and grain overlays
-- Geometric patterns and layered transparencies
-- Dramatic shadows and decorative borders
-- Custom cursors for interactive sections
+Users need to feel safe, informed, and in control:
 
-## Step 6: Real Media Assets (NOT Placeholders)
+1. **Calm, professional aesthetic** — smooth transitions only (200-300ms). No particles, WebGL, animated waves, or spring animations.
+2. **Maximum clarity** — plain language, visible status, explicit next steps. If a user has to guess what's happening, it's broken.
+3. **Confirmation on irreversible actions** — review steps, explicit consequences, friction before destructive actions.
+4. **Trust signals visible** — credentials, security badges, encryption indicators, privacy policies, contact information.
+5. **Accessibility AAA on critical paths** — 7:1 contrast on text that affects decisions. Large touch targets (48px+).
 
-Never leave `<img>` tags with placeholder URLs or gray boxes. Use real images during development:
+| Element        | Key Pattern                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| Forms          | Multi-step with review, required field indicators, inline validation, clear error messages |
+| Status         | Plain-language alerts, color + icon + text (never color alone), timestamps, data freshness |
+| Sensitive data | Masking by default, reveal controls, audit trail, session timeout warnings                 |
+| Confirmations  | Explicit consequences stated, separate confirm button, undo when possible                  |
+| Explanations   | Why a recommendation exists, what happens next, who to contact for help                    |
 
-- **Stock photography** → Use Pexels/Unsplash MCP to search for contextual photos (team meetings, office environments, product shots). Pick images that match your aesthetic tone.
-- **AI-generated imagery** → Use `/generate-image` skill to create custom hero images, illustrations, and visual assets via Gemini API. It checks the latest docs automatically.
-- **Optimize everything** → WebP/AVIF format, explicit `width`/`height`, responsive `srcset`, lazy-load below fold.
+See `references/trust-first-patterns.md` for domain-specific patterns.
 
-See `references/media-assets.md` for prompting best practices, common image sizes, and workflow patterns.
+---
 
-## Step 7: Implementation References
+## Step 5: Real Assets (NOT Placeholders)
 
-For detailed implementation techniques, consult these references:
+### Universal
 
-- **Component search** → See `references/21st-dev-components.md` for searching 21st.dev via Playwright — categories, workflow, and install patterns
-- **Industry context** → See `references/industry-design-guide.md` for product-type → style, palette, font pairing, motion budget, and anti-patterns
-- **Landing pages** → See `references/landing-patterns.md` for section sequencing, CTA hierarchy, and conversion patterns
-- **UX anti-patterns** → See `references/ux-antipatterns.md` for design-time Do/Don't checklist (navigation, touch, forms, accessibility, performance)
-- **Animations & effects** → See `references/animation-techniques.md` for SVG waves, Lottie, WebGL, canvas particles, Framer Motion spring presets, GSAP, stagger patterns, form shake keyframes
-- **Typography & color** → See `references/typography-and-color.md` for fluid clamp() scale, OKLCH color tokens, curated font pairings (F-01–F-12), industry palettes (P-01–P-12), dark mode
-- **Media assets & sizes** → See `references/media-assets.md` for image generation prompting, stock photos, platform size reference (social, banners, OG), and optimization
-- **Post-build polish** → See `references/polish-checklist.md` for quality audit before delivery
+Never ship placeholder images, fake data, or gray rectangles. Use real assets during development.
 
-## Step 8: Final Check
+### Marketing / Expressive
 
-Before delivering ANY UI work, verify:
+- **Stock photography** → Pexels/Unsplash MCP for contextual photos matching your aesthetic
+- **AI-generated imagery** → `/generate-image` skill for custom hero images and illustrations
+- **Optimize everything** → WebP/AVIF, explicit dimensions, lazy-load below fold
 
-1. Does it look **intentionally designed** or generated? If it looks like AI output, redo it.
-2. Does the **hero section have high-impact motion** (canvas particles, WebGL gradient, or layered SVG waves)? If it's static or has barely-visible effects, redo it.
-3. Are **section dividers animated SVG waves** (not flat lines)?
-4. Is there at least one **interactive element** (responds to mouse or scroll)?
-5. Are fonts **distinctive** (not generic defaults)?
-6. Does the color palette have **dominant colors with sharp accents** (not timid, evenly-distributed)?
-7. Would a **non-technical person say "wow"** when the page loads? If not, add more visual impact.
-8. Are images **real** (stock photos or AI-generated), not placeholder boxes or gray rectangles?
-9. Does it **respect `prefers-reduced-motion`** and meet WCAG AA contrast?
-10. Are **social metadata assets** present — `favicon.ico`, `apple-icon.png`, `icon.svg`, `opengraph-image.png` (1200x630), `metadataBase`, OpenGraph + Twitter card in root layout? (See `references/polish-checklist.md` Section 9)
-11. Run through `references/polish-checklist.md`
+### Product UI
+
+- **Realistic seeded data** → Use plausible names, emails, dates, amounts — not "John Doe" / "test@test.com"
+- **Realistic empty states** → Helpful message + primary action (not "No data found")
+- **Screenshots for docs/onboarding** → Actual product screenshots, not wireframes
+
+### Trust-First
+
+- **Redacted examples** → Show data structure without exposing real PII
+- **Realistic but safe** → Use clearly fake but plausible data (e.g. "Jane Smith, Account \*\*\*\*4829")
+- **Professional imagery** → Avoid stock photos of smiling people in medical/legal contexts. Use credentials, buildings, abstract trust imagery
+
+See `references/media-assets.md` for sizes, formats, platform references, and optimization.
+
+---
+
+## Step 6: Implementation References
+
+Consult these references for detailed implementation:
+
+- **Component search** → `references/21st-dev-components.md` — 21st.dev Playwright workflow
+- **Industry context** → `references/industry-design-guide.md` — product-type → palette, font, motion, anti-patterns
+- **Landing pages** → `references/landing-patterns.md` — conversion patterns and CTA hierarchy _(Marketing mode)_
+- **Product UI** → `references/product-ui-patterns.md` — app shells, tables, dashboards, workflows _(Product mode)_
+- **Trust-First** → `references/trust-first-patterns.md` — trust signals, high-stakes forms, domain flows _(Trust mode)_
+- **UX anti-patterns** → `references/ux-antipatterns.md` — Do/Don't checklist across all modes
+- **Animations & effects** → `references/animation-techniques.md` — SVG waves, WebGL, Framer Motion, GSAP _(primarily Marketing mode)_
+- **Typography & color** → `references/typography-and-color.md` — font pairings (F-01–F-12), palettes (P-01–P-12), OKLCH, dark mode
+- **Media assets & sizes** → `references/media-assets.md` — platform sizes, image generation, optimization
+- **Post-build polish** → `references/polish-checklist.md` — quality audit before delivery
+
+---
+
+## Step 7: Final Check (MODE-AWARE)
+
+### Universal checks (all modes)
+
+1. Does it look **intentionally designed**, not generated? If it looks like AI output, redo it.
+2. Is there a clear **visual hierarchy** — can you instantly see what's most important?
+3. Are **all interactive states** covered? (hover, focus, active, disabled, loading, error, empty)
+4. Are assets **real** — not placeholder boxes or gray rectangles?
+5. Does it **respect `prefers-reduced-motion`** and meet WCAG AA contrast?
+6. Are **social metadata assets** present? (`favicon.ico`, `apple-icon.png`, `icon.svg`, `opengraph-image.png`, OpenGraph + Twitter card) — see `references/polish-checklist.md` Section 9
+7. Run through `references/polish-checklist.md`
+
+### Marketing / Expressive — also check:
+
+8. Does the **hero create a "wow" moment**? (Canvas particles, WebGL, layered SVG waves)
+9. Are **section dividers animated** (not flat lines)?
+10. Is there at least one **interactive element** (mouse/scroll responsive)?
+11. Are fonts **distinctive** (not generic defaults)?
+12. Would a **non-technical person say "wow"** on page load?
+13. Is the **conversion path clear** — primary CTA visible, repeated, high-contrast?
+
+### Product UI — also check:
+
+8. Can the user **complete their primary task** without confusion?
+9. Is the **navigation predictable** — can you always tell where you are?
+10. Are **tables scannable** — sticky headers, clear sort/filter, good density?
+11. Are **forms usable** — visible labels, inline validation, clear error placement?
+12. Does the interface support **power users** — keyboard nav, bulk actions, shortcuts?
+13. Are **loading and empty states** handled gracefully?
+
+### Trust-First — also check:
+
+8. Does the user feel **safe and informed** — trust signals visible, status clear?
+9. Are **irreversible actions** protected with confirmation + explicit consequences?
+10. Is **sensitive data** masked by default with reveal controls?
+11. Are **critical paths AAA accessible** — large text, high contrast, large touch targets?
+12. Does the interface **explain itself** — why something is shown, what happens next?
+13. Is **all status communicated with color + icon + text** (never color alone)?

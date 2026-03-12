@@ -10,7 +10,7 @@ When an MCP server for stock photos is available, use it proactively:
 - **Match the aesthetic** — dark mode site? Search for moody, low-key photography. Bright SaaS? Search for well-lit, clean compositions
 - **People add credibility** — team photos, founder portraits, and candid work shots signal authenticity. Prefer authentic-looking over staged corporate
 - **Download and place immediately** — save to `public/images/` and use the actual path in your components. Never use external URLs for production images
-- **Attribution** — Unsplash and Pexels require attribution in some contexts. Include photographer credit in alt text or a credits section
+- **Attribution** — Unsplash and Pexels may require attribution. Include photographer credit in a credits section or page footer (NOT in alt text — alt text is for accessibility descriptions only)
 
 ## AI Image Generation (Gemini API)
 

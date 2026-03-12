@@ -202,12 +202,12 @@ Choose based on your primary conversion goal:
 
 ## Section Effectiveness Rules
 
-| Section Type                | Engagement Impact          | Placement                         |
-| --------------------------- | -------------------------- | --------------------------------- |
-| Video hero (autoplay muted) | +86% engagement            | Above fold                        |
-| Interactive demo            | +40% engagement            | Above or just below fold          |
-| Social proof (logos)        | +15% trust                 | Immediately after hero            |
-| Testimonials with photos    | +34% conversion            | Before final CTA                  |
-| Pricing with toggle         | +20% annual plan selection | Mid-page with FAQ below           |
-| FAQ accordion               | −30% support tickets       | After pricing or before final CTA |
-| Countdown timer             | +25% urgency               | Hero or sticky bar                |
+| Section Type                | Typical Impact (approximate) | Placement                         |
+| --------------------------- | ---------------------------- | --------------------------------- |
+| Video hero (autoplay muted) | High engagement lift         | Above fold                        |
+| Interactive demo            | High engagement lift         | Above or just below fold          |
+| Social proof (logos)        | Moderate trust improvement   | Immediately after hero            |
+| Testimonials with photos    | Significant conversion lift  | Before final CTA                  |
+| Pricing with toggle         | More annual plan selection   | Mid-page with FAQ below           |
+| FAQ accordion               | Reduces support tickets      | After pricing or before final CTA |
+| Countdown timer             | Increases urgency/action     | Hero or sticky bar                |
