@@ -77,8 +77,10 @@ claude-code-templates/
 │   │       ├── trust-first-patterns.md
 │   │       ├── typography-and-color.md
 │   │       └── ux-antipatterns.md
-│   └── generate-image/        # Image generation via Gemini API (checks docs first)
-│       └── SKILL.template.md  # Script-based generation, no MCP dependency
+│   ├── generate-image/        # Image generation via Gemini API (checks docs first)
+│   │   └── SKILL.template.md  # Script-based generation, no MCP dependency
+│   └── release/               # Release PR creator (dev→test, test→prod)
+│       └── SKILL.template.md  # Environment promotion with categorized changelogs
 │
 ├── agents/                     # Subagent definitions (copied to .claude/agents/)
 │   └── verify-app.md           # Full verification: tests + lint + types
@@ -126,6 +128,7 @@ Templates in the root are **source of truth**. `setup.sh` copies them to target 
 | `skills/ui-design/SKILL.template.md`      | `.claude/skills/ui-design/SKILL.md` in target |
 | `skills/ui-design/references/*.md`        | `.claude/skills/ui-design/references/*.md`    |
 | `skills/generate-image/SKILL.template.md` | `.claude/skills/generate-image/SKILL.md`      |
+| `skills/release/SKILL.template.md`        | `.claude/skills/release/SKILL.md` in target    |
 
 ### Platform Parity
 

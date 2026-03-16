@@ -257,6 +257,7 @@ directories=(
     ".claude/agents"
     ".claude/skills/ui-design/references"
     ".claude/skills/generate-image"
+    ".claude/skills/release"
     "docs/prds"
     "docs/plans"
     "docs/solutions/build-errors"
@@ -328,6 +329,9 @@ chmod +x .claude/hooks/check-bash-safety.sh 2>/dev/null || true
 
 # Agents
 copy_file "$SCRIPT_DIR/agents/verify-app.md" ".claude/agents/verify-app.md" ".claude/agents/verify-app.md"
+
+# Skills (tech-agnostic)
+copy_file "$SCRIPT_DIR/skills/release/SKILL.template.md" ".claude/skills/release/SKILL.md" ".claude/skills/release/SKILL.md"
 
 # Commands - Workflow (ENFORCED)
 copy_file "$SCRIPT_DIR/commands/new-feature.md" ".claude/commands/new-feature.md" ".claude/commands/new-feature.md"
@@ -454,7 +458,7 @@ if [[ "$UPGRADE" == true ]]; then
     echo "  .claude/hooks/           Hook scripts (refreshed)"
     echo "  .claude/rules/           Coding standards (refreshed)"
     echo "  .claude/agents/          Subagent definitions (refreshed)"
-    echo "  .claude/skills/          UI design skill (refreshed, if typescript/fullstack)"
+    echo "  .claude/skills/          Skills (release, ui-design if typescript/fullstack)"
     echo "  .claude/settings.json    Hooks and permissions (merged — your customizations kept)"
     echo "  .mcp.json                MCP servers (merged — your customizations kept)"
     echo ""
@@ -491,7 +495,7 @@ else
     echo "  .claude/commands/        Workflow commands: /new-feature, /fix-bug, /quick-fix"
     echo "  .claude/hooks/           Auto-run scripts (format, verify, memory)"
     echo "  .claude/agents/          Subagent definitions (verify-app)"
-    echo "  .claude/skills/           UI design skill (auto-triggers for frontend work)"
+    echo "  .claude/skills/           Skills (release PR creator + UI design for frontend)"
     echo "  .claude/rules/           Coding standards + workflow rules (safe to update)"
     echo "  docs/                    Changelog, PRDs, solutions knowledge base"
     echo ""

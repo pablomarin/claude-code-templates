@@ -414,7 +414,18 @@ Working on user authentication
 - Frontend pages
 ```
 
-### 3. Frontend Design Quality (TypeScript/Fullstack)
+### 3. Release PR Skill (All Tech Stacks)
+
+The `/release` skill creates structured release PRs between environment branches:
+
+```
+/release test    — Create PR from dev → test
+/release prod    — Create PR from test → prod
+```
+
+It fetches the latest branch state, reads all commits between the two branches, categorizes changes (Features, Fixes, Improvements, Chores), and creates a well-formatted PR with a dated title (`TEST 03/16` or `PROD 03/16`). Requires `gh` CLI and `dev`/`test`/`prod` branches.
+
+### 4. Frontend Design Quality (TypeScript/Fullstack)
 
 For TypeScript and fullstack projects, the setup installs:
 
@@ -430,7 +441,7 @@ For TypeScript and fullstack projects, the setup installs:
 | `dgreenheck/webgpu-claude-skill`  | WebGPU + Three.js TSL shaders, particle systems (APPROVED)                                                                         | `/skill install webgpu-threejs-tsl@dgreenheck/webgpu-claude-skill` |
 | `ibelick/ui-skills`               | Polish layer: baseline-ui, motion-performance, accessibility (CONDITIONAL — copy SKILL.md files manually, skip curl\|sh installer) | Clone repo, copy `skills/*/SKILL.md` to `.claude/skills/`          |
 
-### 4. Optional MCP Add-ons
+### 5. Optional MCP Add-ons
 
 The default `.mcp.json` includes Playwright and Context7. For web projects, you may want:
 
@@ -472,7 +483,7 @@ The `/ui-design` skill's `references/media-assets.md` provides prompting best pr
 
 After adding any MCP server, add its permission to `.claude/settings.json` → `permissions.allow` (e.g., `"mcp__nano_banana"`) to skip permission prompts.
 
-### 5. Automated PR Reviews (Recommended)
+### 6. Automated PR Reviews (Recommended)
 
 The `/review-pr-comments` command works by processing review comments left on your GitHub pull requests. For it to be useful, you need automated reviewers configured on your repo. Set up **at least one** of these:
 
@@ -486,7 +497,7 @@ Once configured, the workflow becomes: create PR → automated reviewers leave c
 
 > **No automated reviewers?** The workflow still works — you just skip the `/review-pr-comments` step. All pre-PR quality gates (Codex second opinion, deep review, /simplify, verify-app) still catch issues before the PR is created.
 
-### 6. Verify Setup
+### 7. Verify Setup
 
 ```bash
 # Restart Claude Code
@@ -1043,7 +1054,9 @@ your-project/
 │   │   ├── frontend-design.md        # Frontend design baseline (TS/fullstack)
 │   │   ├── database.md               # Database conventions
 │   │   └── skill-audit.md            # Third-party skill security checklist
-│   └── skills/                        # Auto-triggering skills (TS/fullstack)
+│   └── skills/                        # Skills (release for all, ui-design for TS/fullstack)
+│       ├── release/                   # /release — environment promotion PRs
+│       │   └── SKILL.md              # Create release PRs (dev→test, test→prod)
 │       └── ui-design/                 # /ui-design — full design system
 │           ├── SKILL.md               # Core: design thinking + creative direction
 │           └── references/            # Loaded on demand

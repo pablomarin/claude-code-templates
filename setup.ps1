@@ -288,7 +288,8 @@ $directories = @(
     "docs\solutions\logic-errors",
     "docs\solutions\patterns",
     ".claude\skills\ui-design\references",
-    ".claude\skills\generate-image"
+    ".claude\skills\generate-image",
+    ".claude\skills\release"
 )
 
 foreach ($dir in $directories) {
@@ -360,6 +361,10 @@ Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-bash-safety.p
 
 # Agents
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-app.md") ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
+
+# Skills (tech-agnostic)
+$releaseDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "release")
+Copy-TemplateFile (Join-Path $releaseDir "SKILL.template.md") ".claude\skills\release\SKILL.md" ".claude\skills\release\SKILL.md"
 
 # Commands - Workflow (ENFORCED)
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "commands") "new-feature.md") ".claude\commands\new-feature.md" ".claude\commands\new-feature.md"
@@ -503,7 +508,7 @@ if ($Upgrade) {
     Write-Host "  .claude\hooks\           Hook scripts (refreshed)"
     Write-Host "  .claude\rules\           Coding standards (refreshed)"
     Write-Host "  .claude\agents\          Subagent definitions (refreshed)"
-    Write-Host "  .claude\skills\          UI design skill (refreshed, if typescript/fullstack)"
+    Write-Host "  .claude\skills\          Skills (release, ui-design if typescript/fullstack)"
     Write-Host "  .claude\settings.json    Hooks and permissions (merged - your customizations kept)"
     Write-Host "  .mcp.json                MCP servers (merged - your customizations kept)"
     Write-Host ""
@@ -545,7 +550,7 @@ if ($Upgrade) {
     Write-Host "  .claude\hooks\           Auto-run scripts (format, verify, memory)"
     Write-Host "  .claude\agents\          Subagent definitions (verify-app)"
     Write-Host "  .claude\rules\           Coding standards + workflow rules (safe to update)"
-    Write-Host "  .claude\skills\           UI design skill (auto-triggers for frontend work)"
+    Write-Host "  .claude\skills\           Skills (release PR creator + UI design for frontend)"
     Write-Host "  docs\                    Changelog, PRDs, solutions knowledge base"
     Write-Host ""
     Write-Color "Plugins pre-enabled in .claude\settings.json:" "Yellow"
