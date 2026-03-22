@@ -194,39 +194,52 @@ This ensures UI fixes maintain visual quality — don't regress the design while
 /superpowers:writing-plans
 ```
 
-#### 3.3 Design Review — Second Opinion (MANDATORY)
+#### 3.3 Plan vs Code Verification — Dual Review (MANDATORY)
 
-Get an independent review of the fix plan before implementing. This catches mistakes early.
+Go back to the fix plan and check everything proposed against the actual code. Verify it's the simplest, fastest, best way to do it. Two independent reviews run **in parallel**:
 
-**Check if Codex CLI is available:**
+**a) Claude (you) reviews the plan against the codebase:**
+
+Read every file the plan proposes to modify. For each change, ask:
+
+- Is this the simplest way to achieve the goal?
+- Does the plan account for what the code actually looks like today?
+- Are there existing utilities, patterns, or abstractions the plan should use instead of creating new ones?
+- Is anything proposed that's unnecessary or over-engineered?
+
+Document your findings as a list of concerns (P0/P1/P2).
+
+**b) Codex reviews independently and separately:**
+
+Check if Codex CLI is available:
 
 ```bash
 command -v codex &>/dev/null && echo "Codex available" || echo "Codex not installed"
 ```
 
-**If Codex is available:**
+If available:
 
 ```
-/codex review the fix plan and flag any concerns
+/codex review the fix plan and check everything we're proposing versus the code — is this the simplest, fastest, best way to do it? Flag any concerns.
 ```
 
-**If Codex is NOT available:**
+If Codex is NOT available:
 
-- Present a summary of the fix plan to the user
+- Present your own review findings plus a summary of the plan to the user
 - Ask: "Does this fix approach look right before I start implementing?"
 - Wait for user confirmation before proceeding to Phase 4
 
 #### 3.4 Iterate until approved
 
-**If the review finds P0 or P1 issues:**
+**If either review finds P0 or P1 issues:**
 
 1. Edit the plan to address the issues
-2. Run `/codex review` again (or ask the user again)
-3. Repeat until there are **no P0 or P1 issues** in the review response
+2. Run **both** reviews again (Claude + Codex in parallel)
+3. Repeat until there are **no P0 or P1 issues** from either reviewer
 
 Do NOT proceed to Phase 4 until the plan is approved.
 
-> **Why mandatory?** A wrong fix plan leads to wasted effort and potentially new bugs. A quick review here prevents that.
+> **Why mandatory?** A wrong fix plan leads to wasted effort and potentially new bugs. Two independent reviewers checking the plan against the actual code catches things a single pass misses.
 
 ---
 
@@ -460,8 +473,8 @@ The hooks exist to enforce quality. Bypassing them defeats their purpose.
 - [ ] Loaded design guidance via `/ui-design` (if UI fix)
 - [ ] Brainstormed via `/superpowers:brainstorming`
 - [ ] Plan written via `/superpowers:writing-plans`
-- [ ] **Design reviewed** via `/codex` OR user confirmation (MANDATORY)
-- [ ] No P0/P1 issues remaining in review
+- [ ] **Plan vs code verified** — Claude + Codex dual review in parallel (MANDATORY)
+- [ ] No P0/P1 issues remaining from either reviewer
 
 **Implementation:**
 
