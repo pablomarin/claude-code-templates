@@ -5,10 +5,13 @@
 ## Project Overview
 
 ### What Is This?
+
 [PROJECT DESCRIPTION - 2-3 sentences explaining what this project does]
 
 ### Tech Stack
+
 [TECH STACK - Fill in per project]
+
 - **Backend:**
 - **Frontend:**
 - **Database:**
@@ -34,6 +37,7 @@ project/
 ```
 
 ### Design Direction (optional — delete if not needed)
+
 <!-- Remove this comment block and fill in your project's aesthetic:
 - Premium, dark-mode-first aesthetic (think Linear.app, Vercel.com)
 - Font pairing: Instrument Serif for headlines, Geist for body
@@ -42,12 +46,14 @@ project/
 -->
 
 ### Visual Design Preferences
+
 - Never generate plain static rectangles for hero sections, landing pages, or key visual moments
 - Always include at least one dynamic/animated element: SVG waves, Lottie, shader gradients, or canvas particles
 - Prefer organic shapes (blobs, curves, clip-paths) over straight edges and 90-degree corners
 - Animations must respect `prefers-reduced-motion` — provide static fallbacks
 
 ### Deployment (optional — delete if not needed)
+
 <!-- Remove this comment block and fill in your deployment setup:
 - Hosted on Vercel, auto-deploys from `main` branch
 - Use `vercel --yes` for preview deployments
@@ -73,12 +79,25 @@ cd src && uv run ruff check .              # Lint
 
 ---
 
+## No Bugs Left Behind Policy
+
+**NEVER defer known issues "for later."** When a review, test, or tool flags an issue — fix it in the same branch before moving on. This applies to:
+
+- Code bugs found during review
+- Deployment/infrastructure issues found during testing
+- Configuration mismatches across environments (Docker, K8s, Helm)
+- Security findings from any reviewer (Claude, Codex, PR toolkit)
+- Test coverage gaps for new code
+
+No "follow-up PRs" for known problems. No "v2" for things that should work in v1. If it's found, it's fixed — or the branch isn't ready.
+
 ## Detailed Rules
 
 All coding standards, workflow rules, and policies are in `.claude/rules/`.
 These files are auto-loaded by Claude Code with the same priority as this file.
 
 **What's in `.claude/rules/`:**
+
 - `principles.md` — Top-level principles and design philosophy
 - `workflow.md` — Decision matrix for choosing the right command
 - `worktree-policy.md` — Git worktree isolation rules
