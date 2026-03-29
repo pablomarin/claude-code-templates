@@ -106,6 +106,10 @@
           {
             "type": "command",
             "command": "powershell -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-bash-safety.ps1\""
+          },
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-workflow-gates.ps1\""
           }
         ]
       }
