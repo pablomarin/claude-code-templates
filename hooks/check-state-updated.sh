@@ -42,10 +42,10 @@ CHANGELOG_IN_BRANCH=$(git diff --name-only "$BRANCH_BASE" HEAD 2>/dev/null | gre
 # If CONTINUITY.md has an active workflow, extract phase/next-step for advisory reminder
 WORKFLOW_REMINDER=""
 if [ -f "CONTINUITY.md" ]; then
-    WORKFLOW_CMD=$(grep '| Command |' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+    WORKFLOW_CMD=$(grep -E '\|\s*Command\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
     if [ -n "$WORKFLOW_CMD" ] && [ "$WORKFLOW_CMD" != "none" ] && [ "$WORKFLOW_CMD" != "—" ] && [ "$WORKFLOW_CMD" != "-" ]; then
-        WORKFLOW_PHASE=$(grep '| Phase |' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
-        WORKFLOW_NEXT=$(grep '| Next step |' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+        WORKFLOW_PHASE=$(grep -E '\|\s*Phase\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+        WORKFLOW_NEXT=$(grep -E '\|\s*Next step\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
         WORKFLOW_REMINDER="WORKFLOW: $WORKFLOW_CMD | Phase: $WORKFLOW_PHASE | Next: $WORKFLOW_NEXT"
     fi
 fi

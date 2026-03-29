@@ -40,7 +40,8 @@ $IS_SHIP || exit 0
 # --- Check for active workflow ---
 [ ! -f "CONTINUITY.md" ] && exit 0
 
-WORKFLOW_CMD=$(grep '| Command |' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+# Use flexible whitespace matching — formatters may pad table cells
+WORKFLOW_CMD=$(grep -iE '\|\s*Command\s*\|' CONTINUITY.md 2>/dev/null | head -1 | awk -F'|' '{print $3}' | xargs)
 # No active workflow — allow
 [ -z "$WORKFLOW_CMD" ] && exit 0
 [ "$WORKFLOW_CMD" = "none" ] && exit 0
@@ -51,9 +52,15 @@ WORKFLOW_CMD=$(grep '| Command |' CONTINUITY.md 2>/dev/null | awk -F'|' '{print 
 # Extract the Checklist section (between ### Checklist and next ## heading)
 CHECKLIST=$(sed -n '/^### Checklist/,/^## /p' CONTINUITY.md 2>/dev/null)
 
-# Only gate on always-required items: review, simplify, verify
-# Skip conditional items (those containing "if" in parentheses)
-UNCHECKED=$(echo "$CHECKLIST" | grep '\- \[ \]' | grep -iE '(review|simplif|verif)' | grep -iv '(if ' || true)
+# Only gate on the 3 pre-ship quality gates:
+#   "Code review loop" — code review must pass before shipping
+#   "Simplified" — code simplification must run before shipping
+#   "Verified" — tests/lint/types must pass before shipping
+# Explicitly exclude non-gate items that contain similar words:
+#   "PR reviews addressed" — happens AFTER PR, not a pre-ship gate
+#   "Plugins verified" — pre-flight check, not a quality gate
+#   "Plan vs code verified" — design phase, not a quality gate
+UNCHECKED=$(echo "$CHECKLIST" | grep '\- \[ \]' | grep -iE '(Code review loop|Simplified|Verified \(tests)' || true)
 
 if [ -n "$UNCHECKED" ]; then
     UNCHECKED_COUNT=$(echo "$UNCHECKED" | wc -l | tr -d ' ')

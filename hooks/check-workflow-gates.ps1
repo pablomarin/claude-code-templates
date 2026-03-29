@@ -36,7 +36,7 @@ if (-not $isShip) { exit 0 }
 if (-not (Test-Path "CONTINUITY.md")) { exit 0 }
 
 $content = Get-Content "CONTINUITY.md" -Raw 2>$null
-$cmdLine = ($content -split "`n" | Select-String '\| Command \|' | Select-Object -First 1)
+$cmdLine = ($content -split "`n" | Select-String '\|\s*Command\s*\|' | Select-Object -First 1)
 if (-not $cmdLine) { exit 0 }
 
 $cmd = ($cmdLine -split '\|')[2].Trim()
@@ -50,7 +50,7 @@ $unchecked = @()
 foreach ($line in ($content -split "`n")) {
     if ($line -match '^### Checklist') { $inChecklist = $true; continue }
     if ($line -match '^## ' -and $inChecklist) { break }
-    if ($inChecklist -and $line -match '- \[ \]' -and $line -match '(review|simplif|verif)' -and $line -notmatch '\(if ') {
+    if ($inChecklist -and $line -match '- \[ \]' -and $line -match '(Code review loop|Simplified|Verified \(tests)') {
         $unchecked += $line
     }
 }

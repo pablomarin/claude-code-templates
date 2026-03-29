@@ -59,12 +59,12 @@ if ($branchChangedOutput) {
 $workflowReminder = ""
 if (Test-Path "CONTINUITY.md") {
     $continuityContent = Get-Content "CONTINUITY.md" -Raw 2>$null
-    $cmdLine = ($continuityContent -split "`n" | Select-String '\| Command \|' | Select-Object -First 1)
+    $cmdLine = ($continuityContent -split "`n" | Select-String '\|\s*Command\s*\|' | Select-Object -First 1)
     if ($cmdLine) {
         $cmd = ($cmdLine -split '\|')[2].Trim()
         if ($cmd -and $cmd -ne "none" -and $cmd -ne ([char]0x2014).ToString() -and $cmd -ne "-") {
-            $phaseLine = ($continuityContent -split "`n" | Select-String '\| Phase \|' | Select-Object -First 1)
-            $nextLine = ($continuityContent -split "`n" | Select-String '\| Next step \|' | Select-Object -First 1)
+            $phaseLine = ($continuityContent -split "`n" | Select-String '\|\s*Phase\s*\|' | Select-Object -First 1)
+            $nextLine = ($continuityContent -split "`n" | Select-String '\|\s*Next step\s*\|' | Select-Object -First 1)
             $phase = if ($phaseLine) { ($phaseLine -split '\|')[2].Trim() } else { "" }
             $next = if ($nextLine) { ($nextLine -split '\|')[2].Trim() } else { "" }
             $workflowReminder = "WORKFLOW: $cmd | Phase: $phase | Next: $next"
