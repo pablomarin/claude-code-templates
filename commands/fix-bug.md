@@ -106,7 +106,44 @@ fi
 cat CONTINUITY.md
 ```
 
-### 3. Verify required plugins are available (test ONE skill)
+### 3. Initialize Workflow Tracking
+
+Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't exist):
+
+```markdown
+## Workflow
+
+| Field     | Value               |
+| --------- | ------------------- |
+| Command   | /fix-bug $ARGUMENTS |
+| Phase     | Pre-Flight          |
+| Next step | Verify plugins      |
+
+### Checklist
+
+- [x] Worktree created
+- [x] Project state read
+- [ ] Plugins verified
+- [ ] Searched existing solutions
+- [ ] Systematic debugging complete
+- [ ] Design guidance loaded (if UI fix)
+- [ ] Brainstorming complete (if complex)
+- [ ] Plan written (if complex)
+- [ ] Plan vs code verified (if complex)
+- [ ] TDD fix execution complete
+- [ ] Code review loop (no P0/P1/P2)
+- [ ] Simplified
+- [ ] Verified (tests/lint/types)
+- [ ] E2E tested (if API changed)
+- [ ] Learning documented
+- [ ] State files updated
+- [ ] Committed and pushed
+- [ ] PR created
+- [ ] PR reviews addressed
+- [ ] Branch finished
+```
+
+### 4. Verify required plugins are available (test ONE skill)
 
 ```
 /superpowers:systematic-debugging
@@ -118,13 +155,17 @@ cat CONTINUITY.md
 - Tell user: "Required plugins not loaded. Please enable in ~/.claude/settings.json and restart Claude Code."
 - Do NOT proceed with workarounds or skip mandatory steps
 
-### 4. Worktree Policy Reminder
+**Checkpoint:** Check off "Plugins verified" in CONTINUITY.md and set Next step to "Search existing solutions".
+
+### 5. Worktree Policy Reminder
 
 **DO NOT create additional worktrees** during this workflow. If `/superpowers:systematic-debugging` or other skills attempt to create a worktree, **SKIP that step** - you're already isolated.
 
 ---
 
 ## Phase 1: Research Existing Solutions
+
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `1 — Research`, Next step: `Search existing solutions`.
 
 Before attempting ANY fix, check if this was solved before:
 
@@ -139,6 +180,8 @@ If found, review the solution and apply it.
 ---
 
 ## Phase 2: Systematic Debugging (MANDATORY)
+
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `2 — Debugging`, check off "Searched existing solutions".
 
 **DO NOT guess at fixes.** Run the 4-phase root cause analysis:
 
@@ -165,6 +208,8 @@ This will guide you through:
 ---
 
 ## Phase 3: Plan the Fix
+
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Plan`, check off "Systematic debugging complete".
 
 ### For simple fixes (1-2 files):
 
@@ -245,6 +290,8 @@ Do NOT proceed to Phase 4 until the plan is approved.
 
 ## Phase 4: Execute the Fix
 
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `4 — Execute`, check off planning items.
+
 Implement using TDD (Red-Green-Refactor):
 
 ```
@@ -256,6 +303,9 @@ Or for simple fixes, write a failing test first, then fix.
 ---
 
 ## Phase 5: Quality Gates (ALL REQUIRED)
+
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `5 — Quality Gates`, check off "TDD fix execution complete".
+> **Note:** The PreToolUse hook will block commit/push/PR until review, simplify, and verify are checked off.
 
 > **If any command below fails with "Unknown skill":**
 >
@@ -365,6 +415,8 @@ Use the Playwright MCP server to run browser tests against affected routes. Navi
 
 ## Phase 6: Finish
 
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `6 — Finish`, check off quality gate items.
+
 ### 6.1 Compound the learning (MANDATORY for bug fixes)
 
 Every bug fix teaches something. Capture it:
@@ -455,43 +507,8 @@ The hooks exist to enforce quality. Bypassing them defeats their purpose.
 
 ---
 
-## Checklist Summary
+## Checklist
 
-**Pre-Flight:**
+**The live checklist is in `## Workflow` in CONTINUITY.md** — initialized in Pre-Flight step 3.
 
-- [ ] Created worktree and cd'd into it (unless already in worktree)
-- [ ] Read CONTINUITY.md
-- [ ] **Verified plugins loaded** (if "Unknown skill" → STOP, alert user)
-
-**Investigation:**
-
-- [ ] Searched docs/solutions/ for existing fixes
-- [ ] Ran `/superpowers:systematic-debugging` OR manual 4-phase analysis (MANDATORY)
-
-**Planning (if complex — iterative loop, repeat until no P0/P1s):**
-
-- [ ] Loaded design guidance via `/ui-design` (if UI fix)
-- [ ] Brainstormed via `/superpowers:brainstorming`
-- [ ] Plan written via `/superpowers:writing-plans`
-- [ ] **Plan vs code verified** — Claude + Codex dual review in parallel (MANDATORY)
-- [ ] No P0/P1 issues remaining from either reviewer
-
-**Implementation:**
-
-- [ ] Executed fix with TDD (failing test FIRST, then fix)
-
-**Quality Gates (ALL REQUIRED):**
-
-- [ ] Code review loop (Codex + PR Review Toolkit in parallel) — no P0/P1/P2 issues remaining
-- [ ] Simplified via `/simplify`
-- [ ] Verified via `verify-app` agent (tests, lint, types pass)
-- [ ] **E2E tested via Playwright MCP** (MANDATORY if API changed)
-
-**Finish:**
-
-- [ ] **Learning documented** in `docs/solutions/` + auto memory (MANDATORY)
-- [ ] CONTINUITY.md updated
-- [ ] CHANGELOG.md updated (if 3+ files)
-- [ ] Committed, pushed, and PR created
-- [ ] PR review comments addressed via `/review-pr-comments`
-- [ ] Branch finished via `/finish-branch` (merged, worktree cleaned up)
+The Stop hook reminds you of the current phase on every response. The PreToolUse hook blocks commit/push/PR until review, simplify, and verify are checked off. Update the checklist after each step.

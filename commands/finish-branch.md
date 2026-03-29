@@ -126,7 +126,16 @@ git fetch --prune
 echo "✓ Pruned stale references"
 ```
 
-### 2.8 Switch to main and pull
+### 2.8 Clear Workflow Tracking
+
+If CONTINUITY.md has a `## Workflow` section with an active workflow, either:
+
+- Set Command to `none` and clear the Checklist, OR
+- Delete the entire `## Workflow` section
+
+This marks the workflow as complete so the Stop hook stops reminding and the PreToolUse gate stops checking.
+
+### 2.9 Switch to main and pull
 
 ```bash
 git checkout main
@@ -136,7 +145,7 @@ echo "✓ Updated main branch"
 
 ---
 
-### 2.9 Restart development servers from main
+### 2.10 Restart development servers from main
 
 > ⚠️ **Servers may still be running from the deleted worktree directory, or not running at all.**
 

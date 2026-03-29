@@ -38,6 +38,18 @@ TOTAL_CHANGED=$((BRANCH_CHANGED + UNCOMMITTED_FILES))
 # Check if CHANGELOG was updated anywhere on branch
 CHANGELOG_IN_BRANCH=$(git diff --name-only "$BRANCH_BASE" HEAD 2>/dev/null | grep -c "CHANGELOG.md" || true)
 
+# --- Workflow state tracking ---
+# If CONTINUITY.md has an active workflow, extract phase/next-step for advisory reminder
+WORKFLOW_REMINDER=""
+if [ -f "CONTINUITY.md" ]; then
+    WORKFLOW_CMD=$(grep -E '\|\s*Command\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+    if [ -n "$WORKFLOW_CMD" ] && [ "$WORKFLOW_CMD" != "none" ] && [ "$WORKFLOW_CMD" != "—" ] && [ "$WORKFLOW_CMD" != "-" ]; then
+        WORKFLOW_PHASE=$(grep -E '\|\s*Phase\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+        WORKFLOW_NEXT=$(grep -E '\|\s*Next step\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+        WORKFLOW_REMINDER="WORKFLOW: $WORKFLOW_CMD | Phase: $WORKFLOW_PHASE | Next: $WORKFLOW_NEXT"
+    fi
+fi
+
 ISSUES=""
 
 # Block: uncommitted changes but CONTINUITY.md not updated
@@ -52,8 +64,15 @@ fi
 
 # Block using exit code 2 + stderr (robust — immune to shell profile stdout pollution)
 if [ -n "$ISSUES" ]; then
+    # Prepend workflow reminder if active (so model always sees current phase)
+    [ -n "$WORKFLOW_REMINDER" ] && ISSUES="[$WORKFLOW_REMINDER] $ISSUES"
     echo "$ISSUES" >&2
     exit 2
+fi
+
+# Advisory: remind about active workflow even when no issues (non-blocking)
+if [ -n "$WORKFLOW_REMINDER" ]; then
+    echo "$WORKFLOW_REMINDER" >&2
 fi
 
 # All good, allow stop
