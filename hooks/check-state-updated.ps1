@@ -54,6 +54,24 @@ if ($branchChangedOutput) {
     $changelogInBranch = ($branchChangedOutput | Select-String "CHANGELOG.md" | Measure-Object).Count
 }
 
+# --- Workflow state tracking ---
+# If CONTINUITY.md has an active workflow, extract phase/next-step for advisory reminder
+$workflowReminder = ""
+if (Test-Path "CONTINUITY.md") {
+    $continuityContent = Get-Content "CONTINUITY.md" -Raw 2>$null
+    $cmdLine = ($continuityContent -split "`n" | Select-String '\| Command \|' | Select-Object -First 1)
+    if ($cmdLine) {
+        $cmd = ($cmdLine -split '\|')[2].Trim()
+        if ($cmd -and $cmd -ne "none" -and $cmd -ne ([char]0x2014).ToString() -and $cmd -ne "-") {
+            $phaseLine = ($continuityContent -split "`n" | Select-String '\| Phase \|' | Select-Object -First 1)
+            $nextLine = ($continuityContent -split "`n" | Select-String '\| Next step \|' | Select-Object -First 1)
+            $phase = if ($phaseLine) { ($phaseLine -split '\|')[2].Trim() } else { "" }
+            $next = if ($nextLine) { ($nextLine -split '\|')[2].Trim() } else { "" }
+            $workflowReminder = "WORKFLOW: $cmd | Phase: $phase | Next: $next"
+        }
+    }
+}
+
 # Build response
 $issues = ""
 
@@ -73,8 +91,15 @@ if ($totalChanged -gt 3 -and $changelogInBranch -eq 0 -and $changelogModified -e
 
 # Block using exit code 2 + stderr (robust — immune to stdout pollution)
 if ($issues) {
+    # Prepend workflow reminder if active (so model always sees current phase)
+    if ($workflowReminder) { $issues = "[$workflowReminder] $issues" }
     [Console]::Error.WriteLine($issues)
     exit 2
+}
+
+# Advisory: remind about active workflow even when no issues (non-blocking)
+if ($workflowReminder) {
+    [Console]::Error.WriteLine($workflowReminder)
 }
 
 # All good, allow stop
