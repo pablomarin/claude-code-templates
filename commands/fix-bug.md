@@ -68,9 +68,9 @@ else
   echo "✓ Created new worktree at $WORKTREE_PATH"
 fi
 
-# Copy environment files to worktree
+# Symlink environment files (not copy) so rotated secrets propagate and .env can't be accidentally committed
 for f in .env .env.local .env.development .env.test; do
-  [ -f "$f" ] && cp "$f" "$WORKTREE_PATH/"
+  [ -f "$f" ] && ln -sf "$(pwd)/$f" "$WORKTREE_PATH/$f"
 done
 ```
 

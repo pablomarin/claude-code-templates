@@ -107,6 +107,17 @@ response.set_cookie(
 )
 ```
 
+## AI/LLM CVE Monitoring
+
+Before installing any MCP server or skill, check for known vulnerabilities. Key categories to watch:
+
+- **MCP server privilege escalation** — servers that break out of their declared tool scope
+- **Prompt injection in CI/CD** — build pipelines that pass untrusted input to agents
+- **Agent memory poisoning** — malicious content persisted across sessions
+- **Tool description injection** — hidden instructions in MCP tool metadata
+
+Feed: [Vibe Security Radar](https://vibe-security.com) tracks AI/LLM-specific CVEs (74+ as of March 2026).
+
 ## Third-Party Skills
 
 NEVER install community skills without auditing their SKILL.md. See `rules/skill-audit.md` for the full checklist. Community skills may contain security vulnerabilities.
@@ -118,6 +129,18 @@ The `PreToolUse` hook (`check-bash-safety.sh`) fires before every Bash command. 
 ## Config Change Monitoring
 
 The `ConfigChange` hook (`check-config-change.sh`) logs all mid-session config modifications. Enable strict mode (uncomment in the script) to block removal of deny rules — prevents permission escalation via settings.json tampering.
+
+## Agent Exposure
+
+**This template is designed for single-user, local-only use.** Do NOT expose Claude Code sessions, hooks, or MCP servers to public networks or multi-tenant environments without adding your own authentication and authorization layer.
+
+Threat vectors when agents are publicly exposed:
+
+- **Session hijacking** — anyone with network access can send prompts that trigger Bash, file writes, and tool calls
+- **Tool output injection** — attackers craft inputs that produce tool responses containing prompt injection
+- **Cross-session data leakage** — shared file systems or environment variables leak between users
+
+The `check-bash-safety.sh` hook is defense-in-depth — it is **not** a substitute for access controls.
 
 ## Rules
 
