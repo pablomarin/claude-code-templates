@@ -56,8 +56,9 @@ claude-code-templates/
 │
 ├── hooks/                      # Hook scripts (copied to .claude/hooks/)
 │   ├── session-start.sh/.ps1        # SessionStart: silent context injection (branch)
-│   ├── check-state-updated.sh/.ps1  # Stop: enforce CONTINUITY.md updates
+│   ├── check-state-updated.sh/.ps1  # Stop: enforce CONTINUITY.md updates + workflow reminder
 │   ├── check-bash-safety.sh/.ps1    # PreToolUse: audit log + block dangerous patterns
+│   ├── check-workflow-gates.sh/.ps1 # PreToolUse: block commit/push/PR if quality gates incomplete
 │   ├── post-tool-format.sh/.ps1     # PostToolUse: auto-format on save
 │   ├── pre-compact-memory.sh/.ps1   # PreCompact: save learnings before compression
 │   └── check-config-change.sh/.ps1  # ConfigChange: log config modifications
@@ -128,7 +129,7 @@ Templates in the root are **source of truth**. `setup.sh` copies them to target 
 | `skills/ui-design/SKILL.template.md`      | `.claude/skills/ui-design/SKILL.md` in target |
 | `skills/ui-design/references/*.md`        | `.claude/skills/ui-design/references/*.md`    |
 | `skills/generate-image/SKILL.template.md` | `.claude/skills/generate-image/SKILL.md`      |
-| `skills/release/SKILL.template.md`        | `.claude/skills/release/SKILL.md` in target    |
+| `skills/release/SKILL.template.md`        | `.claude/skills/release/SKILL.md` in target   |
 
 ### Platform Parity
 
