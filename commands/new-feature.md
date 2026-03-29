@@ -106,7 +106,44 @@ fi
 cat CONTINUITY.md
 ```
 
-### 3. Verify required plugins are available (test ONE skill)
+### 3. Initialize Workflow Tracking
+
+Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't exist):
+
+```markdown
+## Workflow
+
+| Field     | Value                   |
+| --------- | ----------------------- |
+| Command   | /new-feature $ARGUMENTS |
+| Phase     | Pre-Flight              |
+| Next step | Verify plugins          |
+
+### Checklist
+
+- [x] Worktree created
+- [x] Project state read
+- [ ] Plugins verified
+- [ ] PRD created
+- [ ] Research done
+- [ ] Design guidance loaded (if UI)
+- [ ] Brainstorming complete
+- [ ] Plan written
+- [ ] Plan vs code verified (dual review)
+- [ ] TDD execution complete
+- [ ] Code review loop (no P0/P1/P2)
+- [ ] Simplified
+- [ ] Verified (tests/lint/types)
+- [ ] E2E tested (if API changed)
+- [ ] Learnings documented (if any)
+- [ ] State files updated
+- [ ] Committed and pushed
+- [ ] PR created
+- [ ] PR reviews addressed
+- [ ] Branch finished
+```
+
+### 4. Verify required plugins are available (test ONE skill)
 
 ```
 /superpowers:brainstorming
@@ -118,13 +155,17 @@ cat CONTINUITY.md
 - Tell user: "Required plugins not loaded. Please enable in ~/.claude/settings.json and restart Claude Code."
 - Do NOT proceed with workarounds or skip mandatory steps
 
-### 4. Worktree Policy Reminder
+**Checkpoint:** Check off "Plugins verified" in CONTINUITY.md and set Next step to "PRD created".
+
+### 5. Worktree Policy Reminder
 
 **DO NOT create additional worktrees** during this workflow. If `/superpowers:brainstorming` or other skills attempt to create a worktree, **SKIP that step** - you're already isolated.
 
 ---
 
 ## Phase 1: Requirements
+
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `1 — Requirements`, Next step: `PRD discuss`.
 
 Run the PRD workflow:
 
@@ -141,6 +182,8 @@ Then create the PRD:
 ---
 
 ## Phase 2: Research (DO NOT SKIP)
+
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `2 — Research`, check off "PRD created".
 
 Before writing ANY code, research the problem space:
 
@@ -160,6 +203,8 @@ Before writing ANY code, research the problem space:
 ---
 
 ## Phase 3: Design + Review Loop (iterates until no P0/P1 issues)
+
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Design`, check off "Research done".
 
 ### 3.0 Load Design Guidance (if UI work)
 
@@ -234,6 +279,8 @@ This loop typically runs 4-6 times. Do NOT proceed to Phase 4 until the plan is 
 
 ## Phase 4: Execute
 
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `4 — Execute`, check off design items (brainstorming, plan, review).
+
 Implement using TDD (Red-Green-Refactor):
 
 ```
@@ -249,6 +296,9 @@ Implement using TDD (Red-Green-Refactor):
 ---
 
 ## Phase 5: Quality Gates (ALL REQUIRED)
+
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `5 — Quality Gates`, check off "TDD execution complete".
+> **Note:** The PreToolUse hook will block commit/push/PR until review, simplify, and verify are checked off.
 
 > **If any command below fails with "Unknown skill":**
 >
@@ -358,6 +408,8 @@ Use the Playwright MCP server to run browser tests against affected routes. Navi
 
 ## Phase 6: Finish
 
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `6 — Finish`, check off quality gate items.
+
 ### 6.1 Compound learnings (if any)
 
 If you fixed bugs or discovered patterns, document them:
@@ -444,43 +496,8 @@ If any MANDATORY step cannot be completed:
 
 ---
 
-## Checklist Summary
+## Checklist
 
-**Pre-Flight:**
+**The live checklist is in `## Workflow` in CONTINUITY.md** — initialized in Pre-Flight step 3.
 
-- [ ] Created worktree and cd'd into it (unless already in worktree)
-- [ ] Read CONTINUITY.md
-- [ ] **Verified plugins loaded** (if "Unknown skill" → STOP, alert user)
-
-**Requirements & Research:**
-
-- [ ] PRD created via `/prd:create`
-- [ ] Researched existing solutions and best practices
-
-**Design (iterative loop — repeat until no P0/P1s):**
-
-- [ ] Loaded design guidance via `/ui-design` (if UI work)
-- [ ] Brainstormed via `/superpowers:brainstorming`
-- [ ] Plan written via `/superpowers:writing-plans`
-- [ ] **Plan vs code verified** — Claude + Codex dual review in parallel (MANDATORY)
-- [ ] No P0/P1 issues remaining from either reviewer
-
-**Implementation:**
-
-- [ ] Executed via `/superpowers:executing-plans` (TDD)
-
-**Quality Gates (ALL REQUIRED):**
-
-- [ ] Code review loop (Codex + PR Review Toolkit in parallel) — no P0/P1/P2 issues remaining
-- [ ] Simplified via `/simplify`
-- [ ] Verified via `verify-app` agent (tests, lint, types pass)
-- [ ] **E2E tested via Playwright MCP** (MANDATORY if API changed)
-
-**Finish:**
-
-- [ ] Learnings documented in `docs/solutions/` + auto memory (if any)
-- [ ] CONTINUITY.md updated
-- [ ] CHANGELOG.md updated (if 3+ files)
-- [ ] Committed, pushed, and PR created
-- [ ] PR review comments addressed via `/review-pr-comments`
-- [ ] Branch finished via `/finish-branch` (merged, worktree cleaned up)
+The Stop hook reminds you of the current phase on every response. The PreToolUse hook blocks commit/push/PR until review, simplify, and verify are checked off. Update the checklist after each step.
