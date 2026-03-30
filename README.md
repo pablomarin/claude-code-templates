@@ -16,7 +16,7 @@ This template adds structured workflows, automated quality gates, knowledge comp
 | Context lost between sessions              | **State persistence** — CONTINUITY.md tracks Done/Now/Next across sessions                                                                                     |
 | Can't run multiple features in parallel    | **Git worktrees** — isolated workspaces for parallel Claude sessions                                                                                           |
 | Code review happens too late               | **Multi-layer review** — `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep) → `/simplify` → `/review-pr-comments` (post-PR comments) |
-| E2E testing skipped                        | **Playwright MCP** — browser testing via standalone MCP server for UI/API changes                                                                              |
+| E2E testing skipped                        | **Playwright MCP** — user use case tests via standalone MCP server for any user-facing changes                                                                 |
 
 ## Key Features
 
@@ -632,9 +632,9 @@ How a feature goes from idea to merged PR.
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 9. E2E TESTING (if UI/API changed)                          │
+│ 9. E2E USE CASE TESTS (if user-facing changes)              │
 │    Playwright MCP server                                    │
-│    → Browser tests against affected routes                 │
+│    → User use cases: intent, steps, verify, persist        │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼

@@ -134,7 +134,7 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [ ] Code review loop (0 iterations) — iterate until no P0/P1/P2
 - [ ] Simplified
 - [ ] Verified (tests/lint/types)
-- [ ] E2E tested (if API changed)
+- [ ] E2E use cases tested (if user-facing)
 - [ ] Learnings documented (if any)
 - [ ] State files updated
 - [ ] Committed and pushed
@@ -227,6 +227,22 @@ This loads the full design skill — creative direction, animation techniques, t
 ```
 /superpowers:writing-plans
 ```
+
+### 3.2b Design E2E Use Cases (if user-facing)
+
+If this feature changes any user-facing behavior (UI, API, flows, forms, navigation, permissions), design E2E use cases NOW — before implementation, not after.
+
+Write use cases in the plan file using the template from `rules/testing.md`. Each use case needs: **Intent, Steps, Verification, Persistence**.
+
+Think like a user, not a developer:
+
+- What will the user try to do with this feature?
+- What's the happy path? What are the error paths?
+- What existing flows could this break?
+
+**Minimum:** 1 happy-path use case + 1 error/edge case. Complex features need more.
+
+**If purely internal (no user-facing impact):** Write "E2E: N/A — [reason]" in the plan.
 
 ### 3.3 Plan Review Loop (MANDATORY)
 
@@ -410,17 +426,24 @@ pytest && ruff check . && mypy .  # Python
 npm test && npm run lint && npm run typecheck  # Node
 ```
 
-### 5.4 E2E Tests (MANDATORY if API changed)
+### 5.4 E2E Use Case Tests (MANDATORY if user-facing)
 
-**If you modified ANY API endpoint, you MUST run E2E tests.**
+**If this feature changes ANY user-facing behavior, execute E2E tests.**
 
-The API doesn't exist in isolation - frontend code depends on it. Even if you didn't touch the frontend, API changes can break existing UI functionality.
+User-facing means: API changes, UI changes, new pages, flow changes, form changes, navigation changes, permission changes — anything a user would notice.
 
-**Step 1: Find what uses the changed API**
+**If purely internal (no user-facing impact):** Check the box with justification:
+`- [x] E2E use cases tested — N/A: internal migration, no user-facing changes`
 
-```bash
-# Search frontend for API endpoint usage
-grep -r "your-endpoint-path" frontend/
+**Step 1: Review use cases from Phase 3 plan**
+
+Open the plan file and review the E2E use cases designed earlier. Refine if implementation revealed new scenarios. Add the use cases to CONTINUITY.md for tracking:
+
+```markdown
+#### E2E Use Cases
+
+- [ ] UC1: [Intent] — [one-line summary]
+- [ ] UC2: [Intent] — [one-line summary]
 ```
 
 **Step 2: Restart servers from worktree (CRITICAL if in worktree)**
@@ -431,17 +454,34 @@ Stop the current development servers and start them from this worktree directory
 
 Wait for servers to be ready before proceeding.
 
-**Step 3: Run E2E tests using Playwright MCP**
+**Step 3: Execute each use case with Playwright MCP**
 
-Use the Playwright MCP server to run browser tests against affected routes. Navigate to the affected pages, interact with the changed functionality, and verify it works end-to-end.
+For each use case, execute the Steps through the browser:
 
-**DO NOT skip this step by saying:**
+- Navigate to the starting page
+- Perform each user action (click, fill, select, submit)
+- Verify the expected outcome is visible
+- **Reload the page and confirm persistence**
 
-- ❌ "No frontend exists for this endpoint" → Test the UI that USES the API
-- ❌ "Unit tests cover it" → Unit tests don't catch integration issues
-- ❌ "The API is new" → New APIs should be integration tested
+Check off each use case in CONTINUITY.md as it passes.
 
-**Only skip if:** The change is purely backend with NO frontend consumers (e.g., internal scripts, migrations).
+**Step 4: Test error paths**
+
+For each error use case:
+
+- Trigger the error condition through the UI
+- Verify the user sees an appropriate error message
+- Verify no data was corrupted (check the happy path still works)
+
+**DO NOT skip by saying:**
+
+- ❌ "Unit tests cover it" → Unit tests don't test user workflows
+- ❌ "It's a small change" → Small changes break real user flows
+- ❌ "I'll test it later" → E2E happens now, not after merge
+
+**Only skip if:** Purely internal with zero user-facing impact (must justify in checklist).
+
+**Non-browser projects** (API-only services, CLIs, mobile backends): If there's no web UI to drive, execute use cases via API calls (curl/httpie), CLI commands, or document the manual verification steps. The use case template (Intent, Steps, Verification, Persistence) still applies — just replace "UI interactions" with the appropriate interface.
 
 ---
 
