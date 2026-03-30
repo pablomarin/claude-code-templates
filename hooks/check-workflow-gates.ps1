@@ -50,6 +50,9 @@ $unchecked = @()
 foreach ($line in ($content -split "`n")) {
     if ($line -match '^### Checklist') { $inChecklist = $true; continue }
     if ($line -match '^## ' -and $inChecklist) { break }
+    # Only gate on: "Code review loop", "Simplified", "Verified (tests"
+    # Exclude: "PR reviews addressed" (post-PR), "Plugins verified" (pre-flight),
+    #          "Plan review loop" (design phase discipline, not pre-ship gate)
     if ($inChecklist -and $line -match '- \[ \]' -and $line -match '(Code review loop|Simplified|Verified \(tests)') {
         $unchecked += $line
     }

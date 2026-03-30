@@ -552,7 +552,7 @@ How a feature goes from idea to merged PR.
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. DESIGN + REVIEW LOOP (iterates 4-6 times)               │
+│ 4. DESIGN + REVIEW LOOP (iterates until no P0/P1/P2)       │
 │                                                             │
 │    ┌───────────────────────────────────────────┐            │
 │    │ a. /superpowers:brainstorming              │            │
@@ -565,17 +565,17 @@ How a feature goes from idea to merged PR.
 │    └──────────────────┬────────────────────────┘            │
 │                       ▼                                     │
 │    ┌───────────────────────────────────────────┐            │
-│    │ c. /codex review the plan                  │◄──┐       │
-│    │    → Independent validation                │   │       │
-│    │    → If no Codex: user reviews manually    │   │       │
+│    │ c. Claude + /codex review the plan          │◄──┐       │
+│    │    → Two independent validations           │   │       │
+│    │    → If no Codex: user reviews instead     │   │       │
 │    └──────────────────┬────────────────────────┘   │       │
 │                       ▼                             │       │
 │              ┌────────────────┐                     │       │
-│              │ P0/P1 issues?  │── Yes ──► Edit ─────┘       │
+│              │ P0/P1/P2?      │── Yes ──► Edit ─────┘       │
 │              └───────┬────────┘          plan                │
 │                      No                                     │
 │                      ▼                                      │
-│              No P0/P1s → Plan approved ✓                    │
+│              No P0/P1/P2s → Plan approved ✓                 │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼

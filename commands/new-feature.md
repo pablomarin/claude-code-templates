@@ -129,9 +129,9 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [ ] Design guidance loaded (if UI)
 - [ ] Brainstorming complete
 - [ ] Plan written
-- [ ] Plan vs code verified (dual review)
+- [ ] Plan review loop (0 iterations) — iterate until no P0/P1/P2
 - [ ] TDD execution complete
-- [ ] Code review loop (no P0/P1/P2)
+- [ ] Code review loop (0 iterations) — iterate until no P0/P1/P2
 - [ ] Simplified
 - [ ] Verified (tests/lint/types)
 - [ ] E2E tested (if API changed)
@@ -202,7 +202,7 @@ Before writing ANY code, research the problem space:
 
 ---
 
-## Phase 3: Design + Review Loop (iterates until no P0/P1 issues)
+## Phase 3: Design + Review Loop (iterates until no P0/P1/P2 issues)
 
 > **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Design`, check off "Research done".
 
@@ -228,9 +228,13 @@ This loads the full design skill — creative direction, animation techniques, t
 /superpowers:writing-plans
 ```
 
-### 3.3 Plan vs Code Verification — Dual Review (MANDATORY)
+### 3.3 Plan Review Loop (MANDATORY)
 
-Go back to the implementation plan and check everything proposed against the actual code. Verify it's the simplest, fastest, best way to do it. Two independent reviews run **in parallel**:
+Go back to the implementation plan and check everything proposed against the actual code. All available reviewers run **in parallel**, iterating until clean.
+
+**Per iteration:**
+
+**Step A — Run both reviews in parallel:**
 
 **a) Claude (you) reviews the plan against the codebase:**
 
@@ -241,9 +245,9 @@ Read every file the plan proposes to modify. For each change, ask:
 - Are there existing utilities, patterns, or abstractions the plan should use instead of creating new ones?
 - Is anything proposed that's unnecessary or over-engineered?
 
-Document your findings as a list of concerns (P0/P1/P2).
+Document your findings as a severity-tagged list (P0/P1/P2/P3).
 
-**b) Codex reviews independently and separately:**
+**b) Codex reviews independently:**
 
 Check if Codex CLI is available:
 
@@ -257,21 +261,36 @@ If available:
 /codex review the implementation plan and check everything we're proposing versus the code — is this the simplest, fastest, best way to do it? Flag any architectural concerns.
 ```
 
+Note: The `/codex` command's Design Review Mode uses its own fixed prompt — it may not return P0/P1/P2/P3 tags directly. After receiving Codex's output, classify each finding into P0/P1/P2/P3 using the severity rubric before evaluating exit criteria.
+
 If Codex is NOT available:
 
 - Present your own review findings plus a summary of the plan to the user
 - Ask: "Does this design approach look right before I start implementing?"
-- Wait for user confirmation before proceeding to Phase 4
+- User confirmation replaces Codex as the second reviewer
 
-### 3.4 Iterate until approved
+**Step B — Collect findings and evaluate:**
 
-**If either review finds P0 or P1 issues:**
+Gather severity-tagged findings from all available reviewers. Use this rubric:
 
-1. Edit the plan to address the issues
-2. Run **both** reviews again (Claude + Codex in parallel)
-3. Repeat until there are **no P0 or P1 issues** from either reviewer
+| Level | Meaning                                                                | Action                     |
+| ----- | ---------------------------------------------------------------------- | -------------------------- |
+| P0    | Broken — will crash, lose data, or create security vulnerability       | Must fix before proceeding |
+| P1    | Wrong — incorrect behavior, logic error, missing edge case             | Must fix before proceeding |
+| P2    | Poor — code smell, maintainability issue, unclear intent, missing test | Must fix before proceeding |
+| P3    | Nit — style, naming, minor suggestion                                  | May fix, does not block    |
 
-This loop typically runs 4-6 times. Do NOT proceed to Phase 4 until the plan is approved.
+**Step C — Exit criteria:**
+
+- **P0/P1/P2 found by any reviewer →** Fix the plan, increment iteration counter in CONTINUITY checklist (`Plan review loop (N iterations)`), go back to Step A.
+- **Only P3 or clean from all available reviewers on the same pass →** Check the box in CONTINUITY with final count: `- [x] Plan review loop (3 iterations) — PASS`. Proceed to Phase 4.
+
+**Rules:**
+
+- Do NOT check the box until all available reviewers report no P0/P1/P2 on the same pass
+- "Available reviewers" = Claude always + Codex if installed, or user if Codex unavailable
+- Typically 2-3 iterations
+- Do NOT proceed to Phase 4 until the plan is approved
 
 > **Why mandatory?** Fixing a design flaw after implementation is 10x more expensive than catching it here. Two independent reviewers checking the plan against the actual code catches things a single pass misses.
 
@@ -306,9 +325,13 @@ Implement using TDD (Red-Green-Refactor):
 > - Perform equivalent checks manually (see fallbacks below)
 > - Do NOT skip quality gates
 
-### 5.1 Code Review Loop (repeats until no P0/P1/P2 issues — P3s acceptable)
+### 5.1 Code Review Loop (MANDATORY)
 
-Run both reviews **in parallel**:
+Run all available reviews **in parallel**, iterating until clean.
+
+**Per iteration:**
+
+**Step A — Run both reviews in parallel:**
 
 **a) Second Opinion (Codex CLI):**
 
@@ -324,6 +347,8 @@ If available:
 /codex review
 ```
 
+Note: `/codex review` uses the codex.md command which has its own prompt format. After receiving Codex's output, classify each finding into P0/P1/P2/P3 using the severity rubric before evaluating exit criteria.
+
 **b) Deep Review (PR Review Toolkit):**
 
 ```
@@ -332,13 +357,27 @@ If available:
 
 This runs 6 specialized agents: code-reviewer, silent-failure-hunter, pr-test-analyzer, comment-analyzer, type-design-analyzer, and code-simplifier.
 
-**Fallback if unavailable:** Use `pr-review-toolkit:code-reviewer` agent on modified files.
+**Tool availability:**
 
-**Iterate:** If either review finds P0, P1, or P2 issues:
+- **Both available (normal):** Run Codex + PR Toolkit in parallel
+- **Codex unavailable:** PR Toolkit alone is sufficient
+- **PR Toolkit unavailable:** Codex alone is sufficient
+- **Neither available:** Alert user, perform manual review, get user sign-off
 
-1. Fix the issues
-2. Run **both** reviews again
-3. Repeat until there are **no P0/P1/P2 issues** (P3s are acceptable)
+**Step B — Collect findings and evaluate:**
+
+Gather severity-tagged findings from all available reviewers. Use the same P0–P3 rubric from the plan review loop.
+
+**Step C — Exit criteria:**
+
+- **P0/P1/P2 found by any reviewer →** Fix the issues. If fixes are substantial (3+ files changed), re-run verify-app before next review iteration to catch regressions early. Increment counter in CONTINUITY checklist (`Code review loop (N iterations)`), go back to Step A.
+- **Only P3 or clean from all available reviewers on the same pass →** Check the box in CONTINUITY with final count: `- [x] Code review loop (3 iterations) — PASS`. Proceed to 5.2.
+
+**Rules:**
+
+- Do NOT check the box until all available reviewers report no P0/P1/P2 on the same pass
+- Typically 2-3 iterations
+- P3s are acceptable — do not iterate for P3-only findings
 
 ### 5.2 Simplify
 
