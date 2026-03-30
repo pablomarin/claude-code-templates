@@ -632,9 +632,9 @@ How a feature goes from idea to merged PR.
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 9. E2E TESTING (if UI/API changed)                          │
+│ 9. E2E USE CASE TESTS (if user-facing changes)              │
 │    Playwright MCP server                                    │
-│    → Browser tests against affected routes                 │
+│    → User use cases: intent, steps, verify, persist        │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
