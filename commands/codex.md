@@ -9,7 +9,7 @@
 
 - **Codex CLI** installed: `npm i -g @openai/codex` or `brew install --cask codex`
 - **Codex authenticated**: `codex login` (requires ChatGPT Plus/Pro/Business or API key)
-- Verify: `codex --version` (requires v0.101.0+)
+- Verify: `codex --version` (requires v0.114.0+)
 
 ---
 
@@ -40,15 +40,15 @@ Use `AskUserQuestion` with these options:
 ### Step 2: Run Codex review
 
 > **IMPORTANT:** `codex exec review` preset flags (`--uncommitted`, `--base`, `--commit`) cannot be combined with a custom prompt argument. Use `-c developer_instructions=` to inject focus areas instead.
+>
+> **NOTE:** The `exec review` subcommand does NOT accept `--sandbox` or `--color` flags (reviews are inherently read-only). These flags are only valid on `codex exec` (general mode).
 
 ```bash
 codex exec review \
-  -c model="gpt-5.4" \
+  -m "gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
   -c developer_instructions="Focus on: correctness, security vulnerabilities, performance bottlenecks, error handling gaps, and maintainability. Flag anything that could break in production." \
-  --sandbox read-only \
   --ephemeral \
-  --color never \
   [--uncommitted | --base main | --commit SHA]
 ```
 
@@ -56,12 +56,10 @@ codex exec review \
 
 ```bash
 codex exec review \
-  -c model="gpt-5.4" \
+  -m "gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
   -c developer_instructions="Focus on: correctness, security vulnerabilities, performance bottlenecks, error handling gaps, and maintainability. Flag anything that could break in production." \
-  --sandbox read-only \
   --ephemeral \
-  --color never \
   --base main \
   --title "feat: add user authentication"
 ```
@@ -94,7 +92,7 @@ Also check if there's a plan in the current conversation context. If the user sp
 
 ```bash
 codex exec \
-  -c model="gpt-5.4" \
+  -m "gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
   --sandbox read-only \
   --ephemeral \
@@ -140,7 +138,7 @@ Construct the prompt by combining the user's instruction with the gathered conte
 
 ```bash
 codex exec \
-  -c model="gpt-5.4" \
+  -m "gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
   --sandbox read-only \
   --ephemeral \
@@ -167,10 +165,10 @@ Display Codex's output verbatim to the user. Do not summarize or edit it.
 
 ## Quick Reference
 
-| Use case                   | Command pattern                                       |
-| -------------------------- | ----------------------------------------------------- |
-| Review uncommitted changes | `codex exec review --uncommitted`                     |
-| Review branch vs main      | `codex exec review --base main --title "description"` |
-| Review a specific commit   | `codex exec review --commit SHA`                      |
-| Review a design plan       | `codex exec "Review the plan in docs/plans/..."`      |
-| General second opinion     | `codex exec "Your question or instruction"`           |
+| Use case                   | Command pattern                                                   |
+| -------------------------- | ----------------------------------------------------------------- |
+| Review uncommitted changes | `codex exec review --ephemeral --uncommitted`                     |
+| Review branch vs main      | `codex exec review --ephemeral --base main --title "description"` |
+| Review a specific commit   | `codex exec review --ephemeral --commit SHA`                      |
+| Review a design plan       | `codex exec --sandbox read-only --ephemeral "Review the plan..."` |
+| General second opinion     | `codex exec --sandbox read-only --ephemeral "Your question..."`   |
