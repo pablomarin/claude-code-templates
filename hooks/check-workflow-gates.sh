@@ -59,7 +59,7 @@ CHECKLIST=$(sed -n '/^### Checklist/,/^## /p' CONTINUITY.md 2>/dev/null)
 # Explicitly exclude non-gate items that contain similar words:
 #   "PR reviews addressed" — happens AFTER PR, not a pre-ship gate
 #   "Plugins verified" — pre-flight check, not a quality gate
-#   "Plan vs code verified" — design phase, not a quality gate
+#   "Plan review loop" — design phase discipline, not a pre-ship gate
 UNCHECKED=$(echo "$CHECKLIST" | grep '\- \[ \]' | grep -iE '(Code review loop|Simplified|Verified \(tests)' || true)
 
 if [ -n "$UNCHECKED" ]; then

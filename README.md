@@ -552,7 +552,7 @@ How a feature goes from idea to merged PR.
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. DESIGN + REVIEW LOOP (iterates 4-6 times)               │
+│ 4. DESIGN + REVIEW LOOP (iterates until no P0/P1/P2)       │
 │                                                             │
 │    ┌───────────────────────────────────────────┐            │
 │    │ a. /superpowers:brainstorming              │            │
@@ -571,11 +571,11 @@ How a feature goes from idea to merged PR.
 │    └──────────────────┬────────────────────────┘   │       │
 │                       ▼                             │       │
 │              ┌────────────────┐                     │       │
-│              │ P0/P1 issues?  │── Yes ──► Edit ─────┘       │
+│              │ P0/P1/P2?      │── Yes ──► Edit ─────┘       │
 │              └───────┬────────┘          plan                │
 │                      No                                     │
 │                      ▼                                      │
-│              No P0/P1s → Plan approved ✓                    │
+│              No P0/P1/P2s → Plan approved ✓                 │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
