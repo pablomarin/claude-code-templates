@@ -47,6 +47,7 @@ Use `AskUserQuestion` with these options:
 codex exec review \
   -m "gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
+  -c service_tier="fast" \
   -c developer_instructions="Focus on: correctness, security vulnerabilities, performance bottlenecks, error handling gaps, and maintainability. Flag anything that could break in production." \
   --ephemeral \
   [--uncommitted | --base main | --commit SHA]
@@ -58,6 +59,7 @@ codex exec review \
 codex exec review \
   -m "gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
+  -c service_tier="fast" \
   -c developer_instructions="Focus on: correctness, security vulnerabilities, performance bottlenecks, error handling gaps, and maintainability. Flag anything that could break in production." \
   --ephemeral \
   --base main \
@@ -94,6 +96,7 @@ Also check if there's a plan in the current conversation context. If the user sp
 codex exec \
   -m "gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
+  -c service_tier="fast" \
   --sandbox read-only \
   --ephemeral \
   --color never \
@@ -140,6 +143,7 @@ Construct the prompt by combining the user's instruction with the gathered conte
 codex exec \
   -m "gpt-5.4" \
   -c model_reasoning_effort="xhigh" \
+  -c service_tier="fast" \
   --sandbox read-only \
   --ephemeral \
   --color never \
