@@ -235,6 +235,7 @@ If this feature changes any user-facing behavior (UI, API, flows, forms, navigat
 Write use cases in the plan file using the template from `rules/testing.md`. Each use case needs: **Intent, Steps, Verification, Persistence**.
 
 Think like a user, not a developer:
+
 - What will the user try to do with this feature?
 - What's the happy path? What are the error paths?
 - What existing flows could this break?
@@ -440,6 +441,7 @@ Open the plan file and review the E2E use cases designed earlier. Refine if impl
 
 ```markdown
 #### E2E Use Cases
+
 - [ ] UC1: [Intent] — [one-line summary]
 - [ ] UC2: [Intent] — [one-line summary]
 ```
@@ -455,6 +457,7 @@ Wait for servers to be ready before proceeding.
 **Step 3: Execute each use case with Playwright MCP**
 
 For each use case, execute the Steps through the browser:
+
 - Navigate to the starting page
 - Perform each user action (click, fill, select, submit)
 - Verify the expected outcome is visible
@@ -465,6 +468,7 @@ Check off each use case in CONTINUITY.md as it passes.
 **Step 4: Test error paths**
 
 For each error use case:
+
 - Trigger the error condition through the UI
 - Verify the user sees an appropriate error message
 - Verify no data was corrupted (check the happy path still works)
@@ -477,6 +481,8 @@ For each error use case:
 - ❌ "I tested it manually" → Playwright MCP IS the manual test, automated
 
 **Only skip if:** Purely internal with zero user-facing impact (must justify in checklist).
+
+**Non-browser projects** (API-only services, CLIs, mobile backends): If there's no web UI to drive, execute use cases via API calls (curl/httpie), CLI commands, or document the manual verification steps. The use case template (Intent, Steps, Verification, Persistence) still applies — just replace "UI interactions" with the appropriate interface.
 
 ---
 

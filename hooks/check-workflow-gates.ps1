@@ -7,7 +7,7 @@
 # 3. Always-required quality gate checklist items aren't checked off
 #
 # Only gates on ALWAYS-REQUIRED items (review, simplify, verify).
-# Conditional items like "E2E tested (if API changed)" are NOT gated.
+# Conditional items like "E2E use cases tested (if user-facing)" are NOT gated.
 #
 # Requirements: PowerShell 5.1+
 
