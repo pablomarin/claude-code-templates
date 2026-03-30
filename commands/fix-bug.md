@@ -239,9 +239,9 @@ This ensures UI fixes maintain visual quality — don't regress the design while
 /superpowers:writing-plans
 ```
 
-#### 3.3 Plan Review Loop — Dual Review (MANDATORY)
+#### 3.3 Plan Review Loop (MANDATORY)
 
-Go back to the fix plan and check everything proposed against the actual code. Two independent reviews run **in parallel**, iterating until clean.
+Go back to the fix plan and check everything proposed against the actual code. All available reviewers run **in parallel**, iterating until clean.
 
 **Per iteration:**
 
@@ -284,12 +284,12 @@ If Codex is NOT available:
 
 Gather severity-tagged findings from all available reviewers. Use this rubric:
 
-| Level | Meaning | Action |
-|-------|---------|--------|
-| P0 | Broken — will crash, lose data, or security vulnerability | Must fix |
-| P1 | Wrong — incorrect behavior, logic error, missing edge case | Must fix |
-| P2 | Poor — code smell, maintainability, unclear intent, missing test | Must fix |
-| P3 | Nit — style, naming, minor suggestion | May fix, does not block |
+| Level | Meaning                                                                | Action                     |
+| ----- | ---------------------------------------------------------------------- | -------------------------- |
+| P0    | Broken — will crash, lose data, or create security vulnerability       | Must fix before proceeding |
+| P1    | Wrong — incorrect behavior, logic error, missing edge case             | Must fix before proceeding |
+| P2    | Poor — code smell, maintainability issue, unclear intent, missing test | Must fix before proceeding |
+| P3    | Nit — style, naming, minor suggestion                                  | May fix, does not block    |
 
 **Step C — Exit criteria:**
 
@@ -297,6 +297,7 @@ Gather severity-tagged findings from all available reviewers. Use this rubric:
 - **Only P3 or clean from all available reviewers on the same pass →** Check the box in CONTINUITY with final count: `- [x] Plan review loop (3 iterations) — PASS`. Proceed to Phase 4.
 
 **Rules:**
+
 - Do NOT check the box until all available reviewers report no P0/P1/P2 on the same pass
 - "Available reviewers" = Claude always + Codex if installed, or user if Codex unavailable
 - Typically 2-3 iterations
@@ -331,9 +332,9 @@ Or for simple fixes, write a failing test first, then fix.
 > - Perform equivalent checks manually (see fallbacks below)
 > - Do NOT skip quality gates
 
-### 5.1 Code Review Loop — Dual Review (MANDATORY)
+### 5.1 Code Review Loop (MANDATORY)
 
-Run both reviews **in parallel**, iterating until clean.
+Run all available reviews **in parallel**, iterating until clean.
 
 **Per iteration:**
 
@@ -364,6 +365,7 @@ Note: `/codex review` uses the codex.md command which has its own prompt format.
 This runs 6 specialized agents: code-reviewer, silent-failure-hunter, pr-test-analyzer, comment-analyzer, type-design-analyzer, and code-simplifier.
 
 **Tool availability:**
+
 - **Both available (normal):** Run Codex + PR Toolkit in parallel
 - **Codex unavailable:** PR Toolkit alone is sufficient
 - **PR Toolkit unavailable:** Codex alone is sufficient
@@ -379,6 +381,7 @@ Gather severity-tagged findings from all available reviewers. Use the same P0–
 - **Only P3 or clean from all available reviewers on the same pass →** Check the box in CONTINUITY with final count: `- [x] Code review loop (3 iterations) — PASS`. Proceed to 5.2.
 
 **Rules:**
+
 - Do NOT check the box until all available reviewers report no P0/P1/P2 on the same pass
 - Typically 2-3 iterations
 - P3s are acceptable — do not iterate for P3-only findings

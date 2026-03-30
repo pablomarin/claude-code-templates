@@ -565,9 +565,9 @@ How a feature goes from idea to merged PR.
 │    └──────────────────┬────────────────────────┘            │
 │                       ▼                                     │
 │    ┌───────────────────────────────────────────┐            │
-│    │ c. /codex review the plan                  │◄──┐       │
-│    │    → Independent validation                │   │       │
-│    │    → If no Codex: user reviews manually    │   │       │
+│    │ c. Claude + /codex review the plan          │◄──┐       │
+│    │    → Two independent validations           │   │       │
+│    │    → If no Codex: user reviews instead     │   │       │
 │    └──────────────────┬────────────────────────┘   │       │
 │                       ▼                             │       │
 │              ┌────────────────┐                     │       │

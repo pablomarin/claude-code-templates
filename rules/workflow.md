@@ -27,12 +27,12 @@ The Stop hook reminds you of the current phase on every response. The PreToolUse
 
 ## Severity Rubric
 
-| Level | Meaning | Action |
-|-------|---------|--------|
-| P0 | Broken — will crash, lose data, or create security vulnerability | Must fix before proceeding |
-| P1 | Wrong — incorrect behavior, logic error, missing edge case | Must fix before proceeding |
-| P2 | Poor — code smell, maintainability issue, unclear intent, missing test | Must fix before proceeding |
-| P3 | Nit — style, naming, minor suggestion | May fix, does not block |
+| Level | Meaning                                                                | Action                     |
+| ----- | ---------------------------------------------------------------------- | -------------------------- |
+| P0    | Broken — will crash, lose data, or create security vulnerability       | Must fix before proceeding |
+| P1    | Wrong — incorrect behavior, logic error, missing edge case             | Must fix before proceeding |
+| P2    | Poor — code smell, maintainability issue, unclear intent, missing test | Must fix before proceeding |
+| P3    | Nit — style, naming, minor suggestion                                  | May fix, does not block    |
 
 ## Revision Loop Protocol
 
@@ -43,9 +43,10 @@ Two revision loops enforce quality as a discipline protocol. Both follow the sam
 3. If P0/P1/P2 found → fix, increment counter in CONTINUITY checklist, repeat
 4. If only P3 or clean → check the box with final iteration count, proceed (P3s do not block)
 
-**Plan review loop** (Phase 3): Claude + Codex review the plan against actual code.
+**Plan review loop** (Phase 3, when entered): Claude + Codex review the plan against actual code.
 Exit when: no P0/P1/P2 from all available reviewers on the same pass.
 If Codex unavailable: Claude + user confirmation is sufficient.
+Note: `/fix-bug` skips Phase 3 for simple fixes (1-2 files) — the plan review loop only runs for complex fixes.
 
 **Code review loop** (Phase 5): Codex + PR Review Toolkit review the implementation.
 Exit when: no P0/P1/P2 from all available reviewers on the same pass.
