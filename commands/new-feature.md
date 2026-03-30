@@ -475,10 +475,9 @@ For each error use case:
 
 **DO NOT skip by saying:**
 
-- ❌ "No frontend exists" → Test the UI that consumes the API
 - ❌ "Unit tests cover it" → Unit tests don't test user workflows
 - ❌ "It's a small change" → Small changes break real user flows
-- ❌ "I tested it manually" → Playwright MCP IS the manual test, automated
+- ❌ "I'll test it later" → E2E happens now, not after merge
 
 **Only skip if:** Purely internal with zero user-facing impact (must justify in checklist).
 

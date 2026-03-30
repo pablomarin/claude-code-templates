@@ -5,7 +5,7 @@
 - **SYSTEMATIC DEBUGGING** - Use `/superpowers:systematic-debugging` for bugs
 - **DESIGN REVIEW** - Get a second opinion (Codex or user) on the plan BEFORE implementing
 - **TDD MANDATORY** - Red-Green-Refactor via Superpowers
-- **E2E TESTING** - User use cases via Playwright MCP for any user-facing changes
+- **E2E TESTING** - User use cases for any user-facing changes (Playwright for web, API/CLI verification for non-browser)
 - **UPDATE STATE** - CONTINUITY.md + CHANGELOG.md (Stop hook enforces)
 - **RESEARCH FIRST** - WebSearch/WebFetch/Context7 before implementing
 - **CHALLENGE ME** - Don't blindly agree

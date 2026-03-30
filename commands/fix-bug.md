@@ -251,7 +251,7 @@ For bug fixes, think about:
 - After the fix, does the happy path still work?
 - Could the fix break any adjacent user flow?
 
-**Minimum:** 1 use case that reproduces the original bug through the UI and verifies the fix.
+**Minimum:** 1 use case that reproduces the original bug through the user's interface and verifies the fix.
 
 **If purely internal (no user-facing impact):** Write "E2E: N/A — [reason]" in the plan.
 
@@ -446,7 +446,7 @@ User-facing means: API changes, UI changes, new pages, flow changes, form change
 
 If Phase 3 was used (complex fix): open the plan file and review the E2E use cases designed earlier. Refine if implementation revealed new scenarios.
 
-If Phase 3 was skipped (simple fix): design use cases now using the template from `rules/testing.md`. At minimum: 1 use case that reproduces the original bug through the UI and verifies the fix.
+If Phase 3 was skipped (simple fix): design use cases now using the template from `rules/testing.md`. At minimum: 1 use case that reproduces the original bug through the user's interface and verifies the fix.
 
 Add the use cases to CONTINUITY.md for tracking:
 
@@ -486,10 +486,9 @@ For each error use case:
 
 **DO NOT skip by saying:**
 
-- ❌ "No frontend exists" → Test the UI that consumes the API
 - ❌ "Unit tests cover it" → Unit tests don't test user workflows
 - ❌ "It's a small change" → Small changes break real user flows
-- ❌ "I tested it manually" → Playwright MCP IS the manual test, automated
+- ❌ "I'll test it later" → E2E happens now, not after merge
 
 **Only skip if:** Purely internal with zero user-facing impact (must justify in checklist).
 
