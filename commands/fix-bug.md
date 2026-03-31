@@ -128,6 +128,9 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [ ] Systematic debugging complete
 - [ ] Design guidance loaded (if UI fix)
 - [ ] Brainstorming complete (if complex)
+- [ ] Approach comparison filled (if complex)
+- [ ] Contrarian gate passed (skip | spike | council) (if complex)
+- [ ] Council verdict (if triggered): [approach chosen] (if complex)
 - [ ] Plan written (if complex)
 - [ ] Plan review loop (0 iterations, if complex) — iterate until no P0/P1/P2
 - [ ] TDD fix execution complete
@@ -213,7 +216,17 @@ This will guide you through:
 
 ### For simple fixes (1-2 files):
 
-Proceed directly to Phase 4.
+Proceed directly to Phase 4 **UNLESS** the fix touches a high-impact surface:
+
+- Schema/database migrations
+- Public API contracts
+- Authentication or permissions
+- Payment or billing logic
+- Configuration defaults affecting all users
+- Rollout/deployment strategy
+- Architecture boundaries (service boundaries, shared libraries, database ownership)
+
+**If high-impact:** Treat as complex — enter Phase 3 below.
 
 ### For complex fixes (3+ files or architectural):
 
@@ -232,6 +245,14 @@ This ensures UI fixes maintain visual quality — don't regress the design while
 ```
 /superpowers:brainstorming
 ```
+
+#### 3.1b Approach Comparison (MANDATORY)
+
+Same as `/new-feature` 3.1b — fill the approach comparison table. If only one viable fix, still run the Contrarian gate (validates no alternative was missed).
+
+#### 3.1c Contrarian Gate (MANDATORY)
+
+Same as `/new-feature` 3.1c — Codex validates the "default wins" claim via the council skill.
 
 #### 3.2 Write the fix plan
 
@@ -267,10 +288,12 @@ Go back to the fix plan and check everything proposed against the actual code. A
 
 Read every file the plan proposes to modify. For each change, ask:
 
-- Is this the simplest way to achieve the goal?
 - Does the plan account for what the code actually looks like today?
 - Are there existing utilities, patterns, or abstractions the plan should use instead of creating new ones?
-- Is anything proposed that's unnecessary or over-engineered?
+- Are there correctness issues, missing edge cases, or integration problems?
+- Is the testing strategy adequate?
+
+> **Note:** "Is there a simpler approach?" is no longer asked here — the Approach Comparison + Contrarian Gate (3.1b/3.1c) already settled the strategic choice.
 
 Document your findings as a severity-tagged list (P0/P1/P2/P3).
 

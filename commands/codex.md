@@ -2,6 +2,7 @@
 
 > **Get a second opinion from OpenAI's Codex CLI.**
 > Use for code reviews, design plan reviews, architecture feedback, or general questions.
+> For multi-perspective analysis with 5 advisors, use `/council <question>` instead.
 
 ---
 
@@ -100,12 +101,12 @@ codex exec \
   --sandbox read-only \
   --ephemeral \
   --color never \
-  "Review the implementation plan in [plan file path]. Evaluate:
-  1. ARCHITECTURE: Are there design flaws or over-engineering?
+  "Review the implementation plan in [plan file path]. The strategic approach has already been validated by the Engineering Council. Evaluate the plan's CORRECTNESS:
+  1. IMPLEMENTATION: Does the plan account for what the code actually looks like today?
   2. RISK: What could go wrong? What edge cases are missing?
-  3. ALTERNATIVES: Is there a simpler approach?
-  4. DEPENDENCIES: Are there breaking changes or version conflicts?
-  5. TESTING: Is the plan testable? What's hard to test?
+  3. DEPENDENCIES: Are there breaking changes or version conflicts?
+  4. TESTING: Is the plan testable? What's hard to test?
+  5. INTEGRATION: Are there existing utilities or patterns the plan should reuse?
   Flag any concerns that should be addressed BEFORE implementation begins."
 ```
 

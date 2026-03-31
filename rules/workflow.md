@@ -10,6 +10,7 @@
 | Fixing a bug               | Run `/fix-bug <name>` (creates worktree)            |
 | Trivial change (< 3 files) | Run `/quick-fix <name>` (no worktree)               |
 | Want a second opinion      | Run `/codex <instruction>` (code review or general) |
+| Multi-perspective analysis | Run `/council <question>` (5 advisors + chairman)   |
 | Creating PR to main        | **Ask**                                             |
 | Merging PR to main         | **Ask**                                             |
 | Skipping tests             | **Never**                                           |
@@ -46,7 +47,10 @@ Two revision loops enforce quality as a discipline protocol. Both follow the sam
 **Plan review loop** (Phase 3, when entered): Claude + Codex review the plan against actual code.
 Exit when: no P0/P1/P2 from all available reviewers on the same pass.
 If Codex unavailable: Claude + user confirmation is sufficient.
-Note: `/fix-bug` skips Phase 3 for simple fixes (1-2 files) — the plan review loop only runs for complex fixes.
+Note: `/fix-bug` skips Phase 3 for simple fixes (1-2 files) UNLESS the fix touches a high-impact surface (see canonical list in `references/peer-review-protocol.md`).
+
+**Approach comparison** (Phase 3, after brainstorming): Claude fills comparison table with fixed axes (Complexity, Blast Radius, Reversibility, Time to Validate, User/Correctness Risk). Contrarian/Codex validates the "default wins" claim. Council fires on OBJECT + high-impact surface. Spike first if cheapest falsifying test < 30 min.
+If Codex unavailable: user validates skip.
 
 **Code review loop** (Phase 5): Codex + PR Review Toolkit review the implementation.
 Exit when: no P0/P1/P2 from all available reviewers on the same pass.

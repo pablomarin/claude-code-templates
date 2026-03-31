@@ -362,10 +362,19 @@ Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-workflow-gate
 
 # Agents
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-app.md") ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "council-advisor.md") ".claude\agents\council-advisor.md" ".claude\agents\council-advisor.md"
 
 # Skills (tech-agnostic)
 $releaseDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "release")
 Copy-TemplateFile (Join-Path $releaseDir "SKILL.template.md") ".claude\skills\release\SKILL.md" ".claude\skills\release\SKILL.md"
+
+# Engineering Council skill (tech-agnostic) — multi-perspective decision analysis
+$councilDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "council")
+$councilRefDir = Join-Path $councilDir "references"
+Copy-TemplateFile (Join-Path $councilDir "SKILL.template.md") ".claude\skills\council\SKILL.md" ".claude\skills\council\SKILL.md"
+Copy-TemplateFile (Join-Path $councilRefDir "advisors.md") ".claude\skills\council\references\advisors.md" ".claude\skills\council\references\advisors.md"
+Copy-TemplateFile (Join-Path $councilRefDir "output-schema.md") ".claude\skills\council\references\output-schema.md" ".claude\skills\council\references\output-schema.md"
+Copy-TemplateFile (Join-Path $councilRefDir "peer-review-protocol.md") ".claude\skills\council\references\peer-review-protocol.md" ".claude\skills\council\references\peer-review-protocol.md"
 
 # Commands - Workflow (ENFORCED)
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "commands") "new-feature.md") ".claude\commands\new-feature.md" ".claude\commands\new-feature.md"
@@ -509,7 +518,7 @@ if ($Upgrade) {
     Write-Host "  .claude\hooks\           Hook scripts (refreshed)"
     Write-Host "  .claude\rules\           Coding standards (refreshed)"
     Write-Host "  .claude\agents\          Subagent definitions (refreshed)"
-    Write-Host "  .claude\skills\          Skills (release, ui-design if typescript/fullstack)"
+    Write-Host "  .claude\skills\          Skills (release, council, ui-design if typescript/fullstack)"
     Write-Host "  .claude\settings.json    Hooks and permissions (merged - your customizations kept)"
     Write-Host "  .mcp.json                MCP servers (merged - your customizations kept)"
     Write-Host ""
