@@ -26,13 +26,13 @@ Step 3: Present to user
 
 ### Claude Advisor Dispatch
 
-Spawn via the Agent tool with `subagent_type: "council-advisor"`. Include in the prompt:
+Spawn via the Task tool with `subagent_type: "council-advisor"`. Include in the prompt:
 
 1. The advisor persona (copied from `advisors.md`)
 2. The question or decision context
 3. Any relevant file paths or code snippets
 
-All Claude advisors go in a SINGLE message with multiple Agent tool calls = parallel execution.
+All Claude advisors go in a SINGLE message with multiple Task tool calls = parallel execution.
 
 ### Codex Advisor Dispatch
 

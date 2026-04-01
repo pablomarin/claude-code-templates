@@ -51,14 +51,14 @@ Read any files referenced in the question. If an approach comparison table exist
 
 Read `references/advisors.md` to get the 5 advisor personas and their engine assignments.
 
-**For standalone mode:** Use all 5 advisors.
-**For auto-trigger mode:** Start with the 3 quick-council advisors (Simplifier, Contrarian, Pragmatist).
+**For standalone mode:** Use all 5 advisors. If Codex is unavailable, use only the Claude-engine advisors (Simplifier, Scalability Hawk, Pragmatist).
+**For auto-trigger mode:** Start with the 3 quick-council advisors (Simplifier, Contrarian, Pragmatist). If Codex is unavailable, use Simplifier + Pragmatist only (skip Contrarian — user validates instead).
 
 ## Step 3: Dispatch Advisors IN PARALLEL
 
 **CRITICAL: All advisors must dispatch simultaneously.**
 
-**Claude advisors:** Use the Agent tool with `subagent_type: "council-advisor"`. Send ALL Claude advisor Agent calls in a SINGLE message (parallel execution). Each prompt includes:
+**Claude advisors:** Use the Task tool with `subagent_type: "council-advisor"`. Send ALL Claude advisor Task calls in a SINGLE message (parallel execution). Each prompt includes:
 
 1. The persona text from `advisors.md`
 2. The question/decision + context

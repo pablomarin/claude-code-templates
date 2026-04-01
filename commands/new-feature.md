@@ -227,7 +227,7 @@ This loads the full design skill — creative direction, animation techniques, t
 
 ### 3.1b Approach Comparison (MANDATORY)
 
-After brainstorming produces 2+ approaches, fill the comparison table in the plan file:
+After brainstorming produces 2+ approaches, fill the comparison table in CONTINUITY.md (under the `## Workflow` section). This runs BEFORE the plan file exists — the plan (Phase 3.2) will incorporate the chosen approach.
 
 ```markdown
 ## Approach Comparison

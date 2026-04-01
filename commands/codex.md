@@ -101,13 +101,14 @@ codex exec \
   --sandbox read-only \
   --ephemeral \
   --color never \
-  "Review the implementation plan in [plan file path]. The strategic approach has already been validated by the Engineering Council. Evaluate the plan's CORRECTNESS:
-  1. IMPLEMENTATION: Does the plan account for what the code actually looks like today?
+  "Review the implementation plan in [plan file path]. Evaluate:
+  1. ARCHITECTURE: Are there design flaws or over-engineering?
   2. RISK: What could go wrong? What edge cases are missing?
-  3. DEPENDENCIES: Are there breaking changes or version conflicts?
-  4. TESTING: Is the plan testable? What's hard to test?
-  5. INTEGRATION: Are there existing utilities or patterns the plan should reuse?
-  Flag any concerns that should be addressed BEFORE implementation begins."
+  3. IMPLEMENTATION: Does the plan account for what the code actually looks like today?
+  4. DEPENDENCIES: Are there breaking changes or version conflicts?
+  5. TESTING: Is the plan testable? What's hard to test?
+  Flag any concerns that should be addressed BEFORE implementation begins.
+  Note: If an Engineering Council already validated the approach, focus on implementation correctness rather than revisiting the strategic choice."
 ```
 
 **Timeout: 1200000ms (20 minutes)** — Codex reasoning can take time.

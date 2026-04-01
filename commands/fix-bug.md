@@ -248,7 +248,7 @@ This ensures UI fixes maintain visual quality — don't regress the design while
 
 #### 3.1b Approach Comparison (MANDATORY)
 
-Same as `/new-feature` 3.1b — fill the approach comparison table. If only one viable fix, still run the Contrarian gate (validates no alternative was missed).
+Same as `/new-feature` 3.1b — fill the approach comparison table in CONTINUITY.md (runs before the plan file exists). If only one viable fix, still run the Contrarian gate (validates no alternative was missed).
 
 #### 3.1c Contrarian Gate (MANDATORY)
 
