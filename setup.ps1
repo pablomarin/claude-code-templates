@@ -289,7 +289,8 @@ $directories = @(
     "docs\solutions\patterns",
     ".claude\skills\ui-design\references",
     ".claude\skills\generate-image",
-    ".claude\skills\release"
+    ".claude\skills\release",
+    ".claude\skills\council\references"
 )
 
 foreach ($dir in $directories) {
@@ -560,7 +561,7 @@ if ($Upgrade) {
     Write-Host "  .claude\hooks\           Auto-run scripts (format, verify, memory)"
     Write-Host "  .claude\agents\          Subagent definitions (verify-app)"
     Write-Host "  .claude\rules\           Coding standards + workflow rules (safe to update)"
-    Write-Host "  .claude\skills\           Skills (release PR creator + UI design for frontend)"
+    Write-Host "  .claude\skills\           Skills (release, council, ui-design if typescript/fullstack)"
     Write-Host "  docs\                    Changelog, PRDs, solutions knowledge base"
     Write-Host ""
     Write-Color "Plugins pre-enabled in .claude\settings.json:" "Yellow"

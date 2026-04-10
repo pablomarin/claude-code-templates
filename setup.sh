@@ -505,7 +505,7 @@ else
     echo "  .claude/commands/        Workflow commands: /new-feature, /fix-bug, /quick-fix"
     echo "  .claude/hooks/           Auto-run scripts (format, verify, memory)"
     echo "  .claude/agents/          Subagent definitions (verify-app)"
-    echo "  .claude/skills/           Skills (release PR creator + UI design for frontend)"
+    echo "  .claude/skills/           Skills (release, council, ui-design if typescript/fullstack)"
     echo "  .claude/rules/           Coding standards + workflow rules (safe to update)"
     echo "  docs/                    Changelog, PRDs, solutions knowledge base"
     echo ""
