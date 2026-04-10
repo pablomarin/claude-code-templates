@@ -1,6 +1,6 @@
 @CONTINUITY.md
 
-# CLAUDE.md - claude-code-templates
+# CLAUDE.md - claude-codex-forge
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ A production-grade template toolkit that transforms Claude Code from a simple co
 ### File Structure
 
 ```
-claude-code-templates/
+claude-codex-forge/
 ├── setup.sh                    # Unix installer (main entry point)
 ├── setup.ps1                   # Windows installer (PowerShell)
 ├── README.md                   # Documentation for the community

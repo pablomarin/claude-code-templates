@@ -91,14 +91,14 @@ Based on [Boris Cherny's workflow](https://www.anthropic.com/engineering/claude-
 **macOS / Linux:**
 
 ```bash
-git clone https://github.com/pablomarin/claude-code-templates.git ~/claude-code-templates
-chmod +x ~/claude-code-templates/setup.sh
+git clone https://github.com/pablomarin/claude-codex-forge.git ~/claude-codex-forge
+chmod +x ~/claude-codex-forge/setup.sh
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-git clone https://github.com/pablomarin/claude-code-templates.git $HOME\claude-code-templates
+git clone https://github.com/pablomarin/claude-codex-forge.git $HOME\claude-codex-forge
 ```
 
 ### Step 2: Global setup (once per machine)
@@ -108,20 +108,20 @@ This installs Claude's memory system so it remembers things across ALL your proj
 **macOS / Linux:**
 
 ```bash
-~/claude-code-templates/setup.sh --global
+~/claude-codex-forge/setup.sh --global
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-& $HOME\claude-code-templates\setup.ps1 -Global
+& $HOME\claude-codex-forge\setup.ps1 -Global
 ```
 
 ### Step 3: Project setup (once per project)
 
 ```bash
 cd /path/to/your/project
-~/claude-code-templates/setup.sh -p "My Project"
+~/claude-codex-forge/setup.sh -p "My Project"
 ```
 
 ### Step 4: Install the Superpowers plugin (once per machine)
@@ -203,9 +203,9 @@ Inside Claude Code, run:
 Already have the templates installed? Pull the latest and upgrade:
 
 ```bash
-cd ~/claude-code-templates && git pull
+cd ~/claude-codex-forge && git pull
 cd /path/to/your/project
-~/claude-code-templates/setup.sh --upgrade
+~/claude-codex-forge/setup.sh --upgrade
 ```
 
 This updates all hooks, commands, and rules while safely merging new settings into your existing `settings.json` and `.mcp.json`. Your customizations are preserved. See [Scenario C](#scenario-c-existing-project-with-claude-code-upgrade) for details.
@@ -229,7 +229,7 @@ cd my-new-project
 git init
 
 # 2. Run setup
-~/claude-code-templates/setup.sh -p "My New Project"
+~/claude-codex-forge/setup.sh -p "My New Project"
 
 # 3. Start Claude Code and install plugin
 claude
@@ -244,7 +244,7 @@ cd my-new-project
 git init
 
 # 2. Run setup
-& $HOME\claude-code-templates\setup.ps1 -p "My New Project"
+& $HOME\claude-codex-forge\setup.ps1 -p "My New Project"
 
 # 3. Start Claude Code and install plugin
 claude
@@ -269,7 +269,7 @@ You have a project but haven't set up Claude Code automation yet.
 cd /path/to/your/existing/project
 
 # 2. Run setup
-~/claude-code-templates/setup.sh -p "My Project Name"
+~/claude-codex-forge/setup.sh -p "My Project Name"
 
 # 3. Start Claude Code
 claude
@@ -282,7 +282,7 @@ claude
 cd C:\path\to\your\existing\project
 
 # 2. Run setup
-& $HOME\claude-code-templates\setup.ps1 -p "My Project Name"
+& $HOME\claude-codex-forge\setup.ps1 -p "My Project Name"
 
 # 3. Start Claude Code
 claude
@@ -309,7 +309,7 @@ You already have `.claude/settings.json` or `CLAUDE.md` from a previous setup an
 
 ```bash
 cd /path/to/your/project
-~/claude-code-templates/setup.sh --upgrade
+~/claude-codex-forge/setup.sh --upgrade
 ```
 
 **What `--upgrade` does:**
@@ -348,7 +348,7 @@ cp -r .claude .claude-backup
 cp CLAUDE.md CLAUDE.md.backup
 
 # 2. Force overwrite everything (except CLAUDE.md and CONTINUITY.md)
-~/claude-code-templates/setup.sh -f
+~/claude-codex-forge/setup.sh -f
 
 # 3. Merge back any project-specific settings from backup
 # Compare: diff .claude-backup/settings.json .claude/settings.json
@@ -1456,31 +1456,31 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 │ FIRST TIME SETUP (once per machine)                         │
 ├─────────────────────────────────────────────────────────────┤
 │ macOS/Linux:                                                │
-│   git clone ...claude-code-templates ~/claude-code-templates│
-│   chmod +x ~/claude-code-templates/setup.sh                │
-│   ~/claude-code-templates/setup.sh --global                │
+│   git clone ...claude-codex-forge ~/claude-codex-forge│
+│   chmod +x ~/claude-codex-forge/setup.sh                │
+│   ~/claude-codex-forge/setup.sh --global                │
 │                                                             │
 │ Windows (PowerShell):                                       │
-│   git clone ...claude-code-templates $HOME\claude-code-templates
-│   & $HOME\claude-code-templates\setup.ps1 -Global          │
+│   git clone ...claude-codex-forge $HOME\claude-codex-forge
+│   & $HOME\claude-codex-forge\setup.ps1 -Global          │
 ├─────────────────────────────────────────────────────────────┤
 │ ADD TO ANY PROJECT                                          │
 ├─────────────────────────────────────────────────────────────┤
 │ macOS/Linux:                                                │
 │   cd /your/project                                         │
-│   ~/claude-code-templates/setup.sh -p "Project Name"       │
+│   ~/claude-codex-forge/setup.sh -p "Project Name"       │
 │                                                             │
 │ Windows (PowerShell):                                       │
 │   cd C:\your\project                                       │
-│   & $HOME\claude-code-templates\setup.ps1 -p "Project Name"│
+│   & $HOME\claude-codex-forge\setup.ps1 -p "Project Name"│
 │                                                             │
 │ # Then install Superpowers plugin in Claude Code            │
 ├─────────────────────────────────────────────────────────────┤
 │ UPGRADE EXISTING PROJECT                                    │
 ├─────────────────────────────────────────────────────────────┤
-│ cd ~/claude-code-templates && git pull                      │
+│ cd ~/claude-codex-forge && git pull                      │
 │ cd /your/project                                           │
-│ ~/claude-code-templates/setup.sh --upgrade                 │
+│ ~/claude-codex-forge/setup.sh --upgrade                 │
 │                                                             │
 │ → Updates hooks, commands, rules (overwrites)              │
 │ → Merges settings.json + .mcp.json (adds new, keeps yours)│
