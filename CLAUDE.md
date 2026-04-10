@@ -80,11 +80,18 @@ claude-code-templates/
 │   │       └── ux-antipatterns.md
 │   ├── generate-image/        # Image generation via Gemini API (checks docs first)
 │   │   └── SKILL.template.md  # Script-based generation, no MCP dependency
-│   └── release/               # Release PR creator (dev→test, test→prod)
-│       └── SKILL.template.md  # Environment promotion with categorized changelogs
+│   ├── release/               # Release PR creator (dev→test, test→prod)
+│   │   └── SKILL.template.md  # Environment promotion with categorized changelogs
+│   └── council/               # Engineering Council (multi-perspective decisions)
+│       ├── SKILL.template.md  # Orchestrator: dispatch, gate, synthesis
+│       └── references/        # 3 reference guides (loaded on demand)
+│           ├── advisors.md              # 5 advisor profiles with engine assignments
+│           ├── output-schema.md         # Structured output for advisors + chairman
+│           └── peer-review-protocol.md  # Dispatch, escalation, minority report rules
 │
 ├── agents/                     # Subagent definitions (copied to .claude/agents/)
-│   └── verify-app.md           # Full verification: tests + lint + types
+│   ├── verify-app.md           # Full verification: tests + lint + types
+│   └── council-advisor.md      # Generic council advisor (persona via prompt)
 │
 └── settings/                   # Settings templates
     ├── settings.template.json          # Project-level (plugins, permissions, hooks)
@@ -130,6 +137,9 @@ Templates in the root are **source of truth**. `setup.sh` copies them to target 
 | `skills/ui-design/references/*.md`        | `.claude/skills/ui-design/references/*.md`    |
 | `skills/generate-image/SKILL.template.md` | `.claude/skills/generate-image/SKILL.md`      |
 | `skills/release/SKILL.template.md`        | `.claude/skills/release/SKILL.md` in target   |
+| `skills/council/SKILL.template.md`        | `.claude/skills/council/SKILL.md` in target   |
+| `skills/council/references/*.md`          | `.claude/skills/council/references/*.md`      |
+| `agents/council-advisor.md`               | `.claude/agents/council-advisor.md` in target |
 
 ### Platform Parity
 

@@ -258,6 +258,7 @@ directories=(
     ".claude/skills/ui-design/references"
     ".claude/skills/generate-image"
     ".claude/skills/release"
+    ".claude/skills/council/references"
     "docs/prds"
     "docs/plans"
     "docs/solutions/build-errors"
@@ -331,9 +332,16 @@ chmod +x .claude/hooks/check-workflow-gates.sh 2>/dev/null || true
 
 # Agents
 copy_file "$SCRIPT_DIR/agents/verify-app.md" ".claude/agents/verify-app.md" ".claude/agents/verify-app.md"
+copy_file "$SCRIPT_DIR/agents/council-advisor.md" ".claude/agents/council-advisor.md" ".claude/agents/council-advisor.md"
 
 # Skills (tech-agnostic)
 copy_file "$SCRIPT_DIR/skills/release/SKILL.template.md" ".claude/skills/release/SKILL.md" ".claude/skills/release/SKILL.md"
+
+# Engineering Council skill (tech-agnostic) — multi-perspective decision analysis
+copy_file "$SCRIPT_DIR/skills/council/SKILL.template.md" ".claude/skills/council/SKILL.md" ".claude/skills/council/SKILL.md"
+copy_file "$SCRIPT_DIR/skills/council/references/advisors.md" ".claude/skills/council/references/advisors.md" ".claude/skills/council/references/advisors.md"
+copy_file "$SCRIPT_DIR/skills/council/references/output-schema.md" ".claude/skills/council/references/output-schema.md" ".claude/skills/council/references/output-schema.md"
+copy_file "$SCRIPT_DIR/skills/council/references/peer-review-protocol.md" ".claude/skills/council/references/peer-review-protocol.md" ".claude/skills/council/references/peer-review-protocol.md"
 
 # Commands - Workflow (ENFORCED)
 copy_file "$SCRIPT_DIR/commands/new-feature.md" ".claude/commands/new-feature.md" ".claude/commands/new-feature.md"
@@ -460,7 +468,7 @@ if [[ "$UPGRADE" == true ]]; then
     echo "  .claude/hooks/           Hook scripts (refreshed)"
     echo "  .claude/rules/           Coding standards (refreshed)"
     echo "  .claude/agents/          Subagent definitions (refreshed)"
-    echo "  .claude/skills/          Skills (release, ui-design if typescript/fullstack)"
+    echo "  .claude/skills/          Skills (release, council, ui-design if typescript/fullstack)"
     echo "  .claude/settings.json    Hooks and permissions (merged — your customizations kept)"
     echo "  .mcp.json                MCP servers (merged — your customizations kept)"
     echo ""
@@ -497,7 +505,7 @@ else
     echo "  .claude/commands/        Workflow commands: /new-feature, /fix-bug, /quick-fix"
     echo "  .claude/hooks/           Auto-run scripts (format, verify, memory)"
     echo "  .claude/agents/          Subagent definitions (verify-app)"
-    echo "  .claude/skills/           Skills (release PR creator + UI design for frontend)"
+    echo "  .claude/skills/           Skills (release, council, ui-design if typescript/fullstack)"
     echo "  .claude/rules/           Coding standards + workflow rules (safe to update)"
     echo "  docs/                    Changelog, PRDs, solutions knowledge base"
     echo ""

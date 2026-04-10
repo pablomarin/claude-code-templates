@@ -128,6 +128,9 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [ ] Research done
 - [ ] Design guidance loaded (if UI)
 - [ ] Brainstorming complete
+- [ ] Approach comparison filled
+- [ ] Contrarian gate passed (skip | spike | council)
+- [ ] Council verdict (if triggered): [approach chosen]
 - [ ] Plan written
 - [ ] Plan review loop (0 iterations) — iterate until no P0/P1/P2
 - [ ] TDD execution complete
@@ -222,6 +225,56 @@ This loads the full design skill — creative direction, animation techniques, t
 /superpowers:brainstorming
 ```
 
+### 3.1b Approach Comparison (MANDATORY)
+
+After brainstorming produces 2+ approaches, fill the comparison table in CONTINUITY.md (under the `## Workflow` section). This runs BEFORE the plan file exists — the plan (Phase 3.2) will incorporate the chosen approach.
+
+```markdown
+## Approach Comparison
+
+### Chosen Default
+
+[The approach you recommend]
+
+### Best Credible Alternative
+
+[The strongest competing approach — not a strawman]
+
+### Scoring (fixed axes)
+
+| Axis                  | Default | Alternative |
+| --------------------- | ------- | ----------- |
+| Complexity            | L/M/H   | L/M/H       |
+| Blast Radius          | L/M/H   | L/M/H       |
+| Reversibility         | L/M/H   | L/M/H       |
+| Time to Validate      | L/M/H   | L/M/H       |
+| User/Correctness Risk | L/M/H   | L/M/H       |
+
+### Cheapest Falsifying Test
+
+[How to resolve ambiguity with a spike or experiment. Estimate: < 30 min or > 30 min.]
+```
+
+If brainstorming produced only one viable approach, still run the Contrarian gate — it validates that no alternative was missed. Write "Single viable approach identified" in the Alternative column and let Codex confirm or challenge.
+
+### 3.1c Contrarian Gate (MANDATORY)
+
+The Contrarian/Codex validates the "default wins" claim. **Claude cannot self-certify the skip.**
+
+```
+/council [pass the approach comparison as context — auto-trigger mode]
+```
+
+The council skill handles the gate:
+
+- **VALIDATE** → skip council, proceed to 3.2
+- **SPIKE** → run the cheapest falsifying test first, then re-evaluate
+- **COUNCIL** → full council runs, verdict picks the approach, proceed to 3.2
+
+If Codex unavailable: present the approach comparison to the user and ask them to validate.
+
+Check off in CONTINUITY.md: `- [x] Contrarian gate passed (skip | spike | council)`
+
 ### 3.2 Write the implementation plan
 
 ```
@@ -256,10 +309,12 @@ Go back to the implementation plan and check everything proposed against the act
 
 Read every file the plan proposes to modify. For each change, ask:
 
-- Is this the simplest way to achieve the goal?
 - Does the plan account for what the code actually looks like today?
 - Are there existing utilities, patterns, or abstractions the plan should use instead of creating new ones?
-- Is anything proposed that's unnecessary or over-engineered?
+- Are there correctness issues, missing edge cases, or integration problems?
+- Is the testing strategy adequate?
+
+> **Note:** "Is there a simpler approach?" is no longer asked here — the Approach Comparison + Contrarian Gate (3.1b/3.1c) already settled the strategic choice. This review validates the HOW, not the WHAT.
 
 Document your findings as a severity-tagged list (P0/P1/P2/P3).
 

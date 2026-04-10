@@ -69,6 +69,7 @@ project/
 /new-feature <name>     # Full feature workflow
 /fix-bug <name>         # Bug fix with systematic debugging
 /quick-fix <name>       # Trivial changes only (< 3 files)
+/council <question>     # Multi-perspective decision analysis (5 advisors + chairman)
 /codex <instruction>    # Second opinion from OpenAI Codex CLI
 
 # Example project commands:
