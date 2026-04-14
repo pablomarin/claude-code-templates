@@ -290,7 +290,9 @@ $directories = @(
     ".claude\skills\ui-design\references",
     ".claude\skills\generate-image",
     ".claude\skills\release",
-    ".claude\skills\council\references"
+    ".claude\skills\council\references",
+    "tests\e2e\use-cases",
+    "tests\e2e\reports"
 )
 
 foreach ($dir in $directories) {
@@ -363,6 +365,7 @@ Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-workflow-gate
 
 # Agents
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-app.md") ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-e2e.md") ".claude\agents\verify-e2e.md" ".claude\agents\verify-e2e.md"
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "council-advisor.md") ".claude\agents\council-advisor.md" ".claude\agents\council-advisor.md"
 
 # Skills (tech-agnostic)
@@ -559,7 +562,7 @@ if ($Upgrade) {
     Write-Host "  .mcp.json                MCP servers (Playwright + Context7)"
     Write-Host "  .claude\commands\        Workflow commands: /new-feature, /fix-bug, /quick-fix"
     Write-Host "  .claude\hooks\           Auto-run scripts (format, verify, memory)"
-    Write-Host "  .claude\agents\          Subagent definitions (verify-app)"
+    Write-Host "  .claude\agents\          Subagent definitions (verify-app, verify-e2e)"
     Write-Host "  .claude\rules\           Coding standards + workflow rules (safe to update)"
     Write-Host "  .claude\skills\           Skills (release, council, ui-design if typescript/fullstack)"
     Write-Host "  docs\                    Changelog, PRDs, solutions knowledge base"
