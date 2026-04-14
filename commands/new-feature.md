@@ -137,7 +137,10 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [ ] Code review loop (0 iterations) — iterate until no P0/P1/P2
 - [ ] Simplified
 - [ ] Verified (tests/lint/types)
-- [ ] E2E use cases tested (if user-facing)
+- [ ] E2E use cases designed (Phase 3.2b)
+- [ ] E2E verified via verify-e2e agent (Phase 5.4)
+- [ ] E2E regression passed (Phase 5.4b)
+- [ ] E2E use cases graduated to tests/e2e/use-cases/ (Phase 6.2b)
 - [ ] Learnings documented (if any)
 - [ ] State files updated
 - [ ] Committed and pushed
@@ -285,7 +288,14 @@ Check off in CONTINUITY.md: `- [x] Contrarian gate passed (skip | spike | counci
 
 If this feature changes any user-facing behavior (UI, API, flows, forms, navigation, permissions), design E2E use cases NOW — before implementation, not after.
 
-Write use cases in the plan file using the template from `rules/testing.md`. Each use case needs: **Intent, Steps, Verification, Persistence**.
+Write use cases in the plan file under a `#### E2E Use Cases` heading, using the template from `rules/testing.md`. Each use case declares its **Interface** (API / UI / CLI / API+UI) based on the project-type matrix in `rules/testing.md` — and includes **Setup** (sanctioned method per the ARRANGE/VERIFY boundary), **Steps**, **Verification**, and **Persistence**.
+
+**Project type scope** (from `CLAUDE.md` `## E2E Configuration`):
+
+- **fullstack:** API use cases + UI use cases (API-first ordering for execution)
+- **api:** API use cases only
+- **cli:** CLI use cases only
+- **hybrid:** declare per use case
 
 Think like a user, not a developer:
 
@@ -483,60 +493,45 @@ npm test && npm run lint && npm run typecheck  # Node
 
 ### 5.4 E2E Use Case Tests (MANDATORY if user-facing)
 
-**If this feature changes ANY user-facing behavior, execute E2E tests.**
+**MUST use the `verify-e2e` subagent** — Do NOT test user flows yourself.
 
-User-facing means: API changes, UI changes, new pages, flow changes, form changes, navigation changes, permission changes — anything a user would notice.
+The verify-e2e agent tests as a real user: no database access, no internal endpoints, no source code reading. It executes the use cases from your Phase 3.2b plan through the product's actual user-facing interfaces and produces a markdown report at `tests/e2e/reports/`.
 
-**If purely internal (no user-facing impact):** Check the box with justification:
-`- [x] E2E use cases tested — N/A: internal migration, no user-facing changes`
+**Step 1: Ensure servers are running from this worktree**
 
-**Step 1: Review use cases from Phase 3 plan**
+If you're in a worktree, dev servers may still be running from the main directory serving OLD code. Restart them from the worktree before invoking verify-e2e.
 
-Open the plan file and review the E2E use cases designed earlier. Refine if implementation revealed new scenarios. Add the use cases to CONTINUITY.md for tracking:
+**Step 2: Invoke verify-e2e**
 
-```markdown
-#### E2E Use Cases
-
-- [ ] UC1: [Intent] — [one-line summary]
-- [ ] UC2: [Intent] — [one-line summary]
+```
+Task tool → subagent_type: "verify-e2e", prompt: "Mode: feature. Plan file: [path to your plan file]. Project type: [fullstack|api|cli|hybrid from CLAUDE.md]. Execute all E2E use cases and produce a verification report."
 ```
 
-**Step 2: Restart servers from worktree (CRITICAL if in worktree)**
+**Step 3: Act on the verdict**
 
-> ⚠️ **If you're in a worktree**, the development servers are likely still running from the main directory, serving OLD code. You MUST restart them from the worktree to test your changes.
+- **PASS:** Proceed to Phase 5.4b
+- **FAIL_BUG:** Fix the issue in code, re-run verify-e2e. Do NOT check the box until PASS.
+- **FAIL_STALE:** Update the stale use case file, re-run
+- **FAIL_INFRA:** Retry once manually; if still infra, report to user for decision
 
-Stop the current development servers and start them from this worktree directory. Use the project's start/stop commands from CLAUDE.md.
+**If purely internal (no user-facing impact):** Check the box with justification:
+`- [x] E2E verified — N/A: internal migration, no user-facing changes`
 
-Wait for servers to be ready before proceeding.
+**Non-browser projects** (API-only, CLI): the verify-e2e agent handles these via HTTP/subprocess. The use case template applies; no Playwright needed.
 
-**Step 3: Execute each use case with Playwright MCP**
+### 5.4b E2E Regression (MANDATORY if tests/e2e/use-cases/ exists)
 
-For each use case, execute the Steps through the browser:
+Run the full regression suite to catch regressions in previously shipped flows. This is what prevents your new feature from breaking the features that came before it.
 
-- Navigate to the starting page
-- Perform each user action (click, fill, select, submit)
-- Verify the expected outcome is visible
-- **Reload the page and confirm persistence**
+**Invoke verify-e2e in regression mode:**
 
-Check off each use case in CONTINUITY.md as it passes.
+```
+Task tool → subagent_type: "verify-e2e", prompt: "Mode: regression. Execute all use cases from tests/e2e/use-cases/. Project type: [fullstack|api|cli|hybrid]."
+```
 
-**Step 4: Test error paths**
+**If tests/e2e/use-cases/ doesn't exist yet** (no features graduated): check the box with `- [x] E2E regression — N/A: no accumulated use cases yet`.
 
-For each error use case:
-
-- Trigger the error condition through the UI
-- Verify the user sees an appropriate error message
-- Verify no data was corrupted (check the happy path still works)
-
-**DO NOT skip by saying:**
-
-- ❌ "Unit tests cover it" → Unit tests don't test user workflows
-- ❌ "It's a small change" → Small changes break real user flows
-- ❌ "I'll test it later" → E2E happens now, not after merge
-
-**Only skip if:** Purely internal with zero user-facing impact (must justify in checklist).
-
-**Non-browser projects** (API-only services, CLIs, mobile backends): If there's no web UI to drive, execute use cases via API calls (curl/httpie), CLI commands, or document the manual verification steps. The use case template (Intent, Steps, Verification, Persistence) still applies — just replace "UI interactions" with the appropriate interface.
+**If any regression FAIL_BUG:** This feature broke something that previously worked. Fix it, then re-run both 5.4 and 5.4b.
 
 ---
 
@@ -565,6 +560,20 @@ If you fixed bugs or discovered patterns, document them:
 
 1. **CONTINUITY.md**: Update Done (keep 2-3 recent), Now, Next
 2. **docs/CHANGELOG.md**: If 3+ files changed on branch
+
+### 6.2b Graduate E2E Use Cases (MANDATORY if use cases were created)
+
+Move passing use cases from the plan file to `tests/e2e/use-cases/<feature-name>.md` as permanent regression tests.
+
+```bash
+mkdir -p tests/e2e/use-cases
+# Extract the E2E Use Cases section from the plan and write as the feature file.
+# Keep the same UC format (Interface, Setup, Steps, Verify, Persist).
+```
+
+Optionally tag critical paths with `@smoke` for fast regression checks.
+
+**If no user-facing changes:** Skip this step.
 
 ### 6.3 Commit and push
 
