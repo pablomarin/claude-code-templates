@@ -738,6 +738,18 @@ All slash commands available after setup.
 | `verify-app` agent             | Unit tests, migration check, lint, types                       | "Use the verify-app agent"                  |
 | `verify-e2e` agent             | User-journey E2E (API / UI / CLI) + regression suite replay    | "Use the verify-e2e agent"                  |
 
+### Optional: Playwright CI Bridge
+
+For teams with external contributors or CI requirements, opt into the Playwright framework to get deterministic, headless regression coverage that runs on every PR without requiring a Claude session.
+
+```bash
+./setup.sh -p "My App" -t fullstack --with-playwright
+```
+
+This installs `playwright.config.ts`, an auth fixture template, and a GitHub Actions workflow template (in `docs/ci-templates/`, NOT auto-activated). During Phase 6.2c of each workflow, the main implementation agent generates deterministic `.spec.ts` files from the verify-e2e agent's report — you get the exploratory-authoring of the read-only agent AND the CI-enforced regression of a spec framework.
+
+See `.claude/rules/testing.md` for the full two-layer model explanation.
+
 ### PR Review Comments (Post-PR)
 
 | Command               | Purpose                              | Notes                                                           |
