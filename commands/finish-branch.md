@@ -143,6 +143,8 @@ git pull
 echo "✓ Updated main branch"
 ```
 
+> **Note on E2E use cases:** Any use cases graduated to `tests/e2e/use-cases/` during Phase 6.2b of `/new-feature` or `/fix-bug` are now on main and will be tested in regression mode by future features. No cleanup needed — they persist as permanent regression tests.
+
 ---
 
 ### 2.10 Restart development servers from main

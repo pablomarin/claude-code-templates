@@ -13,6 +13,7 @@ Generate a structured PRD from the refined understanding captured in `/prd:discu
 ### Step 0: Research Current Best Practices
 
 Before generating the PRD:
+
 1. Use WebSearch to verify current best practices for the feature type
 2. Use WebFetch/Context7 to check current library documentation if specific tech is involved
 3. Ensure recommendations reflect up-to-date patterns, not outdated approaches
@@ -32,9 +33,12 @@ Before generating the PRD:
 
 Create `docs/prds/{feature-name}.md` using the template below.
 
+> **Note on E2E:** The PRD defines WHAT to build. E2E use cases (HOW users will verify it) are designed in Phase 3.2b of `/new-feature` or `/fix-bug`, not in the PRD. The PRD should clearly identify user-facing behavior so the use case design phase has something concrete to work from.
+
 ### Step 3: Review Prompt
 
 After creating PRD:
+
 1. Summarize what was created (section count, story count)
 2. Ask user to review
 3. Offer to make adjustments
@@ -42,7 +46,7 @@ After creating PRD:
 
 ## PRD Template
 
-```markdown
+````markdown
 # PRD: {Feature Name}
 
 **Version:** 1.0
@@ -60,26 +64,31 @@ After creating PRD:
 ## 2. Goals & Success Metrics
 
 ### Goals
+
 - {Primary goal}
 - {Secondary goal}
 
 ### Success Metrics
-| Metric | Target | How Measured |
-|--------|--------|--------------|
+
+| Metric   | Target   | How Measured         |
+| -------- | -------- | -------------------- |
 | {metric} | {target} | {measurement method} |
 
 ### Non-Goals (Explicitly Out of Scope)
+
 - ❌ {What we're NOT building}
 - ❌ {What's deferred to future phases}
 
 ## 3. User Personas
 
 ### {Persona 1 Name}
+
 - **Role:** {role description}
 - **Permissions:** {what they can do}
 - **Goals:** {what they want to achieve}
 
 ### {Persona 2 Name}
+
 - **Role:** {role description}
 - **Permissions:** {what they can do}
 - **Goals:** {what they want to achieve}
@@ -93,14 +102,17 @@ After creating PRD:
 **So that** {benefit}
 
 **Scenario:**
+
 ```gherkin
 Given {precondition}
 When {action}
 Then {expected result}
 And {additional result}
 ```
+````
 
 **Acceptance Criteria:**
+
 - [ ] {criterion 1 - specific and testable}
 - [ ] {criterion 2 - specific and testable}
 - [ ] {criterion 3 - specific and testable}
@@ -116,6 +128,7 @@ And {additional result}
 ---
 
 ### US-002: {Story Title}
+
 {Repeat structure for each story}
 
 ---
@@ -123,26 +136,32 @@ And {additional result}
 ## 5. Technical Constraints
 
 ### Known Limitations
+
 - {constraint 1}
 - {constraint 2}
 
 ### Dependencies
+
 - **Requires:** {feature/system that must exist first}
 - **Blocked by:** {any blockers}
 
 ### Integration Points
+
 - {External system 1}: {how we integrate}
 - {External system 2}: {how we integrate}
 
 ## 6. Data Requirements
 
 ### New Data Models
+
 - {Model name}: {brief description}
 
 ### Data Validation Rules
+
 - {Field}: {validation rule}
 
 ### Data Migration
+
 - {Any migration needed from existing data}
 
 ## 7. Security Considerations
@@ -169,15 +188,16 @@ And {additional result}
 
 ## Appendix A: Revision History
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | {date} | Claude + User | Initial PRD |
+| Version | Date   | Author        | Changes     |
+| ------- | ------ | ------------- | ----------- |
+| 1.0     | {date} | Claude + User | Initial PRD |
 
 ## Appendix B: Approval
 
 - [ ] Product Owner approval
 - [ ] Technical Lead approval
 - [ ] Ready for technical design
+
 ```
 
 ## Validation Checklist
@@ -204,21 +224,28 @@ Before finalizing, verify PRD has:
 
 **If no discussion file exists:**
 ```
+
 No discussion file found for "{feature-name}".
 
 Before creating a PRD, we should refine the user stories together.
 Run: /prd:discuss {feature-name}
 
 Then provide your user stories, and I'll help identify gaps before we write the PRD.
+
 ```
 
 **If discussion is incomplete:**
 ```
+
 The discussion for "{feature-name}" appears incomplete (status: In Progress).
 
 Would you like to:
+
 1. Continue the discussion (recommended)
 2. Create PRD anyway with current understanding
 
 Reply with your choice.
+
+```
+
 ```

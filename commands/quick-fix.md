@@ -15,11 +15,13 @@
 - **No architectural impact**
 
 **If ANY of these apply, use the full workflow instead:**
+
 - You're not 100% sure of the fix
 - Multiple files need changes
 - The fix involves business logic
 - Tests need to be added/modified
 - Database/API changes involved
+- **User-facing behavior changed** — UI, API response, CLI output, navigation, permissions. Quick-fix skips E2E verification; any user-facing change requires the `verify-e2e` agent via `/fix-bug`. Trivial = no behavior change (typos, comments, dead code removal, internal refactors that preserve behavior).
 
 ---
 
@@ -48,6 +50,7 @@
 Using a subagent keeps test output out of your context window, preserving tokens for actual work.
 
 **Invoke the subagent:**
+
 ```
 Use the Task tool with:
 - subagent_type: "verify-app"
@@ -57,6 +60,7 @@ Use the Task tool with:
 > **Note:** Quick-fix doesn't create worktrees. For parallel development, use `/new-feature` or `/fix-bug` instead.
 
 **Only use fallback if Task tool fails:**
+
 ```bash
 pytest && ruff check . && mypy .  # Python
 npm test && npm run lint && npm run typecheck  # Node
@@ -80,6 +84,7 @@ git commit -m "fix: [descriptive message]"
 **Note:** Quick fixes are typically committed directly to the current branch. Since quick-fix doesn't create worktrees or feature branches, there's no PR/merge workflow - just commit and you're done.
 
 **If you want to create a PR instead** (e.g., for review):
+
 ```bash
 git push -u origin HEAD
 gh pr create --base main --fill
@@ -101,6 +106,7 @@ gh pr create --base main --fill
 ## Escalation
 
 If during the fix you discover:
+
 - The change is more complex than expected
 - Tests are failing unexpectedly
 - You need to touch more files
