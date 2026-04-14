@@ -137,10 +137,10 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [ ] Code review loop (0 iterations) — iterate until no P0/P1/P2
 - [ ] Simplified
 - [ ] Verified (tests/lint/types)
-- [ ] E2E use cases designed (Phase 3.2b, or written inline for simple-fix path)
+- [ ] E2E use cases designed (Phase 3.2b plan file, or simple-fix staging at `docs/plans/<bug-name>-use-cases.md`)
 - [ ] E2E verified via verify-e2e agent (Phase 5.4)
 - [ ] E2E regression passed (Phase 5.4b)
-- [ ] E2E use cases graduated to tests/e2e/use-cases/ (Phase 6.2b — skip if simple-fix wrote directly)
+- [ ] E2E use cases graduated to tests/e2e/use-cases/ (Phase 6.2b)
 - [ ] Learning documented
 - [ ] State files updated
 - [ ] Committed and pushed
@@ -477,9 +477,8 @@ The verify-e2e agent tests as a real user: no database access, no internal endpo
 Simple fixes (1-2 files, non-high-impact) skip Phase 3 entirely — so no plan file exists. If you took the simple-fix path AND the change is user-facing:
 
 - Write a lightweight use case set inline (1 happy-path + 1 error case minimum) using the UC template from `rules/testing.md`
-- Save directly to `tests/e2e/use-cases/<bug-name>.md` (this is the graduation destination). **Start the file with a `#### E2E Use Cases` heading** so verify-e2e can extract the UCs correctly.
-- **Do NOT commit this file until Phase 5.4 returns PASS.** If Phase 5.4 returns FAIL_BUG, fix the code and re-run. The file stays uncommitted in the worktree until it passes. Commit happens in Phase 6.3.
-- **Skip Phase 6.2b** for simple fixes — the file is already at the graduation destination.
+- Save to **`docs/plans/<bug-name>-use-cases.md`** as a staging file. **Start the file with a `#### E2E Use Cases` heading** so verify-e2e can extract the UCs correctly.
+- **Why a staging file, not tests/e2e/use-cases/ directly?** Writing directly to `tests/e2e/use-cases/` would cause Phase 5.4b regression mode to pick up the new unverified use case alongside accumulated ones. Staging in `docs/plans/` keeps the separation clean. Phase 6.2b then graduates the staged file after PASS.
 - Then proceed to Step 1
 
 If you took the complex-fix path (Phase 3), use cases are already in the plan file — skip this step.
@@ -491,7 +490,7 @@ If you're in a worktree, dev servers may still be running from the main director
 **Step 2: Invoke verify-e2e**
 
 ```
-Task tool → subagent_type: "verify-e2e", prompt: "Mode: feature. Plan file: [path to plan file OR tests/e2e/use-cases/<bug-name>.md for simple fixes]. Project type: [fullstack|api|cli|hybrid from CLAUDE.md]. Execute all E2E use cases and produce a verification report."
+Task tool → subagent_type: "verify-e2e", prompt: "Mode: feature. Plan file: [path to plan file OR docs/plans/<bug-name>-use-cases.md for simple fixes]. Project type: [fullstack|api|cli|hybrid from CLAUDE.md]. Execute all E2E use cases and produce a verification report."
 ```
 
 **Step 3: Act on the verdict**
@@ -558,22 +557,25 @@ This creates a searchable solution so the same bug is never debugged twice.
 1. **CONTINUITY.md**: Update Done (keep 2-3 recent), Now, Next
 2. **docs/CHANGELOG.md**: If 3+ files changed on branch
 
-### 6.2b Graduate E2E Use Cases (MANDATORY if use cases were created in a plan file)
+### 6.2b Graduate E2E Use Cases (MANDATORY if use cases were created)
 
-Move passing use cases from the plan file to `tests/e2e/use-cases/<bug-name>.md` as permanent regression tests.
+Move passing use cases to `tests/e2e/use-cases/<bug-name>.md` as permanent regression tests.
+
+**Complex-fix path:** Extract the E2E Use Cases section from the plan file and write as `tests/e2e/use-cases/<bug-name>.md`.
+
+**Simple-fix path:** Move the staging file:
 
 ```bash
 mkdir -p tests/e2e/use-cases
-# Extract the E2E Use Cases section from the plan and write as the bug-name file.
-# Keep the same UC format (Interface, Setup, Steps, Verify, Persist).
+mv docs/plans/<bug-name>-use-cases.md tests/e2e/use-cases/<bug-name>.md
 ```
 
-Optionally tag critical paths with `@smoke` for fast regression checks.
+Both paths:
 
-**Skip this step if:**
+- Keep the same UC format (Interface, Setup, Steps, Verify, Persist)
+- Optionally tag critical paths with `@smoke` for fast regression checks
 
-- No user-facing changes (Phase 5.4 was N/A)
-- Simple-fix path (use cases already written directly to `tests/e2e/use-cases/` during Phase 5.4 Step 0)
+**Skip this step if:** No user-facing changes (Phase 5.4 was N/A).
 
 ### 6.3 Commit and push
 
