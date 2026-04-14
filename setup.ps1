@@ -21,7 +21,10 @@ param(
     [switch]$Upgrade,
 
     [Alias("g")]
-    [switch]$Global
+    [switch]$Global,
+
+    [Alias("w")]
+    [switch]$WithPlaywright
 )
 
 # Upgrade implies force for hooks/commands/rules
@@ -51,6 +54,7 @@ function Show-Usage {
     Write-Host "  -t, -Tech STACK     Tech stack: python, typescript, fullstack (default: fullstack)"
     Write-Host "  -f, -Force          Overwrite existing files"
     Write-Host "  -g, -Global         Set up global memory system (~/.claude/)"
+    Write-Host "  -w, -WithPlaywright Install Playwright framework templates (requires -Tech fullstack or typescript)"
     Write-Host ""
     Write-Host "Examples:"
     Write-Host "  .\setup.ps1                          # Setup with defaults"
@@ -59,6 +63,7 @@ function Show-Usage {
     Write-Host "  .\setup.ps1 -f                       # Force overwrite existing files"
     Write-Host "  .\setup.ps1 -Global                  # Set up global memory (run once per machine)"
     Write-Host "  .\setup.ps1 -Global -f               # Force overwrite global settings"
+    Write-Host "  .\setup.ps1 -Tech fullstack -WithPlaywright  # Install Playwright framework templates"
 }
 
 # Show help if requested
@@ -203,6 +208,15 @@ if ($Global) {
 # ============================================================================
 # PROJECT SETUP (default, no -Global flag)
 # ============================================================================
+
+# Validate -WithPlaywright flag
+if ($WithPlaywright) {
+    if ($Tech -ne "fullstack" -and $Tech -ne "typescript") {
+        Write-Color "ERROR: -WithPlaywright requires -Tech fullstack or -Tech typescript." "Red"
+        Write-Color "Playwright framework only applies to web/TS projects." "Yellow"
+        exit 1
+    }
+}
 
 # Default project name to directory name
 if ([string]::IsNullOrEmpty($Project)) {
@@ -462,6 +476,76 @@ switch ($Tech) {
         $genImgDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "generate-image")
         Copy-TemplateFile (Join-Path $genImgDir "SKILL.template.md") ".claude\skills\generate-image\SKILL.md" ".claude\skills\generate-image\SKILL.md"
     }
+}
+
+# Playwright framework templates (opt-in via -WithPlaywright)
+if ($WithPlaywright) {
+    Write-Host ""
+    Write-Color "Installing Playwright framework templates..." "Yellow"
+
+    # Create the specs/ directory (not in the default directories array —
+    # only relevant when framework is installed)
+    if (-not (Test-Path "tests\e2e\specs")) {
+        New-Item -ItemType Directory -Path "tests\e2e\specs" -Force | Out-Null
+        Write-Host "  " -NoNewline
+        Write-Color "+" "Green"
+        Write-Host " Created tests\e2e\specs (for graduated .spec.ts files)"
+    }
+
+    $pwTemplateDir = Join-Path (Join-Path $ScriptDir "templates") "playwright"
+    $ciTemplateDir = Join-Path (Join-Path $ScriptDir "templates") "ci-workflows"
+
+    # Playwright config
+    Copy-TemplateFile (Join-Path $pwTemplateDir "playwright.config.template.ts") "playwright.config.ts" "playwright.config.ts"
+
+    # Auth fixture
+    if (-not (Test-Path "tests\e2e\fixtures")) {
+        New-Item -ItemType Directory -Path "tests\e2e\fixtures" -Force | Out-Null
+    }
+    Copy-TemplateFile (Join-Path $pwTemplateDir "auth.fixture.template.ts") "tests\e2e\fixtures\auth.ts" "tests\e2e\fixtures\auth.ts"
+
+    # Auth storage directory - gitignored because it contains credentials
+    if (-not (Test-Path "tests\e2e\.auth")) {
+        New-Item -ItemType Directory -Path "tests\e2e\.auth" -Force | Out-Null
+    }
+    if (-not (Test-Path "tests\e2e\.auth\.gitignore")) {
+        @"
+# Auth storage state contains credentials - never commit
+*
+!.gitignore
+"@ | Set-Content -Path "tests\e2e\.auth\.gitignore" -NoNewline -Encoding UTF8
+        Write-Host "  " -NoNewline
+        Write-Color "+" "Green"
+        Write-Host " Created tests\e2e\.auth\.gitignore (credentials protected)"
+    }
+
+    # CI workflow reference (NOT auto-activated)
+    if (-not (Test-Path "docs\ci-templates")) {
+        New-Item -ItemType Directory -Path "docs\ci-templates" -Force | Out-Null
+    }
+    Copy-TemplateFile (Join-Path $ciTemplateDir "e2e.yml") "docs\ci-templates\e2e.yml" "docs\ci-templates\e2e.yml (reference - NOT auto-activated)"
+    Copy-TemplateFile (Join-Path $ciTemplateDir "README.md") "docs\ci-templates\README.md" "docs\ci-templates\README.md"
+
+    Write-Host ""
+    Write-Color "Playwright templates installed." "Green"
+    Write-Color "Next steps to complete Playwright setup:" "Yellow"
+    Write-Host "  1. Install the framework: " -NoNewline
+    Write-Color "pnpm add -D @playwright/test" "Blue"
+    Write-Host "     (or npm: " -NoNewline
+    Write-Color "npm install --save-dev @playwright/test" "Blue"
+    Write-Host ")"
+    Write-Host "  2. Install browsers:      " -NoNewline
+    Write-Color "pnpm exec playwright install" "Blue"
+    Write-Host "  3. Review " -NoNewline
+    Write-Color "playwright.config.ts" "Blue"
+    Write-Host " - set baseURL and uncomment webServer if needed"
+    Write-Host "  4. (Optional) Activate CI:"
+    Write-Host "     " -NoNewline
+    Write-Color "mkdir .github\workflows; cp docs\ci-templates\e2e.yml .github\workflows\e2e.yml" "Blue"
+    Write-Host "     Note: CI template uses pnpm - adjust for npm/yarn in .github\workflows\e2e.yml if needed"
+    Write-Host "  5. Configure auth via env vars: TEST_API_KEY or TEST_USER_EMAIL + TEST_USER_PASSWORD"
+    Write-Host "  6. Run tests: " -NoNewline
+    Write-Color "pnpm exec playwright test" "Blue"
 }
 
 Write-Host ""

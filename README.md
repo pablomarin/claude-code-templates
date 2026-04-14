@@ -738,6 +738,39 @@ All slash commands available after setup.
 | `verify-app` agent             | Unit tests, migration check, lint, types                       | "Use the verify-app agent"                  |
 | `verify-e2e` agent             | User-journey E2E (API / UI / CLI) + regression suite replay    | "Use the verify-e2e agent"                  |
 
+### Optional: Playwright CI Bridge
+
+**Monday, 9 AM.** A first-time contributor opens a PR touching `/api/auth/login`. No Claude session, so your `verify-e2e` agent doesn't run. Their PR goes green, merges, and breaks login for a thousand users by Wednesday.
+
+The bridge fixes that. Every passing use case the agent explores becomes a deterministic `.spec.ts` file that CI replays in ~90 seconds, on every PR, zero LLM cost.
+
+```bash
+./setup.sh -p "My App" -t fullstack --with-playwright
+```
+
+**What you get:** `playwright.config.ts`, auth fixture (`tests/e2e/fixtures/auth.ts`), empty `tests/e2e/specs/`, credential-safe `tests/e2e/.auth/.gitignore`, and a reference GitHub Actions workflow in `docs/ci-templates/e2e.yml` (copy to `.github/workflows/` when you're ready — never auto-activated).
+
+**What you run once** (setup.sh prints this):
+
+```bash
+pnpm add -D @playwright/test && pnpm exec playwright install
+# set TEST_API_KEY, or TEST_USER_EMAIL + TEST_USER_PASSWORD
+# review playwright.config.ts — set baseURL, uncomment the "setup" project
+```
+
+**How your workflow changes — two touchpoints:**
+
+| Phase               | What happens                                                                                                                                               |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **5.4b regression** | Runs `pnpm exec playwright test` when every UC has a matching spec; falls through to the `verify-e2e` agent during partial migration — safe at every point |
+| **6.2c (new)**      | **Main** implementation agent reads the `verify-e2e` report + markdown UC, writes `tests/e2e/specs/<feature>.spec.ts` using selectors the agent observed   |
+
+The `verify-e2e` agent stays read-only. Only the main agent writes specs. This is a hard invariant.
+
+**The two layers.** `tests/e2e/use-cases/*.md` is intent — lives with your plan. `tests/e2e/specs/*.spec.ts` is deterministic replay — runs everywhere (local, CI, cron, contributor PRs).
+
+See `.claude/rules/testing.md` for the full model.
+
 ### PR Review Comments (Post-PR)
 
 | Command               | Purpose                              | Notes                                                           |

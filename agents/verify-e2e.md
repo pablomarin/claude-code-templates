@@ -99,6 +99,24 @@ Write markdown to `tests/e2e/reports/YYYY-MM-DD-HH-MM-<feature-or-mode>.md`:
 | --- | ------ | --------- | ------------ | ------ | -------- |
 | UC1 | ...    | ...       | ...          | PASS   | 12s      |
 
+## Per-UC Details
+
+### UC1: User creates a todo — PASS
+
+**Interface used:** UI (via Playwright MCP)
+**Setup:** API register + login
+
+**Observed selectors (for spec generation):**
+
+- Navigate: `/todos`
+- Input: `getByLabel('Title')`
+- Submit: `getByRole('button', { name: 'Create' })`
+- Verify: `getByText('Buy milk')` visible
+- Persist: reload `/todos`, `getByText('Buy milk')` still visible
+
+**Duration:** 12s
+**Evidence:** [screenshots paths if any]
+
 ## Failures
 
 ### UC2: [Intent] — FAIL_BUG
@@ -141,6 +159,19 @@ UC3 (User deletes a todo) → FAIL_BUG: DELETE /api/v1/todos/1 returned 500 inst
 ## Use Case Graduation (not your responsibility)
 
 When this report returns PASS for feature mode, the workflow (Phase 6.2b) will graduate the use cases from the plan file to `tests/e2e/use-cases/[feature].md`. You do not perform this graduation — the implementation agent does.
+
+## Phase 6.2c Spec Generation (you assist, do not write)
+
+When the Playwright framework is installed, the main implementation agent will generate `.spec.ts` files from your PASSED use cases in Phase 6.2c. You do NOT write these files.
+
+**Your contribution:** the structured "Observed selectors" section in your report (see Step 5). The main agent reads:
+
+1. The markdown UC file (intent of truth — Interface, Setup, Steps, Verify, Persist)
+2. Your verification report (observed selectors, outcome, durations)
+
+It writes the spec from those two sources. You remain read-only.
+
+If selectors are ambiguous or you couldn't determine stable locators, note that in the report under the UC (e.g., "Selector ambiguity: 'Submit' button matched 3 candidates — need data-testid or clearer role").
 
 ## What You Do NOT Do
 

@@ -78,6 +78,17 @@ The `verify-e2e` agent adapts to this project's interfaces. Declare the interfac
 
 See `.claude/rules/testing.md` for the full interface capability matrix.
 
+### Playwright Framework (optional)
+
+If you enabled Playwright via `setup.sh --with-playwright`, this project has:
+
+- `playwright.config.ts` at root
+- `tests/e2e/specs/` — generated spec files (via Phase 6.2c)
+- `tests/e2e/fixtures/auth.ts` — auth bypass pattern
+- `docs/ci-templates/e2e.yml` — CI workflow template (copy to `.github/workflows/` to activate)
+
+Run specs locally: `pnpm exec playwright test`
+
 ### Key Commands
 
 **Replace the examples below with your project's actual commands:**

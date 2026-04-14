@@ -192,6 +192,74 @@ The verify-e2e agent produces a structured markdown report with four classificat
 | **FAIL_STALE** | Use case references changed interface — needs update | No (maintenance flag) |
 | **FAIL_INFRA** | Server down, timeout, flaky selector                 | Retry once, then warn |
 
+## Playwright Framework Bridge (Optional)
+
+Projects can opt into the Playwright test framework to add CI-enforced regression coverage on top of the markdown use cases + verify-e2e agent.
+
+### When to use
+
+Enable if:
+
+- External contributors will open PRs (no Claude session runs on their PRs)
+- You want nightly regression or pre-deploy smoke
+- You want zero-LLM-cost regression runs (after the initial spec generation)
+
+Skip if:
+
+- Solo project with every PR opened by someone who runs `/new-feature`
+- Project has no web UI (API-only, CLI, Python-only — framework doesn't apply)
+- You're comfortable with agent-only regression (session-bound)
+
+### How to enable
+
+```bash
+./setup.sh -p "My App" -t fullstack --with-playwright
+```
+
+This installs:
+
+- `playwright.config.ts` at project root
+- `tests/e2e/fixtures/auth.ts` (auth bypass pattern)
+- `tests/e2e/specs/` directory for generated spec files
+- `docs/ci-templates/e2e.yml` — GitHub Actions workflow as a reference (not auto-activated)
+
+Then:
+
+```bash
+pnpm add -D @playwright/test
+pnpm exec playwright install
+# Optional: activate CI
+cp docs/ci-templates/e2e.yml .github/workflows/e2e.yml
+```
+
+### The two-layer model
+
+| Layer                                              | Source of truth                    | When it runs                                                    | Cost                  |
+| -------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------- | --------------------- |
+| **Markdown use case** (`tests/e2e/use-cases/*.md`) | Intent — what a user wants         | Phase 5.4/5.4b during `/new-feature` or `/fix-bug`              | LLM tokens per run    |
+| **Spec file** (`tests/e2e/specs/*.spec.ts`)        | Deterministic replay of the intent | CI on every PR, nightly cron, local `pnpm exec playwright test` | Free after generation |
+
+The verify-e2e agent explores the UI once during Phase 5.4 (authoring) and records observed selectors in its report. Then in Phase 6.2c the main implementation agent reads that report and writes a stable spec file using the recorded selectors. The verify-e2e agent stays read-only throughout; only the main agent has Write/Edit tools.
+
+### Auth fixture pattern
+
+E2E tests should authenticate ONCE per run, not per test. The auth fixture stores browser state after login and reuses it across specs. Configure via env vars:
+
+- `TEST_API_KEY` (preferred — fastest) OR
+- `TEST_USER_EMAIL` + `TEST_USER_PASSWORD` (fallback)
+
+See `tests/e2e/fixtures/auth.ts` for the template.
+
+### CI integration
+
+The ships-as-reference CI template runs:
+
+- **On PR:** smoke-tagged specs only (~2 min)
+- **Nightly:** full suite
+- **Manual:** workflow_dispatch for ad-hoc runs
+
+Uploads HTML report + traces as artifacts on failure.
+
 ## Rules
 
 1. ALWAYS follow Arrange-Act-Assert pattern

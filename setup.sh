@@ -29,6 +29,7 @@ usage() {
     echo "  -f, --force         Overwrite existing files (destructive)"
     echo "  -u, --upgrade       Smart upgrade: merge new hooks/permissions into existing settings"
     echo "  -g, --global        Set up global memory system (~/.claude/)"
+    echo "  -w, --with-playwright  Install Playwright framework templates (requires -t fullstack or typescript)"
     echo ""
     echo "Examples:"
     echo "  $0                          # Setup with defaults"
@@ -38,6 +39,7 @@ usage() {
     echo "  $0 --upgrade                # Upgrade: add new hooks/rules, merge settings"
     echo "  $0 --global                 # Set up global memory (run once per machine)"
     echo "  $0 --global -f              # Force overwrite global settings"
+    echo "  $0 -t fullstack --with-playwright  # Install Playwright framework templates"
 }
 
 # Parse arguments
@@ -46,6 +48,7 @@ TECH_STACK="fullstack"
 FORCE=false
 UPGRADE=false
 GLOBAL=false
+WITH_PLAYWRIGHT=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -72,6 +75,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -g|--global)
             GLOBAL=true
+            shift
+            ;;
+        -w|--with-playwright)
+            WITH_PLAYWRIGHT=true
             shift
             ;;
         *)
@@ -209,6 +216,15 @@ fi
 # ============================================================================
 # PROJECT SETUP (default, no --global flag)
 # ============================================================================
+
+# Validate --with-playwright flag
+if [[ "$WITH_PLAYWRIGHT" == true ]]; then
+    if [[ "$TECH_STACK" != "fullstack" && "$TECH_STACK" != "typescript" ]]; then
+        echo -e "${RED}ERROR: --with-playwright requires -t fullstack or -t typescript.${NC}"
+        echo -e "${YELLOW}Playwright framework only applies to web/TS projects.${NC}"
+        exit 1
+    fi
+fi
 
 # Default project name to directory name
 if [[ -z "$PROJECT_NAME" ]]; then
@@ -422,6 +438,53 @@ case $TECH_STACK in
         copy_file "$SCRIPT_DIR/skills/generate-image/SKILL.template.md" ".claude/skills/generate-image/SKILL.md" ".claude/skills/generate-image/SKILL.md"
         ;;
 esac
+
+# Playwright framework templates (opt-in via --with-playwright)
+if [[ "$WITH_PLAYWRIGHT" == true ]]; then
+    echo ""
+    echo -e "${YELLOW}Installing Playwright framework templates...${NC}"
+
+    if [[ ! -d "tests/e2e/specs" ]]; then
+        mkdir -p "tests/e2e/specs"
+        echo -e "  ${GREEN}✓${NC} Created tests/e2e/specs (for graduated .spec.ts files)"
+    fi
+
+    # Playwright config
+    copy_file "$SCRIPT_DIR/templates/playwright/playwright.config.template.ts" "playwright.config.ts" "playwright.config.ts"
+
+    # Auth fixture
+    mkdir -p tests/e2e/fixtures
+    copy_file "$SCRIPT_DIR/templates/playwright/auth.fixture.template.ts" "tests/e2e/fixtures/auth.ts" "tests/e2e/fixtures/auth.ts"
+
+    # Auth storage directory — gitignored because it contains credentials
+    mkdir -p tests/e2e/.auth
+    if [[ ! -f "tests/e2e/.auth/.gitignore" ]]; then
+        cat > tests/e2e/.auth/.gitignore << 'EOF'
+# Auth storage state contains credentials - never commit
+*
+!.gitignore
+EOF
+        echo -e "  ${GREEN}✓${NC} Created tests/e2e/.auth/.gitignore (credentials protected)"
+    fi
+
+    # CI workflow reference (NOT auto-activated)
+    mkdir -p docs/ci-templates
+    copy_file "$SCRIPT_DIR/templates/ci-workflows/e2e.yml" "docs/ci-templates/e2e.yml" "docs/ci-templates/e2e.yml (reference — NOT auto-activated)"
+    copy_file "$SCRIPT_DIR/templates/ci-workflows/README.md" "docs/ci-templates/README.md" "docs/ci-templates/README.md"
+
+    echo ""
+    echo -e "${GREEN}✓ Playwright templates installed.${NC}"
+    echo -e "${YELLOW}Next steps to complete Playwright setup:${NC}"
+    echo "  1. Install the framework: ${BLUE}pnpm add -D @playwright/test${NC}"
+    echo "     (or npm: ${BLUE}npm install --save-dev @playwright/test${NC})"
+    echo "  2. Install browsers:      ${BLUE}pnpm exec playwright install${NC}"
+    echo "  3. Review ${BLUE}playwright.config.ts${NC} — set baseURL and uncomment webServer if needed"
+    echo "  4. (Optional) Activate CI:"
+    echo "     ${BLUE}mkdir -p .github/workflows && cp docs/ci-templates/e2e.yml .github/workflows/e2e.yml${NC}"
+    echo "     Note: CI template uses pnpm — adjust for npm/yarn in .github/workflows/e2e.yml if needed"
+    echo "  5. Configure auth via env vars: TEST_API_KEY or TEST_USER_EMAIL + TEST_USER_PASSWORD"
+    echo "  6. Run tests: ${BLUE}pnpm exec playwright test${NC}"
+fi
 
 echo ""
 

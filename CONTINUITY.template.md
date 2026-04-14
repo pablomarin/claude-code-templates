@@ -54,6 +54,7 @@ Ready for first task
 - [ ] E2E verified via verify-e2e agent (Phase 5.4)
 - [ ] E2E regression passed (Phase 5.4b)
 - [ ] E2E use cases graduated to tests/e2e/use-cases/ (Phase 6.2b)
+- [ ] E2E specs graduated to tests/e2e/specs/ (Phase 6.2c — if Playwright framework installed)
 -->
 
 ---

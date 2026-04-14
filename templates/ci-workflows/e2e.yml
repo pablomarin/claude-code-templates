@@ -1,0 +1,116 @@
+# E2E Tests — GitHub Actions workflow
+#
+# This template is installed by `setup.sh --with-playwright` to
+# `docs/ci-templates/e2e.yml`. To ACTIVATE it, move to `.github/workflows/e2e.yml`:
+#
+#   mkdir -p .github/workflows
+#   cp docs/ci-templates/e2e.yml .github/workflows/e2e.yml
+#   git add .github/workflows/e2e.yml && git commit -m "ci: enable E2E regression"
+#
+# Runs Playwright specs on every PR to main + nightly smoke cron.
+# Requires: @playwright/test installed, playwright.config.ts configured,
+# TEST_USER_EMAIL/TEST_USER_PASSWORD or TEST_API_KEY secrets configured.
+#
+# CUSTOMIZATION CHECKLIST before activating:
+#   1. Package manager: this template uses pnpm. For npm, replace:
+#        - `pnpm/action-setup@v4` → remove it; use setup-node's `cache: 'npm'`
+#        - `pnpm install --frozen-lockfile` → `npm ci`
+#        - `pnpm exec playwright test` → `npx playwright test`
+#      For yarn, similar substitutions with `yarn install --frozen-lockfile`.
+#   2. App startup: tests run against PLAYWRIGHT_BASE_URL. Your options:
+#        (a) Deploy a preview URL (Vercel, Railway, etc.) and point
+#            PLAYWRIGHT_BASE_URL at it — simplest and what most modern CI uses.
+#        (b) Run a local dev server in the workflow using a `services:` block,
+#            Docker Compose, or `pnpm dev &` as a backgrounded step.
+#        (c) Use the `webServer` config in playwright.config.ts to auto-start.
+#      Choose one. This template assumes (a) — adjust if using (b) or (c).
+#   3. Secrets: configure `TEST_API_KEY` as a GitHub repo secret.
+#      Configure `PLAYWRIGHT_BASE_URL` as a repo variable.
+
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 8 * * *'  # Daily at 08:00 UTC (smoke + full regression)
+  workflow_dispatch:     # Manual trigger
+
+jobs:
+  e2e-smoke:
+    name: Smoke (PRs)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with: { version: 9 }
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        run: pnpm exec playwright test --grep @smoke
+        env:
+          TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          PLAYWRIGHT_BASE_URL: ${{ vars.PLAYWRIGHT_BASE_URL || 'http://localhost:3000' }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-smoke
+          path: playwright-report/
+          retention-days: 30
+
+  e2e-full:
+    name: Full suite (nightly + manual)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with: { version: 9 }
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Run full suite
+        run: pnpm exec playwright test
+        env:
+          TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          PLAYWRIGHT_BASE_URL: ${{ vars.PLAYWRIGHT_BASE_URL }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-full
+          path: playwright-report/
+          retention-days: 30
