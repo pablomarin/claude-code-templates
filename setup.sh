@@ -444,8 +444,6 @@ if [[ "$WITH_PLAYWRIGHT" == true ]]; then
     echo ""
     echo -e "${YELLOW}Installing Playwright framework templates...${NC}"
 
-    # Create the specs/ directory (not in the default directories array —
-    # only relevant when framework is installed)
     if [[ ! -d "tests/e2e/specs" ]]; then
         mkdir -p "tests/e2e/specs"
         echo -e "  ${GREEN}✓${NC} Created tests/e2e/specs (for graduated .spec.ts files)"

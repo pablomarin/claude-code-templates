@@ -47,11 +47,7 @@ export default defineConfig({
   },
 
   // Browser projects. Chromium covers 80%+ of production bugs; enable Firefox/WebKit
-  // as needed per project.
-  //
-  // To enable auth via tests/e2e/fixtures/auth.ts, uncomment the "setup" project
-  // below and add `dependencies: ['setup']` + `storageState: 'tests/e2e/.auth/user.json'`
-  // to the chromium project. See https://playwright.dev/docs/auth.
+  // as needed. See tests/e2e/fixtures/auth.ts to enable authenticated tests.
   projects: [
     // {
     //   name: 'setup',

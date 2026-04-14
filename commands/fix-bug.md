@@ -629,7 +629,7 @@ If this project has opted into the Playwright framework (`playwright.config.ts` 
    - The markdown use case file: `tests/e2e/use-cases/<bug-name>.md` (intent of truth — just moved in 6.2b)
    - The verify-e2e report from Phase 5.4: `tests/e2e/reports/<latest>.md` (contains observed selectors, outcomes per UC)
 
-2. **Reference the example template:** `.claude/templates/playwright/example.spec.template.ts` (if copied to target, otherwise the source at `templates/playwright/example.spec.template.ts` in the claude-codex-forge checkout)
+2. **Reference the example template:** `templates/playwright/example.spec.template.ts` in the claude-codex-forge checkout — this is a skeleton for spec file structure.
 
 3. **Write `tests/e2e/specs/<bug-name>.spec.ts`:**
    - One `test.describe('Fix: <bug-name>', () => {...})` block
