@@ -271,6 +271,8 @@ directories=(
     "docs/solutions/integration-issues"
     "docs/solutions/logic-errors"
     "docs/solutions/patterns"
+    "tests/e2e/use-cases"
+    "tests/e2e/reports"
 )
 
 for dir in "${directories[@]}"; do
@@ -281,6 +283,15 @@ for dir in "${directories[@]}"; do
         echo -e "  ${BLUE}○${NC} $dir already exists"
     fi
 done
+
+# E2E reports are ephemeral — ignore everything except this gitignore itself.
+if [[ ! -f "tests/e2e/reports/.gitignore" ]]; then
+    cat > tests/e2e/reports/.gitignore << 'EOF'
+*
+!.gitignore
+EOF
+    echo -e "  ${GREEN}✓${NC} Created tests/e2e/reports/.gitignore (reports are ephemeral)"
+fi
 echo ""
 
 # Copy templates
@@ -332,6 +343,7 @@ chmod +x .claude/hooks/check-workflow-gates.sh 2>/dev/null || true
 
 # Agents
 copy_file "$SCRIPT_DIR/agents/verify-app.md" ".claude/agents/verify-app.md" ".claude/agents/verify-app.md"
+copy_file "$SCRIPT_DIR/agents/verify-e2e.md" ".claude/agents/verify-e2e.md" ".claude/agents/verify-e2e.md"
 copy_file "$SCRIPT_DIR/agents/council-advisor.md" ".claude/agents/council-advisor.md" ".claude/agents/council-advisor.md"
 
 # Skills (tech-agnostic)
@@ -504,7 +516,7 @@ else
     echo "  .mcp.json                MCP servers (Playwright + Context7)"
     echo "  .claude/commands/        Workflow commands: /new-feature, /fix-bug, /quick-fix"
     echo "  .claude/hooks/           Auto-run scripts (format, verify, memory)"
-    echo "  .claude/agents/          Subagent definitions (verify-app)"
+    echo "  .claude/agents/          Subagent definitions (verify-app, verify-e2e)"
     echo "  .claude/skills/           Skills (release, council, ui-design if typescript/fullstack)"
     echo "  .claude/rules/           Coding standards + workflow rules (safe to update)"
     echo "  docs/                    Changelog, PRDs, solutions knowledge base"

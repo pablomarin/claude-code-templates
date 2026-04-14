@@ -45,7 +45,16 @@ Ready for first task
 
 ### Checklist
 
-<!-- Populated when /new-feature or /fix-bug starts -->
+<!-- Populated when /new-feature or /fix-bug starts. Example shape:
+
+- [ ] Code review loop (0 iterations) — iterate until no P0/P1/P2
+- [ ] Simplified
+- [ ] Verified (tests/lint/types)
+- [ ] E2E use cases designed (Phase 3.2b)
+- [ ] E2E verified via verify-e2e agent (Phase 5.4)
+- [ ] E2E regression passed (Phase 5.4b)
+- [ ] E2E use cases graduated to tests/e2e/use-cases/ (Phase 6.2b)
+-->
 
 ---
 
