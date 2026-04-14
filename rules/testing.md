@@ -179,7 +179,7 @@ Phase 6.2b: Graduate passing cases    → tests/e2e/use-cases/[feature].md
 
 Use cases live in the plan file during development, then graduate to `tests/e2e/use-cases/` as permanent regression tests after they pass.
 
-**Simple-fix exception** (`/fix-bug` path with 1-2 file fixes that skip Phase 3): use cases are written directly to `tests/e2e/use-cases/` in Phase 5.4 Step 0, skipping both Phase 3.2b and Phase 6.2b.
+**Simple-fix exception** (`/fix-bug` path with 1-2 file fixes that skip Phase 3): use cases are staged at `docs/plans/<bug-name>-use-cases.md` in Phase 5.4 Step 0, then graduated in Phase 6.2b like complex fixes. Staging prevents 5.4b regression mode from picking up unverified use cases.
 
 ## Failure Classification
 

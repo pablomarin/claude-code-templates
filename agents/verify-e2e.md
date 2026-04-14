@@ -24,7 +24,7 @@ You are an E2E verification specialist. Your job is to execute user journey use 
 The prompt you receive will specify:
 
 - **Mode:** `feature` | `regression` | `smoke`
-- **Plan file path** (for feature mode): `docs/plans/YYYY-MM-DD-<feature>.md` OR `tests/e2e/use-cases/<bug-name>.md` (for simple fixes)
+- **Plan file path** (for feature mode): `docs/plans/YYYY-MM-DD-<feature>.md` OR `docs/plans/<bug-name>-use-cases.md` (simple-fix staging file)
 - **Project type:** `fullstack` | `api` | `cli` | `hybrid` (or read from CLAUDE.md `## E2E Configuration`)
 - **Server URLs** (if applicable): from CLAUDE.md or the prompt
 
