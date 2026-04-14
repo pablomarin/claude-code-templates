@@ -504,6 +504,21 @@ if ($WithPlaywright) {
     }
     Copy-TemplateFile (Join-Path $pwTemplateDir "auth.fixture.template.ts") "tests\e2e\fixtures\auth.ts" "tests\e2e\fixtures\auth.ts"
 
+    # Auth storage directory - gitignored because it contains credentials
+    if (-not (Test-Path "tests\e2e\.auth")) {
+        New-Item -ItemType Directory -Path "tests\e2e\.auth" -Force | Out-Null
+    }
+    if (-not (Test-Path "tests\e2e\.auth\.gitignore")) {
+        @"
+# Auth storage state contains credentials - never commit
+*
+!.gitignore
+"@ | Set-Content -Path "tests\e2e\.auth\.gitignore" -NoNewline
+        Write-Host "  " -NoNewline
+        Write-Color "+" "Green"
+        Write-Host " Created tests\e2e\.auth\.gitignore (credentials protected)"
+    }
+
     # CI workflow reference (NOT auto-activated)
     if (-not (Test-Path "docs\ci-templates")) {
         New-Item -ItemType Directory -Path "docs\ci-templates" -Force | Out-Null

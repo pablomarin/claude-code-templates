@@ -55,7 +55,8 @@ export default defineConfig({
   projects: [
     // {
     //   name: 'setup',
-    //   testMatch: /fixtures\/auth\.ts/,
+    //   testDir: './tests/e2e/fixtures',
+    //   testMatch: /auth\.ts$/,
     // },
     {
       name: "chromium",

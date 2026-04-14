@@ -458,6 +458,17 @@ if [[ "$WITH_PLAYWRIGHT" == true ]]; then
     mkdir -p tests/e2e/fixtures
     copy_file "$SCRIPT_DIR/templates/playwright/auth.fixture.template.ts" "tests/e2e/fixtures/auth.ts" "tests/e2e/fixtures/auth.ts"
 
+    # Auth storage directory — gitignored because it contains credentials
+    mkdir -p tests/e2e/.auth
+    if [[ ! -f "tests/e2e/.auth/.gitignore" ]]; then
+        cat > tests/e2e/.auth/.gitignore << 'EOF'
+# Auth storage state contains credentials - never commit
+*
+!.gitignore
+EOF
+        echo -e "  ${GREEN}✓${NC} Created tests/e2e/.auth/.gitignore (credentials protected)"
+    fi
+
     # CI workflow reference (NOT auto-activated)
     mkdir -p docs/ci-templates
     copy_file "$SCRIPT_DIR/templates/ci-workflows/e2e.yml" "docs/ci-templates/e2e.yml" "docs/ci-templates/e2e.yml (reference — NOT auto-activated)"
