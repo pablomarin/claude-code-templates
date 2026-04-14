@@ -1,6 +1,6 @@
 ---
 name: verify-e2e
-description: E2E verification — executes user journey use cases through user-facing interfaces (API, UI via Playwright MCP, CLI) and produces a markdown report. Adapts to project type from CLAUDE.md. Cannot modify code (no Write/Edit tools). Source-code reading is policy, not enforcement — the prompt restricts it explicitly.
+description: E2E verification — executes user-journey use cases through user-facing interfaces (API, UI via Playwright MCP, CLI) and produces a markdown report. Read-only: cannot modify code or write files.
 tools:
   - Bash
   - Read
