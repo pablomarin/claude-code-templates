@@ -308,6 +308,15 @@ foreach ($dir in $directories) {
         Write-Host " $dir already exists"
     }
 }
+
+# E2E reports are ephemeral — ignore everything except this gitignore itself.
+$reportsGitignore = "tests\e2e\reports\.gitignore"
+if (-not (Test-Path $reportsGitignore)) {
+    Set-Content -Path $reportsGitignore -Value "*`n!.gitignore`n" -NoNewline
+    Write-Host "  " -NoNewline
+    Write-Color "+" "Green"
+    Write-Host " Created tests\e2e\reports\.gitignore (reports are ephemeral)"
+}
 Write-Host ""
 
 # Copy templates

@@ -477,7 +477,9 @@ The verify-e2e agent tests as a real user: no database access, no internal endpo
 Simple fixes (1-2 files, non-high-impact) skip Phase 3 entirely — so no plan file exists. If you took the simple-fix path AND the change is user-facing:
 
 - Write a lightweight use case set inline (1 happy-path + 1 error case minimum) using the UC template from `rules/testing.md`
-- Save directly to `tests/e2e/use-cases/<bug-name>.md` (this is the graduation destination anyway — skip Phase 6.2b for simple fixes since the file is written here)
+- Save directly to `tests/e2e/use-cases/<bug-name>.md` (this is the graduation destination). **Start the file with a `#### E2E Use Cases` heading** so verify-e2e can extract the UCs correctly.
+- **Do NOT commit this file until Phase 5.4 returns PASS.** If Phase 5.4 returns FAIL_BUG, fix the code and re-run. The file stays uncommitted in the worktree until it passes. Commit happens in Phase 6.3.
+- **Skip Phase 6.2b** for simple fixes — the file is already at the graduation destination.
 - Then proceed to Step 1
 
 If you took the complex-fix path (Phase 3), use cases are already in the plan file — skip this step.
@@ -504,19 +506,25 @@ Task tool → subagent_type: "verify-e2e", prompt: "Mode: feature. Plan file: [p
 
 **Non-browser projects** (API-only, CLI): the verify-e2e agent handles these via HTTP/subprocess. The use case template applies; no Playwright needed.
 
-### 5.4b E2E Regression (MANDATORY if tests/e2e/use-cases/ exists)
+### 5.4b E2E Regression (MANDATORY if tests/e2e/use-cases/ has files)
 
 Run the full regression suite to catch regressions in previously shipped flows.
 
-**Invoke verify-e2e in regression mode:**
+**Check first:**
+
+```bash
+ls tests/e2e/use-cases/*.md 2>/dev/null | head -1
+```
+
+If no files (empty directory, or directory missing): check the box with `- [x] E2E regression — N/A: no accumulated use cases yet`.
+
+**If files exist, invoke verify-e2e in regression mode:**
 
 ```
 Task tool → subagent_type: "verify-e2e", prompt: "Mode: regression. Execute all use cases from tests/e2e/use-cases/. Project type: [fullstack|api|cli|hybrid]."
 ```
 
-**If tests/e2e/use-cases/ doesn't exist yet** (no features graduated): check the box with `- [x] E2E regression — N/A: no accumulated use cases yet`.
-
-**If any regression FAIL_BUG:** This fix broke something that previously worked. Fix it, then re-run both 5.4 and 5.4b.
+**If any regression FAIL_BUG:** This fix broke something that previously worked. Fix it, then re-run 5.4b (and 5.4 as well if this fix has its own user-facing E2E scope).
 
 **If FAIL_STALE or FAIL_INFRA:** Same actions as Phase 5.4 (update stale use case files; retry-once then report for infra).
 

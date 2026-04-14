@@ -519,19 +519,25 @@ Task tool → subagent_type: "verify-e2e", prompt: "Mode: feature. Plan file: [p
 
 **Non-browser projects** (API-only, CLI): the verify-e2e agent handles these via HTTP/subprocess. The use case template applies; no Playwright needed.
 
-### 5.4b E2E Regression (MANDATORY if tests/e2e/use-cases/ exists)
+### 5.4b E2E Regression (MANDATORY if tests/e2e/use-cases/ has files)
 
 Run the full regression suite to catch regressions in previously shipped flows. This is what prevents your new feature from breaking the features that came before it.
 
-**Invoke verify-e2e in regression mode:**
+**Check first:**
+
+```bash
+ls tests/e2e/use-cases/*.md 2>/dev/null | head -1
+```
+
+If no files (empty directory, or directory missing): check the box with `- [x] E2E regression — N/A: no accumulated use cases yet`.
+
+**If files exist, invoke verify-e2e in regression mode:**
 
 ```
 Task tool → subagent_type: "verify-e2e", prompt: "Mode: regression. Execute all use cases from tests/e2e/use-cases/. Project type: [fullstack|api|cli|hybrid]."
 ```
 
-**If tests/e2e/use-cases/ doesn't exist yet** (no features graduated): check the box with `- [x] E2E regression — N/A: no accumulated use cases yet`.
-
-**If any regression FAIL_BUG:** This feature broke something that previously worked. Fix it, then re-run both 5.4 and 5.4b.
+**If any regression FAIL_BUG:** This feature broke something that previously worked. Fix it, then re-run 5.4b (and 5.4 as well if this feature has its own user-facing E2E scope).
 
 **If FAIL_STALE or FAIL_INFRA:** Same actions as Phase 5.4 (update stale use case files; retry-once then report for infra).
 

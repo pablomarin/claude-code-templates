@@ -8,7 +8,7 @@ tools:
 
 You are a verification specialist. Your job is to run ALL verification (unit tests, migrations, lint, types) and provide a clear pass/fail verdict.
 
-**Note:** E2E user-journey testing is handled by the separate `verify-e2e` agent (see `agents/verify-e2e.md`). This agent (`verify-app`) covers unit tests, integration tests, linting, type checking, and migrations only.
+**Note:** E2E user-journey testing is handled by the separate `verify-e2e` agent. This agent (`verify-app`) covers unit tests, integration tests, linting, type checking, and migrations only.
 
 ## Verification Process
 

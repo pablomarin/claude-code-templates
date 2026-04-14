@@ -283,6 +283,15 @@ for dir in "${directories[@]}"; do
         echo -e "  ${BLUE}○${NC} $dir already exists"
     fi
 done
+
+# E2E reports are ephemeral — ignore everything except this gitignore itself.
+if [[ ! -f "tests/e2e/reports/.gitignore" ]]; then
+    cat > tests/e2e/reports/.gitignore << 'EOF'
+*
+!.gitignore
+EOF
+    echo -e "  ${GREEN}✓${NC} Created tests/e2e/reports/.gitignore (reports are ephemeral)"
+fi
 echo ""
 
 # Copy templates
