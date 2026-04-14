@@ -91,6 +91,7 @@ claude-codex-forge/
 │
 ├── agents/                     # Subagent definitions (copied to .claude/agents/)
 │   ├── verify-app.md           # Full verification: tests + lint + types
+│   ├── verify-e2e.md           # E2E user-journey testing: API + UI + CLI
 │   └── council-advisor.md      # Generic council advisor (persona via prompt)
 │
 └── settings/                   # Settings templates
@@ -123,23 +124,25 @@ claude-codex-forge/
 
 Templates in the root are **source of truth**. `setup.sh` copies them to target projects:
 
-| Template (edit this)                      | Generated file (never edit directly)          |
-| ----------------------------------------- | --------------------------------------------- |
-| `CLAUDE.template.md`                      | `CLAUDE.md` in target project                 |
-| `CONTINUITY.template.md`                  | `CONTINUITY.md` in target project             |
-| `GLOBAL-CLAUDE.template.md`               | `~/.claude/CLAUDE.md`                         |
-| `mcp.template.json`                       | `.mcp.json` in target project                 |
-| `settings/settings.template.json`         | `.claude/settings.json` in target project     |
-| `commands/*.md`                           | `.claude/commands/*.md` in target project     |
-| `rules/*.md`                              | `.claude/rules/*.md` in target project        |
-| `hooks/*`                                 | `.claude/hooks/*` in target project           |
-| `skills/ui-design/SKILL.template.md`      | `.claude/skills/ui-design/SKILL.md` in target |
-| `skills/ui-design/references/*.md`        | `.claude/skills/ui-design/references/*.md`    |
-| `skills/generate-image/SKILL.template.md` | `.claude/skills/generate-image/SKILL.md`      |
-| `skills/release/SKILL.template.md`        | `.claude/skills/release/SKILL.md` in target   |
-| `skills/council/SKILL.template.md`        | `.claude/skills/council/SKILL.md` in target   |
-| `skills/council/references/*.md`          | `.claude/skills/council/references/*.md`      |
-| `agents/council-advisor.md`               | `.claude/agents/council-advisor.md` in target |
+| Template (edit this)                      | Generated file (never edit directly)             |
+| ----------------------------------------- | ------------------------------------------------ |
+| `CLAUDE.template.md`                      | `CLAUDE.md` in target project                    |
+| `CONTINUITY.template.md`                  | `CONTINUITY.md` in target project                |
+| `GLOBAL-CLAUDE.template.md`               | `~/.claude/CLAUDE.md`                            |
+| `mcp.template.json`                       | `.mcp.json` in target project                    |
+| `settings/settings.template.json`         | `.claude/settings.json` in target project        |
+| `commands/*.md`                           | `.claude/commands/*.md` in target project        |
+| `rules/*.md`                              | `.claude/rules/*.md` in target project           |
+| `hooks/*`                                 | `.claude/hooks/*` in target project              |
+| `skills/ui-design/SKILL.template.md`      | `.claude/skills/ui-design/SKILL.md` in target    |
+| `skills/ui-design/references/*.md`        | `.claude/skills/ui-design/references/*.md`       |
+| `skills/generate-image/SKILL.template.md` | `.claude/skills/generate-image/SKILL.md`         |
+| `skills/release/SKILL.template.md`        | `.claude/skills/release/SKILL.md` in target      |
+| `skills/council/SKILL.template.md`        | `.claude/skills/council/SKILL.md` in target      |
+| `skills/council/references/*.md`          | `.claude/skills/council/references/*.md`         |
+| `agents/verify-app.md`                    | `.claude/agents/verify-app.md` in target project |
+| `agents/verify-e2e.md`                    | `.claude/agents/verify-e2e.md` in target project |
+| `agents/council-advisor.md`               | `.claude/agents/council-advisor.md` in target    |
 
 ### Platform Parity
 
