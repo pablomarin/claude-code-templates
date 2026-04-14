@@ -533,6 +533,8 @@ Task tool → subagent_type: "verify-e2e", prompt: "Mode: regression. Execute al
 
 **If any regression FAIL_BUG:** This feature broke something that previously worked. Fix it, then re-run both 5.4 and 5.4b.
 
+**If FAIL_STALE or FAIL_INFRA:** Same actions as Phase 5.4 (update stale use case files; retry-once then report for infra).
+
 ---
 
 ## Phase 6: Finish
