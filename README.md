@@ -16,7 +16,7 @@ This template adds structured workflows, automated quality gates, knowledge comp
 | Context lost between sessions              | **State persistence** — CONTINUITY.md tracks Done/Now/Next across sessions                                                                                     |
 | Can't run multiple features in parallel    | **Git worktrees** — isolated workspaces for parallel Claude sessions                                                                                           |
 | Code review happens too late               | **Multi-layer review** — `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep) → `/simplify` → `/review-pr-comments` (post-PR comments) |
-| E2E testing skipped                        | **Playwright MCP** — user use case tests via standalone MCP server for any user-facing changes                                                                 |
+| E2E testing skipped                        | **verify-e2e agent** — dedicated subagent executes user-journey use cases through API/UI/CLI; accumulated regression suite in `tests/e2e/use-cases/`           |
 
 ## Key Features
 
@@ -495,7 +495,7 @@ The `/review-pr-comments` command works by processing review comments left on yo
 
 Once configured, the workflow becomes: create PR → automated reviewers leave comments → `/review-pr-comments` processes those comments → push fixes → merge.
 
-> **No automated reviewers?** The workflow still works — you just skip the `/review-pr-comments` step. All pre-PR quality gates (Codex second opinion, deep review, /simplify, verify-app) still catch issues before the PR is created.
+> **No automated reviewers?** The workflow still works — you just skip the `/review-pr-comments` step. All pre-PR quality gates (Codex second opinion, deep review, /simplify, verify-app, verify-e2e) still catch issues before the PR is created.
 
 ### 7. Verify Setup
 
@@ -633,8 +633,9 @@ How a feature goes from idea to merged PR.
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 9. E2E USE CASE TESTS (if user-facing changes)              │
-│    Playwright MCP server                                    │
-│    → User use cases: intent, steps, verify, persist        │
+│    "Use the verify-e2e agent"                               │
+│    → Feature mode: validate new user journeys              │
+│    → Regression mode: replay tests/e2e/use-cases/ suite    │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -735,6 +736,7 @@ All slash commands available after setup.
 | `/pr-review-toolkit:review-pr` | Deep multi-analyzer review (6 agents)                          | Silent failures, test coverage, type design |
 | `/simplify`                    | Clean up modified files                                        | Built-in command, no plugin needed          |
 | `verify-app` agent             | Unit tests, migration check, lint, types                       | "Use the verify-app agent"                  |
+| `verify-e2e` agent             | User-journey E2E (API / UI / CLI) + regression suite replay    | "Use the verify-e2e agent"                  |
 
 ### PR Review Comments (Post-PR)
 
@@ -887,23 +889,23 @@ Global hooks (`~/.claude/settings.json`) and project hooks (`.claude/settings.js
 
 ### Permissions (No Prompts Needed)
 
-| Action                                     | Prompt? | Why                           |
-| ------------------------------------------ | ------- | ----------------------------- |
-| Read any file                              | No      | Allowed                       |
-| Edit/Write files                           | No      | Allowed                       |
-| Run any Bash command (tests, linters, git) | No      | Allowed                       |
-| Codex CLI (`codex` commands)               | No      | Allowed                       |
-| Skill invocation                           | No      | Allowed                       |
-| Web search and fetch                       | No      | Allowed                       |
-| Context7 MCP tools                         | No      | Auto-approved for docs lookup |
-| Playwright MCP tools                       | No      | Auto-approved for E2E testing |
-| **gh pr create**                           | Yes     | Creating PR requires approval |
-| **gh pr merge**                            | Yes     | Merging requires approval     |
-| **rm -rf**, **rm -r**                      | Yes     | Destructive deletion          |
-| **npm publish**                            | Yes     | Publishing requires approval  |
-| `sudo`, `su`                               | Denied  | Privilege escalation          |
-| `chmod 777`, `dd`, `mkfs`                  | Denied  | Dangerous system commands     |
-| `rm -rf /`, `rm -rf ~`                     | Denied  | Catastrophic deletion         |
+| Action                                     | Prompt? | Why                                             |
+| ------------------------------------------ | ------- | ----------------------------------------------- |
+| Read any file                              | No      | Allowed                                         |
+| Edit/Write files                           | No      | Allowed                                         |
+| Run any Bash command (tests, linters, git) | No      | Allowed                                         |
+| Codex CLI (`codex` commands)               | No      | Allowed                                         |
+| Skill invocation                           | No      | Allowed                                         |
+| Web search and fetch                       | No      | Allowed                                         |
+| Context7 MCP tools                         | No      | Auto-approved for docs lookup                   |
+| Playwright MCP tools                       | No      | Auto-approved — used by verify-e2e for UI flows |
+| **gh pr create**                           | Yes     | Creating PR requires approval                   |
+| **gh pr merge**                            | Yes     | Merging requires approval                       |
+| **rm -rf**, **rm -r**                      | Yes     | Destructive deletion                            |
+| **npm publish**                            | Yes     | Publishing requires approval                    |
+| `sudo`, `su`                               | Denied  | Privilege escalation                            |
+| `chmod 777`, `dd`, `mkfs`                  | Denied  | Dangerous system commands                       |
+| `rm -rf /`, `rm -rf ~`                     | Denied  | Catastrophic deletion                           |
 
 ---
 
@@ -1036,7 +1038,8 @@ your-project/
 │   │   ├── pre-compact-memory.sh      # PreCompact: save learnings (.ps1 on Windows)
 │   │   └── check-config-change.sh     # ConfigChange: log config modifications (.ps1 on Windows)
 │   ├── agents/                        # Custom subagents
-│   │   └── verify-app.md              # Test verification agent
+│   │   ├── verify-app.md              # Unit tests + lint + types + migrations
+│   │   └── verify-e2e.md              # User-journey E2E (API / UI / CLI) + regression suite
 │   ├── commands/                      # Custom slash commands (ENFORCED)
 │   │   ├── new-feature.md             # /new-feature - Full feature workflow
 │   │   ├── fix-bug.md                 # /fix-bug - Bug fix workflow
@@ -1507,7 +1510,8 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 │   /pr-review-toolkit:review-pr  ← Deep review (6 agents)   │
 │   /simplify            ← Clean up code (built-in)           │
 │   verify-app           ← Run tests, lint, types (agent)    │
-│   /review-pr-comments  ← Address PR comments (post)   │
+│   verify-e2e           ← User-journey E2E (agent)          │
+│   /review-pr-comments  ← Address PR comments (post)         │
 │                                                             │
 │ MEMORY COMMANDS:                                            │
 │   /memory              ← View/edit memory files             │
