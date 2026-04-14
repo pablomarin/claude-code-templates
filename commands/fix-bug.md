@@ -518,15 +518,25 @@ ls tests/e2e/use-cases/*.md 2>/dev/null | head -1
 
 If no files (empty directory, or directory missing): check the box with `- [x] E2E regression — N/A: no accumulated use cases yet`.
 
-**Detect which regression path to use:**
+**Detect which regression path to use.** The framework path is only safe when every markdown UC has a matching spec — otherwise un-spec'd UCs would silently drop out of regression coverage during partial Playwright adoption.
 
-1. **Check if the Playwright framework is installed AND has specs:**
+1. **Count unspecced use cases:**
 
    ```bash
-   [ -f playwright.config.ts ] && ls tests/e2e/specs/*.spec.ts >/dev/null 2>&1 && echo FRAMEWORK || echo AGENT
+   unspecced=0
+   for md in tests/e2e/use-cases/*.md; do
+     [ -f "$md" ] || continue
+     name=$(basename "$md" .md)
+     [ -f "tests/e2e/specs/$name.spec.ts" ] || unspecced=$((unspecced+1))
+   done
+   if [ -f playwright.config.ts ] && [ "$unspecced" -eq 0 ] && ls tests/e2e/specs/*.spec.ts >/dev/null 2>&1; then
+     echo FRAMEWORK
+   else
+     echo AGENT
+   fi
    ```
 
-2. **If FRAMEWORK path (`playwright.config.ts` exists AND specs exist):**
+2. **If FRAMEWORK path** (framework installed AND every UC has a matching spec):
    - Run specs directly (no package.json script needed):
      ```bash
      pnpm exec playwright test
@@ -536,7 +546,8 @@ If no files (empty directory, or directory missing): check the box with `- [x] E
    - Review the HTML report: `pnpm exec playwright show-report`
    - Trace viewer for failures: `pnpm exec playwright show-trace <trace.zip>`
 
-3. **If AGENT path (no framework or no specs yet):** Invoke the verify-e2e agent in regression mode:
+3. **If AGENT path** (no framework, no specs yet, OR partial spec coverage):
+   Invoke the verify-e2e agent in regression mode — it runs every markdown UC, guaranteeing no un-spec'd UC is missed during migration:
    ```
    Task tool → subagent_type: "verify-e2e", prompt: "Mode: regression. Execute all use cases from tests/e2e/use-cases/. Project type: [fullstack|api|cli|hybrid from CLAUDE.md]."
    ```
