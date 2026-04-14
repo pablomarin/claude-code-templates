@@ -548,7 +548,7 @@ If no files (empty directory, or directory missing): check the box with `- [x] E
 - **FAIL_STALE (agent only):** Update stale use case file and re-run.
 - **FAIL_INFRA / flake (both paths):** Retry once. If still failing, report to user for decision.
 
-**Note:** `pnpm exec playwright test` runs without requiring a package.json script entry. setup.sh intentionally does not modify package.json — the user can optionally add a `"test:e2e": "playwright test"` script for convenience, but it's not required.
+**Note:** `pnpm exec playwright test` runs the binary directly — no `package.json` script is required. setup.sh does not modify `package.json`; use the binary invocation above.
 
 ---
 

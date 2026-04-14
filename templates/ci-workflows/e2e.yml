@@ -64,6 +64,8 @@ jobs:
         run: pnpm exec playwright test --grep @smoke
         env:
           TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           PLAYWRIGHT_BASE_URL: ${{ vars.PLAYWRIGHT_BASE_URL || 'http://localhost:3000' }}
 
       - name: Upload Playwright report
@@ -101,6 +103,8 @@ jobs:
         run: pnpm exec playwright test
         env:
           TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           PLAYWRIGHT_BASE_URL: ${{ vars.PLAYWRIGHT_BASE_URL }}
 
       - name: Upload Playwright report

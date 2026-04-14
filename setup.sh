@@ -474,9 +474,7 @@ if [[ "$WITH_PLAYWRIGHT" == true ]]; then
     echo "     ${BLUE}mkdir -p .github/workflows && cp docs/ci-templates/e2e.yml .github/workflows/e2e.yml${NC}"
     echo "     Note: CI template uses pnpm — adjust for npm/yarn in .github/workflows/e2e.yml if needed"
     echo "  5. Configure auth via env vars: TEST_API_KEY or TEST_USER_EMAIL + TEST_USER_PASSWORD"
-    echo "  6. (Optional) Add package.json script for convenience:"
-    echo "     ${BLUE}\"test:e2e\": \"playwright test\"${NC}"
-    echo "     (Not required — Phase 5.4b uses 'pnpm exec playwright test' which works without a script.)"
+    echo "  6. Run tests: ${BLUE}pnpm exec playwright test${NC}"
 fi
 
 echo ""

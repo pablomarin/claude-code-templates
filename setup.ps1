@@ -529,10 +529,8 @@ if ($WithPlaywright) {
     Write-Color "mkdir .github\workflows; cp docs\ci-templates\e2e.yml .github\workflows\e2e.yml" "Blue"
     Write-Host "     Note: CI template uses pnpm - adjust for npm/yarn in .github\workflows\e2e.yml if needed"
     Write-Host "  5. Configure auth via env vars: TEST_API_KEY or TEST_USER_EMAIL + TEST_USER_PASSWORD"
-    Write-Host "  6. (Optional) Add package.json script for convenience:"
-    Write-Host "     " -NoNewline
-    Write-Color "`"test:e2e`": `"playwright test`"" "Blue"
-    Write-Host "     (Not required - Phase 5.4b uses 'pnpm exec playwright test' which works without a script.)"
+    Write-Host "  6. Run tests: " -NoNewline
+    Write-Color "pnpm exec playwright test" "Blue"
 }
 
 Write-Host ""
