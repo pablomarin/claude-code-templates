@@ -141,6 +141,7 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [ ] E2E verified via verify-e2e agent (Phase 5.4)
 - [ ] E2E regression passed (Phase 5.4b)
 - [ ] E2E use cases graduated to tests/e2e/use-cases/ (Phase 6.2b)
+- [ ] E2E specs graduated to tests/e2e/specs/ (Phase 6.2c — if Playwright framework installed)
 - [ ] Learnings documented (if any)
 - [ ] State files updated
 - [ ] Committed and pushed
@@ -531,15 +532,37 @@ ls tests/e2e/use-cases/*.md 2>/dev/null | head -1
 
 If no files (empty directory, or directory missing): check the box with `- [x] E2E regression — N/A: no accumulated use cases yet`.
 
-**If files exist, invoke verify-e2e in regression mode:**
+**Detect which regression path to use:**
 
-```
-Task tool → subagent_type: "verify-e2e", prompt: "Mode: regression. Execute all use cases from tests/e2e/use-cases/. Project type: [fullstack|api|cli|hybrid]."
-```
+1. **Check if the Playwright framework is installed AND has specs:**
 
-**If any regression FAIL_BUG:** This feature broke something that previously worked. Fix it, then re-run 5.4b (and 5.4 as well if this feature has its own user-facing E2E scope).
+   ```bash
+   [ -f playwright.config.ts ] && ls tests/e2e/specs/*.spec.ts >/dev/null 2>&1 && echo FRAMEWORK || echo AGENT
+   ```
 
-**If FAIL_STALE or FAIL_INFRA:** Same actions as Phase 5.4 (update stale use case files; retry-once then report for infra).
+2. **If FRAMEWORK path (`playwright.config.ts` exists AND specs exist):**
+   - Run specs directly (no package.json script needed):
+     ```bash
+     pnpm exec playwright test
+     ```
+     If pnpm is not the project's package manager, use `npm exec playwright test` or `yarn playwright test`.
+   - Exit code 0 = all pass. Non-zero = failures.
+   - Review the HTML report: `pnpm exec playwright show-report`
+   - Trace viewer for failures: `pnpm exec playwright show-trace <trace.zip>`
+
+3. **If AGENT path (no framework or no specs yet):** Invoke the verify-e2e agent in regression mode:
+   ```
+   Task tool → subagent_type: "verify-e2e", prompt: "Mode: regression. Execute all use cases from tests/e2e/use-cases/. Project type: [fullstack|api|cli|hybrid from CLAUDE.md]."
+   ```
+
+**Verdict handling (both paths):**
+
+- **Regression passes:** Check off the box. Proceed to Phase 6.
+- **FAIL_BUG (framework: spec failure; agent: FAIL_BUG verdict):** This feature broke something that previously worked. Fix it, then re-run 5.4b (and 5.4 if this feature has its own user-facing E2E scope).
+- **FAIL_STALE (agent only):** Update stale use case file and re-run.
+- **FAIL_INFRA / flake (both paths):** Retry once. If still failing, report to user for decision.
+
+**Note:** `pnpm exec playwright test` runs without requiring a package.json script entry. setup.sh intentionally does not modify package.json — the user can optionally add a `"test:e2e": "playwright test"` script for convenience, but it's not required.
 
 ---
 
@@ -582,6 +605,53 @@ mkdir -p tests/e2e/use-cases
 Optionally tag critical paths with `@smoke` for fast regression checks.
 
 **If no user-facing changes:** Skip this step.
+
+### 6.2c Graduate to Playwright Specs (OPTIONAL — if framework installed)
+
+If this project has opted into the Playwright framework (`playwright.config.ts` exists at project root), also graduate each passing use case to a deterministic `.spec.ts` file.
+
+**Check if framework is installed:**
+
+```bash
+[ -f playwright.config.ts ] && echo FRAMEWORK || echo SKIP
+```
+
+**If SKIP (no framework):** Skip this step entirely. Proceed to 6.3.
+
+**If FRAMEWORK is installed, YOU (the main implementation agent) write the spec file.** The verify-e2e agent does NOT have Write tools and cannot do this. Here's how:
+
+1. **Read the source inputs:**
+   - The markdown use case file: `tests/e2e/use-cases/<feature-name>.md` (intent of truth)
+   - The verify-e2e report from Phase 5.4: `tests/e2e/reports/<latest>.md` (contains observed selectors, outcomes per UC)
+
+2. **Reference the example template:** `.claude/templates/playwright/example.spec.template.ts` (if copied to target, otherwise the source at `templates/playwright/example.spec.template.ts` in the claude-codex-forge checkout)
+
+3. **Write `tests/e2e/specs/<feature-name>.spec.ts`:**
+   - One `test.describe('Feature: <feature-name>', () => {...})` block
+   - One `test(...)` per UC that passed verification
+   - Use selectors from the verify-e2e report's "Observed selectors" section
+   - Prefer `getByRole`, `getByLabel`, `getByTestId` over CSS class selectors
+   - Tag critical happy-paths with `@smoke` in the test name (e.g., `test('UC1: User creates a todo @smoke', ...)`)
+   - Do NOT inline auth — use the fixture pattern (see `tests/e2e/fixtures/auth.ts`)
+   - Do NOT generate specs for UCs that were FAIL_BUG or FAIL_STALE — skip them
+
+4. **Skip UCs where the verify-e2e report flagged "Selector ambiguity":** Note this in CONTINUITY.md for follow-up; the user can add `data-testid` attributes and regenerate.
+
+5. **Run the spec once locally to verify it's green:**
+
+   ```bash
+   pnpm exec playwright test tests/e2e/specs/<feature-name>.spec.ts
+   ```
+
+   If it fails, fix the selector ambiguity rather than committing a broken spec.
+
+**Commit the generated spec:** It becomes part of the regression suite and runs in CI for every future PR.
+
+**Skip this step entirely if:**
+
+- Project doesn't have Playwright framework installed (no `playwright.config.ts`)
+- No user-facing changes (Phase 5.4 was N/A)
+- All UCs had selector ambiguity (note this and defer until testids are added)
 
 ### 6.3 Commit and push
 
