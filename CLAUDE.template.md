@@ -60,6 +60,24 @@ project/
 - Environment variables managed via Vercel dashboard
 -->
 
+### E2E Configuration
+
+The `verify-e2e` agent adapts to this project's interfaces. Declare the interface type:
+
+**interface_type:** [fullstack | api | cli | hybrid]
+
+- `fullstack`: Both API and UI (UI tested via Playwright MCP)
+- `api`: API only (HTTP interface, no UI)
+- `cli`: Command-line only (stdin/stdout)
+- `hybrid`: Use cases declare their own interface
+
+**Server URLs** (for fullstack/api):
+
+- API: `http://localhost:8000` (update as needed)
+- UI: `http://localhost:3000` (update as needed)
+
+See `.claude/rules/testing.md` for the full interface capability matrix.
+
 ### Key Commands
 
 **Replace the examples below with your project's actual commands:**
