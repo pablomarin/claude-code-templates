@@ -513,7 +513,7 @@ if ($WithPlaywright) {
 # Auth storage state contains credentials - never commit
 *
 !.gitignore
-"@ | Set-Content -Path "tests\e2e\.auth\.gitignore" -NoNewline
+"@ | Set-Content -Path "tests\e2e\.auth\.gitignore" -NoNewline -Encoding UTF8
         Write-Host "  " -NoNewline
         Write-Color "+" "Green"
         Write-Host " Created tests\e2e\.auth\.gitignore (credentials protected)"
