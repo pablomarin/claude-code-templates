@@ -125,6 +125,73 @@ Any change to **user-facing behavior**: API changes, UI changes, new pages, flow
 Purely internal changes with zero user-facing impact: migrations, internal scripts, CI config, dev tooling, behavior-preserving refactors.
 Must write justification: `- [x] E2E use cases tested — N/A: [reason]`
 
+## E2E Interface Capability Matrix
+
+The E2E scope depends on the project's user interfaces (declared in `CLAUDE.md` under `## E2E Configuration`):
+
+| Project Type  | Interfaces Tested     | Tools                 | Playwright Required?       |
+| ------------- | --------------------- | --------------------- | -------------------------- |
+| **fullstack** | API + UI              | HTTP + Playwright MCP | Yes                        |
+| **api**       | API only              | HTTP (curl/httpie)    | No                         |
+| **cli**       | CLI only              | Subprocess + stdout   | No                         |
+| **hybrid**    | Declared per use case | Mixed                 | Only if UI use cases exist |
+
+**Fullstack ordering:** API-first, UI-second. API failure means contract/state is broken (stop immediately). API pass + UI failure means the presentation layer is broken (different diagnosis).
+
+## ARRANGE vs VERIFY — The "No Cheating" Boundary
+
+E2E tests simulate a real user who has no access to internal systems. This principle applies strictly to the VERIFY phase, not the ARRANGE phase.
+
+**ARRANGE (test setup) — allowed methods:**
+
+| Method                             | Example                                         |
+| ---------------------------------- | ----------------------------------------------- |
+| Public API endpoints               | `POST /api/v1/users` to create a test account   |
+| Public signup/login flows          | Register + authenticate via documented flows    |
+| CLI commands                       | `myapp create-account --email test@example.com` |
+| UI flows                           | Fill signup form and submit via Playwright      |
+| Documented seed/bootstrap commands | `make seed-dev`, `manage.py loaddata`           |
+
+**ARRANGE — forbidden:**
+
+- Direct database queries
+- Internal/undocumented endpoints
+- Modifying files on disk to inject state
+- Reading source code to find shortcuts
+
+**VERIFY (assertions) — no cheating, period:**
+
+- API: check response status, body, headers
+- UI: check what's visible on screen (use `data-testid` and roles, not CSS selectors)
+- CLI: check stdout/stderr and exit codes
+- Persistence: reload/re-request through the same interface
+
+**The principle:** _Setup through any user-accessible interface. Verify through the interface being tested._
+
+## Use Case Lifecycle
+
+```
+Phase 3.2b: Design use cases          → plan file (draft)
+Phase 5.4:  Execute feature use cases → verify-e2e agent, markdown report
+Phase 5.4b: Execute regression suite  → verify-e2e agent, tests/e2e/use-cases/
+Phase 6.2b: Graduate passing cases    → tests/e2e/use-cases/[feature].md
+```
+
+Use cases live in the plan file during development, then graduate to `tests/e2e/use-cases/` as permanent regression tests after they pass.
+
+**Simple-fix exception** (`/fix-bug` path with 1-2 file fixes that skip Phase 3): use cases are written directly to `tests/e2e/use-cases/` in Phase 5.4 Step 0, skipping both Phase 3.2b and Phase 6.2b.
+
+## Failure Classification
+
+The verify-e2e agent produces a structured markdown report with four classification types:
+
+| Classification | Meaning                                              | Blocks ship?          |
+| -------------- | ---------------------------------------------------- | --------------------- |
+| **PASS**       | Works as specified                                   | No                    |
+| **FAIL_BUG**   | Real product defect — user would hit this            | **Yes**               |
+| **FAIL_STALE** | Use case references changed interface — needs update | No (maintenance flag) |
+| **FAIL_INFRA** | Server down, timeout, flaky selector                 | Retry once, then warn |
+
 ## Rules
 
 1. ALWAYS follow Arrange-Act-Assert pattern
