@@ -89,6 +89,12 @@ If you enabled Playwright via `setup.sh --with-playwright`, this project has:
 
 Run specs locally: `pnpm exec playwright test`
 
+### Research Enforcement
+
+The `research-first` agent runs in Phase 2 of `/new-feature` (before design begins). It queries Context7, WebSearch, and WebFetch for every external library this feature touches and produces a brief at `docs/research/YYYY-MM-DD-<feature>.md`. The design phase reads this brief to avoid building on stale assumptions.
+
+For bug fixes, targeted research runs after root-cause isolation (Phase 2.5 of `/fix-bug`).
+
 ### Key Commands
 
 **Replace the examples below with your project's actual commands:**
