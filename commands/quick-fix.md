@@ -34,6 +34,17 @@
 
 ---
 
+## Research Check
+
+Quick fixes skip the full research-first agent. However, if this change touches an external dependency or API (version bump, API call change, new library import):
+
+- Check the library's current docs via Context7 or WebSearch before implementing
+- Verify no breaking changes between your version and the one you're targeting
+
+If purely internal (typo fix, config change, style cleanup): no research needed.
+
+---
+
 ## The Fix
 
 1. Make the change
