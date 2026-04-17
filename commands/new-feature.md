@@ -125,7 +125,7 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [x] Project state read
 - [ ] Plugins verified
 - [ ] PRD created
-- [ ] Research done
+- [ ] Research artifact produced (`docs/research/` — via research-first agent)
 - [ ] Design guidance loaded (if UI)
 - [ ] Brainstorming complete
 - [ ] Approach comparison filled
@@ -188,24 +188,60 @@ Then create the PRD:
 
 ---
 
-## Phase 2: Research (DO NOT SKIP)
+## Phase 2: Research (MANDATORY — agent-enforced)
 
 > **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `2 — Research`, check off "PRD created".
 
-Before writing ANY code, research the problem space:
+Before writing ANY design, research every external library and API this feature touches. This is enforced via the `research-first` agent — not optional guidance.
 
-1. **Search existing solutions**:
+### 2.1 Dispatch research-first agent
 
-   ```bash
-   grep -r "relevant keywords" docs/solutions/
-   ```
+```
+Task tool → subagent_type: "research-first", prompt: "Feature: <feature-name>. PRD: <path-to-PRD-or-inline-description>. Manifests: package.json, pyproject.toml (check which exist). Research all external libraries and APIs this feature will touch."
+```
 
-2. **Research current best practices**:
-   - Use `WebSearch` for current documentation
-   - Use `WebFetch` for specific library docs
-   - Use `Context7` MCP for framework-specific guidance
+The agent will:
 
-3. **Study competitors**: How do established products solve this problem?
+1. Scan the PRD + manifests to identify research targets
+2. Query Context7, WebFetch, and WebSearch for each (current docs, breaking changes, best practices)
+3. Write a structured brief to `docs/research/YYYY-MM-DD-<feature>.md`
+4. Return a summary with findings count and key discovery
+
+### 2.2 Review the brief
+
+Read `docs/research/YYYY-MM-DD-<feature>.md`. Verify:
+
+- Every library/API the feature touches is listed
+- Each has ≥ 2 sources with access dates
+- "Design impact" and "Test implication" fields are filled (not blank or "N/A" for all)
+- "Open Risks" section is present
+
+If the brief is shallow or missing targets, re-dispatch the agent with more specific instructions.
+
+### 2.3 Fallback: if agent dispatch or web tools fail
+
+If the `research-first` agent cannot be dispatched (Task tool unavailable) or web tools are down (Context7/WebSearch/WebFetch all failing):
+
+1. **You (the main agent) perform the research manually:**
+   - Query Context7 for each library (if available)
+   - Use WebSearch/WebFetch for changelogs and docs
+   - If all web tools are down, check lockfile versions + `node_modules/<lib>/CHANGELOG.md` locally
+2. **Fill out the research template yourself** and save to `docs/research/YYYY-MM-DD-<feature>.md`
+3. **Note in the brief:** "Fallback: main agent performed research (agent dispatch unavailable)"
+
+This is the degraded path, not the skip path. Research still happens — just without the dedicated agent.
+
+### 2.4 Gate: cannot proceed without research artifact
+
+**Phase 3 (Design) MUST NOT start until `docs/research/YYYY-MM-DD-<feature>.md` exists and passes the review above.**
+
+**Gate criteria:**
+
+- If libraries were identified → each must have ≥ 2 sources, a "Design impact" field, and a "Test implication" field
+- If no external libraries/APIs → the agent reports "No external dependencies — research N/A" and that counts as passing the gate (no per-library fields needed)
+- If fallback path was used → the brief must still meet the same criteria
+
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Design`, check off "Research done".
 
 ---
 
