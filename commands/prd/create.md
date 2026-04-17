@@ -18,6 +18,8 @@ Before generating the PRD:
 2. Use WebFetch/Context7 to check current library documentation if specific tech is involved
 3. Ensure recommendations reflect up-to-date patterns, not outdated approaches
 
+> **Note:** This Step 0 is **discovery research** for the PRD. Implementation-specific research (library versions, breaking changes) happens later in Phase 2 of `/new-feature` via the `research-first` agent.
+
 ### Step 1: Load Context
 
 1. Read `docs/prds/{feature-name}-discussion.md`
