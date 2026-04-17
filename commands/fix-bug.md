@@ -229,7 +229,7 @@ The agent writes to `docs/research/YYYY-MM-DD-<bug-name>.md` — a lighter brief
 
 ## Phase 3: Plan the Fix
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Plan`, check off "Systematic debugging complete".
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Plan`, check off "Systematic debugging complete" (and "Library research done" if Phase 2.5 was performed).
 
 ### For simple fixes (1-2 files):
 

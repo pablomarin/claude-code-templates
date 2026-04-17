@@ -241,8 +241,6 @@ This is the degraded path, not the skip path. Research still happens — just wi
 - If no external libraries/APIs → the agent writes a minimal N/A brief and that counts as passing the gate
 - If fallback path was used → the brief must still meet the same criteria
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Design`, check off "Research artifact produced".
-
 ---
 
 ## Phase 3: Design + Review Loop (iterates until no P0/P1/P2 issues)

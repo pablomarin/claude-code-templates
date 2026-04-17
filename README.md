@@ -729,19 +729,20 @@ All slash commands available after setup.
 
 ### Quality Gates (Pre-PR — in this order)
 
-| Command / Agent                | Purpose                                                          | Notes                                       |
-| ------------------------------ | ---------------------------------------------------------------- | ------------------------------------------- |
-| `/codex review`                | First review after implementation — independent second opinion   | Codex CLI (uncommitted/base/commit options) |
-| `/codex {instruction}`         | General second opinion                                           | Runs `codex exec` in read-only sandbox      |
-| `/pr-review-toolkit:review-pr` | Deep multi-analyzer review (6 agents)                            | Silent failures, test coverage, type design |
-| `/simplify`                    | Clean up modified files                                          | Built-in command, no plugin needed          |
-| `verify-app` agent             | Unit tests, migration check, lint, types                         | "Use the verify-app agent"                  |
-| `verify-e2e` agent             | User-journey E2E (API / UI / CLI) + regression suite replay      | "Use the verify-e2e agent"                  |
-| `research-first` agent         | Pre-design library/API research — current docs, breaking changes | "Use the research-first agent"              |
+| Command / Agent                | Purpose                                                        | Notes                                       |
+| ------------------------------ | -------------------------------------------------------------- | ------------------------------------------- |
+| `/codex review`                | First review after implementation — independent second opinion | Codex CLI (uncommitted/base/commit options) |
+| `/codex {instruction}`         | General second opinion                                         | Runs `codex exec` in read-only sandbox      |
+| `/pr-review-toolkit:review-pr` | Deep multi-analyzer review (6 agents)                          | Silent failures, test coverage, type design |
+| `/simplify`                    | Clean up modified files                                        | Built-in command, no plugin needed          |
+| `verify-app` agent             | Unit tests, migration check, lint, types                       | "Use the verify-app agent"                  |
+| `verify-e2e` agent             | User-journey E2E (API / UI / CLI) + regression suite replay    | "Use the verify-e2e agent"                  |
 
-### Research Enforcement
+### Research Enforcement (Pre-Design — Phase 2)
 
-Your AI assistant's knowledge has a cutoff. Libraries ship breaking changes weekly. The `research-first` agent runs before every design — querying Context7, official docs, and changelogs for each dependency your feature touches. It produces a structured brief in `docs/research/` that the design phase reads. No more building on stale docs.
+Your AI assistant's knowledge has a cutoff. Libraries ship breaking changes weekly. The `research-first` agent runs in Phase 2 of `/new-feature` — before any design begins — querying Context7, official docs, and changelogs for each dependency your feature touches. It produces a structured brief in `docs/research/` that the design phase reads. No more building on stale docs.
+
+For bug fixes, targeted research runs after root-cause isolation (Phase 2.5 of `/fix-bug`).
 
 ### Optional: Playwright CI Bridge
 

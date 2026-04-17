@@ -8,7 +8,7 @@
 
 **Check your work.** Run code to verify it works. Check logs after starting processes.
 
-**Research first.** AI knowledge has a cutoff. The `research-first` agent runs in Phase 2 of `/new-feature` and produces a structured brief (`docs/research/`) before design begins. For bugs, targeted research runs after root-cause isolation. Use Context7 → WebFetch → WebSearch (in that order) for every external library.
+**Research first.** AI knowledge has a cutoff. Use the `research-first` agent (or Context7/WebFetch/WebSearch manually) to check current docs before design. See Phase 2 in `/new-feature` and Phase 2.5 in `/fix-bug`.
 
 **Learn from competitors.** Before implementing features, research how established products solved it.
 
