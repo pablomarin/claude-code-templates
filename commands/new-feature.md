@@ -237,11 +237,11 @@ This is the degraded path, not the skip path. Research still happens — just wi
 
 **Gate criteria:**
 
-- If libraries were identified → each must have ≥ 2 sources, a "Design impact" field, and a "Test implication" field
-- If no external libraries/APIs → the agent reports "No external dependencies — research N/A" and that counts as passing the gate (no per-library fields needed)
+- If libraries were researched → each researched library must have ≥ 2 sources, a "Design impact" field, and a "Test implication" field. Items explicitly triaged to "Not Researched" (with justification) are exempt.
+- If no external libraries/APIs → the agent writes a minimal N/A brief and that counts as passing the gate
 - If fallback path was used → the brief must still meet the same criteria
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Design`, check off "Research done".
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Design`, check off "Research artifact produced".
 
 ---
 

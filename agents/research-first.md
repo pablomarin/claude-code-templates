@@ -33,7 +33,7 @@ Scan the PRD/description and project manifests to build a list of external libra
 - Libraries in the manifest that this feature area uses (grep imports in relevant source files)
 - Infrastructure/APIs (e.g., "OpenAI API," "Supabase," "Redis")
 
-If the feature is purely internal (no external libs/APIs), report "No external dependencies — research N/A" and STOP. Do not fabricate research targets.
+If the feature is purely internal (no external libs/APIs), write a minimal N/A brief to `docs/research/YYYY-MM-DD-<feature-slug>.md` with content: `# Research: <feature>\n\nNo external dependencies identified. Research N/A.` Then return the summary. Do not fabricate research targets.
 
 ### Step 2: Research each target
 
