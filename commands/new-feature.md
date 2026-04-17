@@ -247,7 +247,7 @@ This is the degraded path, not the skip path. Research still happens — just wi
 
 ## Phase 3: Design + Review Loop (iterates until no P0/P1/P2 issues)
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Design`, check off "Research done".
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Design`, check off "Research artifact produced".
 
 ### 3.0 Load Design Guidance (if UI work)
 
