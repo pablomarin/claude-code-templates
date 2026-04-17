@@ -305,6 +305,7 @@ $directories = @(
     ".claude\skills\generate-image",
     ".claude\skills\release",
     ".claude\skills\council\references",
+    "docs\research",
     "tests\e2e\use-cases",
     "tests\e2e\reports"
 )
@@ -390,6 +391,7 @@ Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-workflow-gate
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-app.md") ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-e2e.md") ".claude\agents\verify-e2e.md" ".claude\agents\verify-e2e.md"
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "council-advisor.md") ".claude\agents\council-advisor.md" ".claude\agents\council-advisor.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "research-first.md") ".claude\agents\research-first.md" ".claude\agents\research-first.md"
 
 # Skills (tech-agnostic)
 $releaseDir = Join-Path (Join-Path (Join-Path $ScriptDir "skills") "release")

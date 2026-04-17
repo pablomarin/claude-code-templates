@@ -92,6 +92,7 @@ claude-codex-forge/
 ├── agents/                     # Subagent definitions (copied to .claude/agents/)
 │   ├── verify-app.md           # Full verification: tests + lint + types
 │   ├── verify-e2e.md           # E2E user-journey testing: API + UI + CLI
+│   ├── research-first.md       # Pre-design library/API research
 │   └── council-advisor.md      # Generic council advisor (persona via prompt)
 │
 ├── settings/                   # Settings templates
@@ -152,6 +153,7 @@ Templates in the root are **source of truth**. `setup.sh` copies them to target 
 | `skills/council/references/*.md`          | `.claude/skills/council/references/*.md`                                                           |
 | `agents/verify-app.md`                    | `.claude/agents/verify-app.md` in target project                                                   |
 | `agents/verify-e2e.md`                    | `.claude/agents/verify-e2e.md` in target project                                                   |
+| `agents/research-first.md`                | `.claude/agents/research-first.md` in target project                                               |
 | `agents/council-advisor.md`               | `.claude/agents/council-advisor.md` in target                                                      |
 | `templates/playwright/*.ts`               | `playwright.config.ts`, `tests/e2e/fixtures/auth.ts` (only with `--with-playwright`)               |
 | `templates/ci-workflows/*`                | `docs/ci-templates/*` (only with `--with-playwright` — NOT auto-activated to `.github/workflows/`) |

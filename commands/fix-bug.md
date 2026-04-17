@@ -126,6 +126,7 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [ ] Plugins verified
 - [ ] Searched existing solutions
 - [ ] Systematic debugging complete
+- [ ] Library research done (if external dep involved — via research-first agent)
 - [ ] Design guidance loaded (if UI fix)
 - [ ] Brainstorming complete (if complex)
 - [ ] Approach comparison filled (if complex)
@@ -212,11 +213,23 @@ This will guide you through:
 >
 > **NEVER skip this phase. NEVER guess at fixes.**
 
+### 2.5 Targeted Library Research (if external dependency involved)
+
+If the root cause involves an external library, API, or framework (not purely internal logic):
+
+```
+Task tool → subagent_type: "research-first", prompt: "Bug fix research. Library: <library-name>. Our version: <version from manifest>. Bug symptom: <what's happening>. Research: current best practices, known issues with our version, breaking changes, recommended migration path if relevant."
+```
+
+The agent writes to `docs/research/YYYY-MM-DD-<bug-name>.md` — a lighter brief focused on the specific library involved.
+
+**Skip this step if:** the root cause is purely internal logic (wrong conditional, missing null check, etc.) with no external dependency involvement.
+
 ---
 
 ## Phase 3: Plan the Fix
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Plan`, check off "Systematic debugging complete".
+> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Plan`, check off "Systematic debugging complete" (and "Library research done" if Phase 2.5 was performed).
 
 ### For simple fixes (1-2 files):
 

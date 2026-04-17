@@ -287,6 +287,7 @@ directories=(
     "docs/solutions/integration-issues"
     "docs/solutions/logic-errors"
     "docs/solutions/patterns"
+    "docs/research"
     "tests/e2e/use-cases"
     "tests/e2e/reports"
 )
@@ -361,6 +362,7 @@ chmod +x .claude/hooks/check-workflow-gates.sh 2>/dev/null || true
 copy_file "$SCRIPT_DIR/agents/verify-app.md" ".claude/agents/verify-app.md" ".claude/agents/verify-app.md"
 copy_file "$SCRIPT_DIR/agents/verify-e2e.md" ".claude/agents/verify-e2e.md" ".claude/agents/verify-e2e.md"
 copy_file "$SCRIPT_DIR/agents/council-advisor.md" ".claude/agents/council-advisor.md" ".claude/agents/council-advisor.md"
+copy_file "$SCRIPT_DIR/agents/research-first.md" ".claude/agents/research-first.md" ".claude/agents/research-first.md"
 
 # Skills (tech-agnostic)
 copy_file "$SCRIPT_DIR/skills/release/SKILL.template.md" ".claude/skills/release/SKILL.md" ".claude/skills/release/SKILL.md"

@@ -738,6 +738,12 @@ All slash commands available after setup.
 | `verify-app` agent             | Unit tests, migration check, lint, types                       | "Use the verify-app agent"                  |
 | `verify-e2e` agent             | User-journey E2E (API / UI / CLI) + regression suite replay    | "Use the verify-e2e agent"                  |
 
+### Research Enforcement (Pre-Design — Phase 2)
+
+Your AI assistant's knowledge has a cutoff. Libraries ship breaking changes weekly. The `research-first` agent runs in Phase 2 of `/new-feature` — before any design begins — querying Context7, official docs, and changelogs for each dependency your feature touches. It produces a structured brief in `docs/research/` that the design phase reads. No more building on stale docs.
+
+For bug fixes, targeted research runs after root-cause isolation (Phase 2.5 of `/fix-bug`).
+
 ### Optional: Playwright CI Bridge
 
 **Monday, 9 AM.** A first-time contributor opens a PR touching `/api/auth/login`. No Claude session, so your `verify-e2e` agent doesn't run. Their PR goes green, merges, and breaks login for a thousand users by Wednesday.

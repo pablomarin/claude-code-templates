@@ -8,7 +8,7 @@
 
 **Check your work.** Run code to verify it works. Check logs after starting processes.
 
-**Research first.** AI knowledge has a cutoff. Use WebSearch/WebFetch/Context7 for current docs.
+**Research first.** AI knowledge has a cutoff. Use the `research-first` agent (or Context7/WebFetch/WebSearch manually) to check current docs before design. See Phase 2 in `/new-feature` and Phase 2.5 in `/fix-bug`.
 
 **Learn from competitors.** Before implementing features, research how established products solved it.
 
