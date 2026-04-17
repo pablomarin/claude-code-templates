@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/hero.png" alt="Claude Codex Forge — blueprint on the left becomes forged steel on the right" width="860">
+</p>
+
 <h1 align="center">Claude Codex Forge</h1>
 
 <p align="center">
@@ -5,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/pablomarin/claude-codex-forge?style=flat-square"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green?style=flat-square"></a>
   <a href="#version-history"><img alt="Version" src="https://img.shields.io/badge/version-5.5-blue?style=flat-square"></a>
   <a href="docs/getting-started.md"><img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square"></a>
   <a href="https://code.claude.com"><img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-enabled-purple?style=flat-square"></a>
