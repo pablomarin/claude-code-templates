@@ -1,34 +1,40 @@
-# Claude Code Automation Setup
+# Claude Codex Forge
 
-> **Transform Claude Code from a coding assistant into an autonomous software engineering system with persistent memory.**
+> **An engineering harness for disciplined software building — powered by two coding agents.**
 
-This template adds structured workflows, automated quality gates, knowledge compounding, and **cross-session memory** to Claude Code — turning it into a reliable development partner that learns from every bug fix, remembers your preferences, and gets smarter over time.
+Claude Codex Forge combines Claude Code and OpenAI's Codex into a single workflow. Two agents beat one: Claude designs, Codex independently reviews, and the Engineering Council adjudicates when they disagree. What started as a set of workflow templates has grown — through continuous iteration — into a full engineering harness.
 
-## Why Use This?
+## What makes it a harness, not just a template
 
-| Problem                                    | Solution                                                                                                                                                       |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claude forgets everything between sessions | **Persistent memory** — auto memory + PreCompact hooks preserve knowledge across sessions                                                                      |
-| Context lost during long sessions          | **PreCompact hook** — saves learnings before context compression (inspired by [OpenClaw](https://github.com/openclaw/openclaw))                                |
-| Claude makes changes without testing       | **Automated verification** — tests, lint, types checked before completion                                                                                      |
-| Bugs get fixed but knowledge is lost       | **Knowledge compounding** — solutions saved to `docs/solutions/` AND auto memory                                                                               |
-| No consistent development process          | **Guided workflows** — `/new-feature`, `/fix-bug` commands enforce best practices                                                                              |
-| Context lost between sessions              | **State persistence** — CONTINUITY.md tracks Done/Now/Next across sessions                                                                                     |
-| Can't run multiple features in parallel    | **Git worktrees** — isolated workspaces for parallel Claude sessions                                                                                           |
-| Code review happens too late               | **Multi-layer review** — `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep) → `/simplify` → `/review-pr-comments` (post-PR comments) |
-| E2E testing skipped                        | **verify-e2e agent** — dedicated subagent executes user-journey use cases through API/UI/CLI; accumulated regression suite in `tests/e2e/use-cases/`           |
+- **Dual-agent review** — `/codex review` (independent second opinion) + `/council` (5-advisor panel with Codex chairman when available) catch issues one agent alone would miss. Two separately-trained models flag different concerns — disagreement is the signal.
+- **Discipline by construction** — workflow commands bake in TDD, research-before-design, and E2E testing. Hooks block dangerous Bash patterns, enforce CONTINUITY state updates, and gate commits/push/PR on explicit quality markers (`Code review loop`, `Simplified`, `Verified`). Discipline is guided by commands and guarded by hooks.
+- **Continuous memory** — sessions never truly end. Auto-memory persists locally across sessions and compaction (rescued by the `PreCompact` hook); `CONTINUITY.md`, `docs/CHANGELOG.md`, and `docs/solutions/` travel with the repo so every root cause, decision, and pattern compounds across weeks and teammates via git.
+- **Team-scale by default** — one GitHub repo becomes the hub: shared `CLAUDE.md`, shared rules, shared commands and hooks. Multiple developers run parallel Claude sessions via auto-created git worktrees, each isolated but with full project context.
+
+## Concrete guarantees
+
+The pillars above cash out in specific, repo-verifiable behavior:
+
+- **Compaction rescue** — `PreCompact` hook flushes session learnings to auto-memory _before_ context compression, so nothing is dropped silently
+- **Review ordering enforced** — `/codex review` runs _first_ as an independent pass, then `/pr-review-toolkit:review-pr` (6 deep agents), then `/simplify`, then post-PR `/review-pr-comments`. Commits are blocked until quality markers are present.
+- **Worktree isolation** — `/new-feature` and `/fix-bug` auto-create git worktrees so parallel Claude sessions never share filesystem state
+- **E2E for user-facing changes** — `verify-e2e` subagent replays `tests/e2e/use-cases/*.md` as a growing regression suite; optional `--with-playwright` scaffolds deterministic `.spec.ts` for contributor PRs in CI
 
 ## Key Features
 
-- **Persistent Memory**: Global + project-level memory that survives across sessions and compaction
+- **Dual-Agent Review**: `/codex review` (first-pass independent second opinion) + `/pr-review-toolkit:review-pr` (deep, 6 agents) + `/council` (5-advisor panel with Codex chairman for ambiguous design calls) + `/simplify` + `/review-pr-comments` (post-PR automation)
+- **Research-First Agent**: Phase 2 of `/new-feature` queries Context7/official docs before design — no more building on stale library docs
+- **User-Journey E2E Testing**: `verify-e2e` subagent validates new features through API/UI/CLI and replays a growing regression suite in `tests/e2e/use-cases/`
+- **Playwright CI Bridge** (optional): `--with-playwright` scaffolds a Playwright framework + reference GitHub Actions workflow so contributor PRs get the same E2E coverage
+- **Persistent Memory**: Global + project-level auto-memory that survives across sessions, compaction, and even terminated workflows
+- **State Persistence**: `CONTINUITY.md` tracks Done/Now/Next every turn; `docs/CHANGELOG.md` captures the historical record; Stop hook reminds on every turn, and `check-workflow-gates.sh` blocks commit/push/PR until `Code review loop`, `Simplified`, and `Verified` markers are present
 - **3 Workflow Commands**: `/new-feature`, `/fix-bug`, `/quick-fix` — each guides you through the complete process
 - **7 Automated Hooks**: SessionStart, Stop, PreToolUse, PostToolUse, PreCompact, SubagentStop, ConfigChange — plus global memory hooks
-- **Multi-Layer Code Review**: `/codex review` (first, independent) → `/pr-review-toolkit:review-pr` (deep, 6 agents) → `/simplify` → `/review-pr-comments` (post-PR, process automated comments)
 - **TDD Enforcement**: Red-Green-Refactor via Superpowers plugin
-- **Parallel Development**: Multiple Claude sessions working on different features simultaneously
-- **Knowledge Base**: Bug fixes automatically documented for future reference
+- **Parallel Development**: Multiple Claude sessions across isolated git worktrees — teams can work on different features simultaneously without context bleed
+- **Knowledge Base**: Bug fix root causes saved to `docs/solutions/` + auto-memory at the end of every `/fix-bug` workflow
 
-Based on [Boris Cherny's workflow](https://www.anthropic.com/engineering/claude-code-best-practices) (Claude Code creator), Anthropic's official best practices, and [OpenClaw's memory patterns](https://github.com/openclaw/openclaw/discussions/6038).
+Started from [Boris Cherny's workflow](https://www.anthropic.com/engineering/claude-code-best-practices) (Claude Code's creator), Anthropic's official best practices, and [OpenClaw's memory patterns](https://github.com/openclaw/openclaw/discussions/6038) — evolved into a dual-agent harness through ongoing iteration.
 
 ---
 
@@ -65,7 +71,7 @@ Based on [Boris Cherny's workflow](https://www.anthropic.com/engineering/claude-
 - [ ] **Node.js 22+** (for Codex CLI, npx commands, and Playwright MCP)
 - [ ] **Git 2.23+** initialized in your project
 - [ ] **jq** (recommended, not required): `brew install jq` (macOS) or `apt install jq` (Linux). Used for JSON merging during global setup (falls back to Python if unavailable). Hooks work without it.
-- [ ] **Codex CLI** (recommended): `npm i -g @openai/codex` or `brew install --cask codex` (macOS). Used for design review and code review second opinions. See [Step 5](#step-5-install-codex-cli-recommended) for full instructions.
+- [ ] **Codex CLI** (**required** for the full workflow): `npm i -g @openai/codex` or `brew install --cask codex` (macOS). Powers the first-pass code review (`/codex review`), design review, and 3 of the 5 Engineering Council roles (chairman + 2 advisors). Without it, those steps degrade to manual user review. See [Step 5](#step-5-install-codex-cli-required) for full instructions.
 - [ ] **Python 3.12+** with `uv` (if Python project)
 - [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
 
@@ -76,7 +82,7 @@ Based on [Boris Cherny's workflow](https://www.anthropic.com/engineering/claude-
 - [ ] **PowerShell 5.1+** (included with Windows 10/11)
 - [ ] **Node.js 22+** (for Codex CLI, npx commands, and Playwright MCP)
 - [ ] **Git 2.23+** initialized in your project
-- [ ] **Codex CLI** (recommended): `npm i -g @openai/codex` inside WSL. See [Step 5](#step-5-install-codex-cli-recommended) for full instructions.
+- [ ] **Codex CLI** (**required** for the full workflow): `npm i -g @openai/codex` inside WSL. Powers the first-pass code review, design review, and 3 of the 5 Engineering Council roles. Without it, those steps degrade to manual user review. See [Step 5](#step-5-install-codex-cli-required) for full instructions.
 - [ ] **Python 3.12+** with `uv` (if Python project)
 - [ ] **pnpm** or **npm** (if JavaScript/TypeScript project)
 
@@ -143,9 +149,15 @@ Restart Claude Code.
 
 > **Note:** `pr-review-toolkit` and `frontend-design` are built-in Claude Code plugins pre-enabled in `.claude/settings.json`. `/simplify` is a built-in Claude Code command (no plugin needed). `superpowers` requires a separate install (step above).
 
-### Step 5: Install Codex CLI (recommended)
+### Step 5: Install Codex CLI (required)
 
-Codex CLI gives Claude an independent second opinion on design plans and code reviews. The design review step uses it before any implementation begins.
+Codex CLI is **required for the full workflow**. It powers three core phases:
+
+- **Design review** — independent validation of your plan before any code is written
+- **First-pass code review** (`/codex review`) — runs before the deep `/pr-review-toolkit:review-pr` pass
+- **Engineering Council** — Codex is the chairman plus 2 of the 5 advisor roles (3 total)
+
+Without Codex, those phases degrade to manual user review. The workflow still runs, but you lose the independent second opinion that catches issues Claude missed.
 
 **macOS / Linux:**
 
@@ -184,7 +196,7 @@ codex login --with-api-key
 codex --version   # Should show version 0.101.0+
 ```
 
-> **Don't have Codex?** The workflow still works — Claude will present design plans to you for manual review instead. But Codex provides a faster, independent validation.
+> **No Codex available?** The workflow still runs — Claude presents design plans to you for manual review, and the `/codex review` and Engineering Council steps fall back to user-led review. You lose the independent second opinion but nothing is blocked.
 
 ### Step 6: Verify setup
 
@@ -298,6 +310,43 @@ git push
 ```
 
 **Done!** Now [customize your project](#after-setup-customize-your-project).
+
+---
+
+### Optional: Add Playwright CI Bridge (fullstack / typescript projects)
+
+Append `--with-playwright` to either Scenario A or B to scaffold the Playwright E2E framework alongside the usual setup. This is how you get deterministic `.spec.ts` replays of the `verify-e2e` agent's passing use cases — so contributor PRs get covered even when no Claude session runs.
+
+**macOS / Linux:**
+
+```bash
+~/claude-codex-forge/setup.sh -p "My App" -t fullstack --with-playwright
+```
+
+**Windows (PowerShell):**
+
+```powershell
+& $HOME\claude-codex-forge\setup.ps1 -p "My App" -t fullstack -WithPlaywright
+```
+
+**What gets scaffolded:**
+
+| Path                         | Purpose                                                                                              |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `playwright.config.ts`       | Playwright framework config (set `baseURL`, uncomment `setup` project)                               |
+| `tests/e2e/fixtures/auth.ts` | Auth bypass fixture                                                                                  |
+| `tests/e2e/specs/`           | Empty dir for deterministic specs (main agent writes into this)                                      |
+| `tests/e2e/.auth/.gitignore` | Credential-safe (never committed)                                                                    |
+| `docs/ci-templates/e2e.yml`  | Reference GitHub Actions workflow — copy to `.github/workflows/` when ready (**not** auto-activated) |
+
+**One-time install after setup** (setup.sh prints this):
+
+```bash
+pnpm add -D @playwright/test && pnpm exec playwright install
+# set TEST_API_KEY, or TEST_USER_EMAIL + TEST_USER_PASSWORD in .env
+```
+
+See [Optional: Playwright CI Bridge](#optional-playwright-ci-bridge) further below for how this integrates with the `verify-e2e` agent.
 
 ---
 
@@ -545,9 +594,10 @@ How a feature goes from idea to merged PR.
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 3. RESEARCH (WebSearch/WebFetch/Context7)                   │
-│    → Current library docs and best practices               │
-│    → Breaking changes since AI knowledge cutoff            │
+│ 3. RESEARCH — `research-first` agent (Phase 2 enforcement)  │
+│    → Context7 + official docs + changelogs per dependency  │
+│    → Produces structured brief in `docs/research/`         │
+│    → Design phase reads this before any planning starts    │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -557,6 +607,8 @@ How a feature goes from idea to merged PR.
 │    ┌───────────────────────────────────────────┐            │
 │    │ a. /superpowers:brainstorming              │            │
 │    │    → Interactive design exploration        │            │
+│    │    → Followed by /council contrarian gate  │            │
+│    │      after approach comparison             │            │
 │    └──────────────────┬────────────────────────┘            │
 │                       ▼                                     │
 │    ┌───────────────────────────────────────────┐            │
@@ -1078,7 +1130,9 @@ your-project/
 │   │   └── check-config-change.sh     # ConfigChange: log config modifications (.ps1 on Windows)
 │   ├── agents/                        # Custom subagents
 │   │   ├── verify-app.md              # Unit tests + lint + types + migrations
-│   │   └── verify-e2e.md              # User-journey E2E (API / UI / CLI) + regression suite
+│   │   ├── verify-e2e.md              # User-journey E2E (API / UI / CLI) + regression suite
+│   │   ├── research-first.md          # Pre-design library/API research (Context7 + official docs)
+│   │   └── council-advisor.md         # Engineering Council advisor (persona via prompt)
 │   ├── commands/                      # Custom slash commands (ENFORCED)
 │   │   ├── new-feature.md             # /new-feature - Full feature workflow
 │   │   ├── fix-bug.md                 # /fix-bug - Bug fix workflow
@@ -1582,25 +1636,26 @@ See: [GitHub Issue #3107](https://github.com/anthropics/claude-code/issues/3107)
 
 ## Version History
 
-| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 5.4     | 2026-03-31 | **ENGINEERING COUNCIL**: Multi-perspective decision analysis inspired by Karpathy's LLM Council. 5 engineering advisors (3 Claude + 2 Codex) with Codex chairman. Contrarian gate validates approach selection (no self-certification). Auto-triggers during `/new-feature` and `/fix-bug` brainstorming when genuine ambiguity detected. Configurable advisor profiles. Mandatory minority reports preserve dissent. |
-| 5.3     | 2026-03-01 | **SILENT CONTEXT INJECTION**: SessionStart hook now uses `hookSpecificOutput.additionalContext` for clean, non-visible branch injection. Fires on all 4 events (startup, resume, clear, compact). External script replaces inline echo.                                                                                                                                                                               |
-| 5.2     | 2026-02-20 | **FRONTEND DESIGN**: Added `frontend-design` plugin (built-in) and `rules/frontend-design.md` for TypeScript/fullstack projects — typography, color, spacing, responsive, accessibility, animation standards. Documented optional MCP add-ons (Vercel, Next.js DevTools).                                                                                                                                             |
-| 5.1     | 2026-02-19 | **CLAUDE.MD SPLIT**: Slimmed CLAUDE.md to ~50 lines (user-owned: project description, tech stack, commands). Moved workflow, principles, worktree policy, critical rules, and memory instructions to `.claude/rules/` files that are auto-loaded and safe to overwrite on updates. Following official best practice of keeping CLAUDE.md under 60-100 lines.                                                          |
-| 5.0     | 2026-02-19 | **REMOVED COMPOUND ENGINEERING**: Replaced with built-in Claude Code quality gates (`/review-pr-comments`, `/pr-review-toolkit:review-pr`, `/codex review`). E2E testing via standalone Playwright MCP. Knowledge compounding via `docs/solutions/` + auto memory. Only Superpowers remains as third-party plugin. Added standalone MCP servers (Playwright, Context7) to project settings.                           |
-| 4.0     | 2026-02-19 | **PERSISTENT MEMORY**: Added global memory system (`--global` flag), PreCompact hooks to save learnings before context compression, global Stop hook for memory reminders, `~/.claude/CLAUDE.md` template with memory instructions. Inspired by OpenClaw's pre-compaction memory flush pattern. Auto memory enabled by default.                                                                                       |
-| 3.4     | 2026-02-16 | **CODEX COMMAND**: Added `/codex` command for getting second opinions from OpenAI's Codex CLI. Code review and general feedback modes.                                                                                                                                                                                                                                                                                |
-| 3.3     | 2026-01-22 | **FINISH-BRANCH COMMAND**: Added `/finish-branch` command that handles PR merge + worktree cleanup. Removed `/superpowers:finishing-a-development-branch` from workflows (redundant testing, no worktree awareness). `/quick-fix` now just commits directly.                                                                                                                                                          |
-| 3.2     | 2026-01-19 | **SIMPLIFIED WORKTREES**: Claude now `cd`s into worktrees instead of using path prefixes. Removed `.session_worktree` file - no shared state between sessions. Hooks and verify-app simplified to use current directory.                                                                                                                                                                                              |
-| 3.1     | 2026-01-19 | **PARALLEL DEVELOPMENT**: Workflow commands auto-create git worktrees for isolated parallel sessions. Hooks are worktree-aware. verify-app agent accepts worktree path.                                                                                                                                                                                                                                               |
-| 3.0     | 2026-01-18 | **WORKFLOW COMMANDS**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E via Playwright MCP.                                                                                                                                                                                                                               |
-| 2.7     | 2026-01-18 | Simplified CONTINUITY.md: Done section keeps only 2-3 recent items, removed redundant sections (Working Set, Test Status, Active Artifacts). Leaner template.                                                                                                                                                                                                                                                         |
-| 2.6     | 2026-01-18 | Hooks follow Anthropic best practices: path traversal protection, sensitive file skip, `$CLAUDE_PROJECT_DIR` for absolute paths. Added external post-tool-format.sh script.                                                                                                                                                                                                                                           |
-| 2.5     | 2026-01-17 | E2E testing via Playwright MCP. Removed E2E from verify-app agent.                                                                                                                                                                                                                                                                                                                                                    |
-| 2.4     | 2026-01-17 | Knowledge compounding now uses `docs/solutions/` instead of inline CLAUDE.md learnings. Searchable files with YAML frontmatter, auto-categorized by problem type.                                                                                                                                                                                                                                                     |
-| 2.3     | 2026-01-17 | Enhanced workflow with Superpowers skills: systematic-debugging, verification-before-completion. Updated Stop hook checklist.                                                                                                                                                                                                                                                                                         |
-| 2.2     | 2026-01-17 | Fixed MCP permissions - wildcards don't work, use explicit server names.                                                                                                                                                                                                                                                                                                                                              |
-| 2.1     | 2026-01-11 | Added native Windows/PowerShell support - hooks now work without jq on Windows, platform-specific settings templates.                                                                                                                                                                                                                                                                                                 |
-| 2.0     | 2026-01-10 | Added code-simplifier, verify-app agent, SubagentStop hook, prompt-based Stop hook, project-agnostic templates, clear setup scenarios.                                                                                                                                                                                                                                                                                |
-| 1.0     | 2026-01-02 | Initial setup with Superpowers.                                                                                                                                                                                                                                                                                                                                                                                       |
+| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 5.5     | 2026-04-17 | **E2E ENFORCEMENT + RESEARCH-FIRST + REPO RENAME**: (1) `verify-e2e` agent — dedicated subagent for user-journey E2E through API/UI/CLI, accumulated regression suite in `tests/e2e/use-cases/` (PR #449). (2) Playwright CI bridge — `--with-playwright` setup flag scaffolds `playwright.config.ts`, auth fixture, specs dir, and reference GitHub Actions workflow (PR #450). (3) `research-first` agent — Phase 2 of `/new-feature` queries Context7/official docs/changelogs before design, producing structured briefs in `docs/research/` (PR #472). (4) Repo renamed from `claude-code-templates` → `claude-codex-forge`. |
+| 5.4     | 2026-03-31 | **ENGINEERING COUNCIL**: Multi-perspective decision analysis inspired by Karpathy's LLM Council. 5 engineering advisors (3 Claude + 2 Codex) with Codex chairman. Contrarian gate validates approach selection (no self-certification). Auto-triggers during `/new-feature` and `/fix-bug` brainstorming when genuine ambiguity detected. Configurable advisor profiles. Mandatory minority reports preserve dissent.                                                                                                                                                                                                             |
+| 5.3     | 2026-03-01 | **SILENT CONTEXT INJECTION**: SessionStart hook now uses `hookSpecificOutput.additionalContext` for clean, non-visible branch injection. Fires on all 4 events (startup, resume, clear, compact). External script replaces inline echo.                                                                                                                                                                                                                                                                                                                                                                                           |
+| 5.2     | 2026-02-20 | **FRONTEND DESIGN**: Added `frontend-design` plugin (built-in) and `rules/frontend-design.md` for TypeScript/fullstack projects — typography, color, spacing, responsive, accessibility, animation standards. Documented optional MCP add-ons (Vercel, Next.js DevTools).                                                                                                                                                                                                                                                                                                                                                         |
+| 5.1     | 2026-02-19 | **CLAUDE.MD SPLIT**: Slimmed CLAUDE.md to ~50 lines (user-owned: project description, tech stack, commands). Moved workflow, principles, worktree policy, critical rules, and memory instructions to `.claude/rules/` files that are auto-loaded and safe to overwrite on updates. Following official best practice of keeping CLAUDE.md under 60-100 lines.                                                                                                                                                                                                                                                                      |
+| 5.0     | 2026-02-19 | **REMOVED COMPOUND ENGINEERING**: Replaced with built-in Claude Code quality gates (`/review-pr-comments`, `/pr-review-toolkit:review-pr`, `/codex review`). E2E testing via standalone Playwright MCP. Knowledge compounding via `docs/solutions/` + auto memory. Only Superpowers remains as third-party plugin. Added standalone MCP servers (Playwright, Context7) to project settings.                                                                                                                                                                                                                                       |
+| 4.0     | 2026-02-19 | **PERSISTENT MEMORY**: Added global memory system (`--global` flag), PreCompact hooks to save learnings before context compression, global Stop hook for memory reminders, `~/.claude/CLAUDE.md` template with memory instructions. Inspired by OpenClaw's pre-compaction memory flush pattern. Auto memory enabled by default.                                                                                                                                                                                                                                                                                                   |
+| 3.4     | 2026-02-16 | **CODEX COMMAND**: Added `/codex` command for getting second opinions from OpenAI's Codex CLI. Code review and general feedback modes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 3.3     | 2026-01-22 | **FINISH-BRANCH COMMAND**: Added `/finish-branch` command that handles PR merge + worktree cleanup. Removed `/superpowers:finishing-a-development-branch` from workflows (redundant testing, no worktree awareness). `/quick-fix` now just commits directly.                                                                                                                                                                                                                                                                                                                                                                      |
+| 3.2     | 2026-01-19 | **SIMPLIFIED WORKTREES**: Claude now `cd`s into worktrees instead of using path prefixes. Removed `.session_worktree` file - no shared state between sessions. Hooks and verify-app simplified to use current directory.                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 3.1     | 2026-01-19 | **PARALLEL DEVELOPMENT**: Workflow commands auto-create git worktrees for isolated parallel sessions. Hooks are worktree-aware. verify-app agent accepts worktree path.                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 3.0     | 2026-01-18 | **WORKFLOW COMMANDS**: Added `/new-feature`, `/fix-bug`, `/quick-fix` commands that contain full workflows. Refactored CLAUDE.md to be lean (140 lines vs 318). E2E via Playwright MCP.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 2.7     | 2026-01-18 | Simplified CONTINUITY.md: Done section keeps only 2-3 recent items, removed redundant sections (Working Set, Test Status, Active Artifacts). Leaner template.                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 2.6     | 2026-01-18 | Hooks follow Anthropic best practices: path traversal protection, sensitive file skip, `$CLAUDE_PROJECT_DIR` for absolute paths. Added external post-tool-format.sh script.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 2.5     | 2026-01-17 | E2E testing via Playwright MCP. Removed E2E from verify-app agent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 2.4     | 2026-01-17 | Knowledge compounding now uses `docs/solutions/` instead of inline CLAUDE.md learnings. Searchable files with YAML frontmatter, auto-categorized by problem type.                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 2.3     | 2026-01-17 | Enhanced workflow with Superpowers skills: systematic-debugging, verification-before-completion. Updated Stop hook checklist.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 2.2     | 2026-01-17 | Fixed MCP permissions - wildcards don't work, use explicit server names.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 2.1     | 2026-01-11 | Added native Windows/PowerShell support - hooks now work without jq on Windows, platform-specific settings templates.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 2.0     | 2026-01-10 | Added code-simplifier, verify-app agent, SubagentStop hook, prompt-based Stop hook, project-agnostic templates, clear setup scenarios.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 1.0     | 2026-01-02 | Initial setup with Superpowers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
