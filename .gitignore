@@ -5,5 +5,12 @@
 .claude/
 CONTINUITY.md
 .mcp.json
-docs/
+# docs/ holds both canonical harness documentation (tracked) and user-generated
+# per-project content (ignored). The blanket-ignore rule was replaced with
+# targeted excludes for the subdirs setup.sh creates in user projects.
+docs/plans/
+docs/prds/
+docs/solutions/
+docs/research/
+docs/ci-templates/
 .worktrees/
