@@ -178,3 +178,45 @@ Display Codex's output verbatim to the user. Do not summarize or edit it.
 | Review a specific commit   | `codex exec review --ephemeral --commit SHA`                      |
 | Review a design plan       | `codex exec --sandbox read-only --ephemeral "Review the plan..."` |
 | General second opinion     | `codex exec --sandbox read-only --ephemeral "Your question..."`   |
+
+---
+
+## Flag Reference — What Works Where
+
+**`codex exec review` (subcommand) flags:**
+`-c key=value`, `--uncommitted`, `--base <BRANCH>`, `--commit <SHA>`, `-m/--model`, `--title`, `--ephemeral`, `--json`, `-o/--output-last-message`, `--full-auto`, `--skip-git-repo-check`, `--enable/--disable <FEATURE>`.
+
+**NOT valid on `exec review`** (but valid on plain `codex exec`):
+`--sandbox`, `--color`, `-i/--image`, `-C/--cd`, `--add-dir`, `--output-schema`, `-p/--profile`, `--oss`.
+
+**Mutually exclusive on `exec review`:** preset flags (`--uncommitted`, `--base`, `--commit`) cannot be combined with a positional `[PROMPT]`. Pick one:
+
+- **Preset scope + focus via config**: `codex exec review --uncommitted -c developer_instructions="Focus on auth flows"`
+- **Custom prompt only** (reviewer picks scope from your wording): `codex exec review "Audit the recent auth middleware changes for token leakage"`
+
+## Powerful `-c` Config Overrides
+
+These work on **both** `codex exec` and `codex exec review`:
+
+| Config key                | Purpose                                                    | Example                                                                 |
+| ------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `model`                   | Override the session model                                 | `-c model="gpt-5.4"`                                                    |
+| `model_reasoning_effort`  | Depth of reasoning                                         | `-c model_reasoning_effort="xhigh"` (minimal\|low\|medium\|high\|xhigh) |
+| `model_reasoning_summary` | Reasoning output detail                                    | `-c model_reasoning_summary="detailed"` (auto\|concise\|detailed\|none) |
+| `developer_instructions`  | Inject guidance (works WITH preset review flags)           | `-c developer_instructions="Focus on SQL injection"`                    |
+| `review_model`            | Model override just for `/review`                          | `-c review_model="gpt-5.4"`                                             |
+| `web_search`              | Allow live docs lookup during review                       | `-c web_search=live` (disabled\|cached\|live)                           |
+| `service_tier`            | Processing tier                                            | `-c service_tier="fast"` (flex\|fast)                                   |
+| `approval_policy`         | When to pause for confirmation (plain `exec` only)         | `-c approval_policy="on-request"` (untrusted\|on-request\|never)        |
+| `sandbox_mode`            | Sandbox policy as config (alternative to `--sandbox` flag) | `-c sandbox_mode="read-only"`                                           |
+
+## Other Useful Flags
+
+| Flag                              | Purpose                                                        |
+| --------------------------------- | -------------------------------------------------------------- |
+| `--ephemeral`                     | Don't persist session files (use for one-shot reviews)         |
+| `-o/--output-last-message <FILE>` | Write just the final message to a file — great for scripting   |
+| `--json`                          | Emit JSONL events for downstream automation                    |
+| `--full-auto`                     | Low-friction preset: `-a on-request --sandbox workspace-write` |
+| `--title "description"`           | Label the review in the summary (review subcommand only)       |
+| `--skip-git-repo-check`           | Allow running outside a Git repository                         |
