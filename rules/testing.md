@@ -216,14 +216,14 @@ Skip if:
 ./setup.sh -p "My App" -t fullstack --with-playwright
 ```
 
-This installs:
+This installs, into the repo root (flat layouts) or into the first detected frontend subdirectory (`frontend/`, `apps/web/`, `web/`, `client/`) for monorepo layouts — use `--playwright-dir <path>` to override:
 
-- `playwright.config.ts` at project root
+- `playwright.config.ts`
 - `tests/e2e/fixtures/auth.ts` (auth bypass pattern)
 - `tests/e2e/specs/` directory for generated spec files
-- `docs/ci-templates/e2e.yml` — GitHub Actions workflow as a reference (not auto-activated)
+- `docs/ci-templates/e2e.yml` — GitHub Actions workflow as a reference (not auto-activated); `working-directory` is stamped to match the scaffold location
 
-Then:
+Then, from wherever Playwright was scaffolded (`cd frontend` first on monorepos, nothing for flat layouts):
 
 ```bash
 pnpm add -D @playwright/test

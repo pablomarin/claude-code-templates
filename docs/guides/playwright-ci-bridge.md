@@ -20,23 +20,33 @@ Append `--with-playwright` to your setup command:
 & $HOME\claude-codex-forge\setup.ps1 -p "My App" -t fullstack -WithPlaywright
 ```
 
+## Where it scaffolds (monorepo-aware)
+
+Setup picks a Playwright directory (`<pw-dir>`):
+
+1. If `--playwright-dir <path>` is passed, use that.
+2. Otherwise, if exactly one of `frontend/`, `apps/web/`, `web/`, `client/` contains a `package.json`, scaffold into that subdirectory.
+3. If multiple candidates match, fall back to repo root and print a warning so you can pick with the explicit flag.
+4. If none match, scaffold at repo root (flat layouts).
+
 ## What gets scaffolded
 
-| Path                         | Purpose                                                                                              |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `playwright.config.ts`       | Playwright framework config (set `baseURL`, uncomment `setup` project)                               |
-| `tests/e2e/fixtures/auth.ts` | Auth bypass fixture                                                                                  |
-| `tests/e2e/specs/`           | Empty dir for deterministic specs (main agent writes into this)                                      |
-| `tests/e2e/.auth/.gitignore` | Credential-safe (never committed)                                                                    |
-| `docs/ci-templates/e2e.yml`  | Reference GitHub Actions workflow — copy to `.github/workflows/` when ready (**not** auto-activated) |
+| Path                                  | Purpose                                                                                                                                                              |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<pw-dir>/playwright.config.ts`       | Playwright framework config (set `baseURL`, uncomment `setup` project)                                                                                               |
+| `<pw-dir>/tests/e2e/fixtures/auth.ts` | Cookie-based auth fixture (secure default; API-key path commented out)                                                                                               |
+| `<pw-dir>/tests/e2e/specs/`           | Empty dir for deterministic specs (main agent writes into this)                                                                                                      |
+| `<pw-dir>/tests/e2e/.auth/.gitignore` | Credential-safe (never committed)                                                                                                                                    |
+| `docs/ci-templates/e2e.yml`           | Reference GitHub Actions workflow (not auto-activated). `working-directory` is stamped with `<pw-dir>` at scaffold time so the workflow runs correctly on monorepos. |
 
 ## One-time install after setup
 
-(setup.sh prints this command at the end)
+Run these from `<pw-dir>` — repo root for flat layouts, or `cd <pw-dir>` first on monorepos (setup.sh prints the exact command at the end):
 
 ```bash
 pnpm add -D @playwright/test && pnpm exec playwright install
-# set TEST_API_KEY, or TEST_USER_EMAIL + TEST_USER_PASSWORD in .env
+# set TEST_USER_EMAIL + TEST_USER_PASSWORD in .env (cookie auth — the secure default)
+# TEST_API_KEY is an insecure local-dev-only fallback — see the SECURITY WARNING in tests/e2e/fixtures/auth.ts
 # review playwright.config.ts — set baseURL, uncomment the "setup" project
 ```
 
