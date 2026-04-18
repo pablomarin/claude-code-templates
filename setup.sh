@@ -533,8 +533,11 @@ EOF
     # CI workflow reference (NOT auto-activated).
     # Stamp PW_DIR into the workflow so defaults.run.working-directory matches
     # the actual scaffold location. Two important subtleties:
-    # (1) Use awk with -v so metacharacters in user paths (&, |, \) are
-    #     treated as literal text — NOT as sed replacement-string specials.
+    # (1) Use bash parameter expansion (${var//pat/repl}) for the substitution.
+    #     Unlike sed AND awk — both of which interpret '&' in the replacement
+    #     string as "the matched text" — bash parameter expansion does literal
+    #     substitution with NO metachar interpretation. Paths containing &, |,
+    #     \, or $ (e.g. --playwright-dir 'apps/r&d') substitute correctly.
     # (2) Preserve user-edited files on non-force reruns (matches copy_file
     #     semantics). setup.sh --with-playwright should be idempotent; a
     #     second run without -f must not clobber CI customizations.
@@ -545,9 +548,12 @@ EOF
             echo -e "  ${BLUE}○${NC} $desc already exists (use -f to overwrite)"
             return 0
         fi
-        awk -v replacement="$PW_DIR" \
-            '{ gsub(/__PLAYWRIGHT_DIR__/, replacement); print }' \
-            "$src" > "$dest"
+        # Read → literal-substitute → write. $(<file) strips trailing newlines;
+        # the source templates always end with a newline, so we restore one
+        # unconditionally via printf '%s\n'.
+        local content
+        content=$(<"$src")
+        printf '%s\n' "${content//__PLAYWRIGHT_DIR__/$PW_DIR}" > "$dest"
         echo -e "  ${GREEN}✓${NC} Created $desc (working-directory stamped: $PW_DIR)"
     }
 
