@@ -1,0 +1,87 @@
+# Commands Reference
+
+All slash commands and subagents available after setup.
+
+## Workflow Commands (ENFORCED — Start Here)
+
+| Command               | Purpose               | Notes                                                                            |
+| --------------------- | --------------------- | -------------------------------------------------------------------------------- |
+| `/new-feature <name>` | Full feature workflow | PRD → Research → Design (iterative) → Execute → Review (iterative) → PR → Finish |
+| `/fix-bug <name>`     | Bug fix workflow      | Search solutions → Systematic debugging → Fix → Review → Compound                |
+| `/quick-fix <name>`   | Trivial changes only  | < 3 files, no arch impact, still requires verify                                 |
+| `/finish-branch`      | Merge + cleanup       | Merge PR to main → Delete remote/local branch + worktree → Restart servers       |
+
+**Workflow commands guide the process.** CONTINUITY.md auto-loads via `@import`, Stop hook validates completion.
+
+## Decision Analysis
+
+| Command                | Purpose                       | Notes                                            |
+| ---------------------- | ----------------------------- | ------------------------------------------------ |
+| `/council <question>`  | Multi-perspective analysis    | 5 advisors (3 Claude + 2 Codex) + Codex chairman |
+| `/codex <instruction>` | Second opinion from Codex CLI | Code review, design review, or general           |
+
+## PRD Commands (Requirements)
+
+| Command                  | Purpose                           | Output                              |
+| ------------------------ | --------------------------------- | ----------------------------------- |
+| `/prd:discuss {feature}` | Interactive user story refinement | `docs/prds/{feature}-discussion.md` |
+| `/prd:create {feature}`  | Generate structured PRD           | `docs/prds/{feature}.md`            |
+
+## Superpowers Commands (Design → Execute → Debug)
+
+| Command                                       | Purpose                             | Notes                        |
+| --------------------------------------------- | ----------------------------------- | ---------------------------- |
+| `/superpowers:brainstorming`                  | Interactive design refinement       | Uses PRD context             |
+| `/superpowers:writing-plans`                  | Create detailed implementation plan | TDD tasks                    |
+| `/superpowers:executing-plans`                | Execute plan with subagents         | TDD enforced                 |
+| `/superpowers:systematic-debugging`           | 4-phase root cause analysis         | Before ANY bug fix           |
+| `/superpowers:verification-before-completion` | Evidence-based completion check     | Catches "should work" claims |
+
+## Quality Gates (Pre-PR — in this order)
+
+| Command / Agent                | Purpose                                                        | Notes                                       |
+| ------------------------------ | -------------------------------------------------------------- | ------------------------------------------- |
+| `/codex review`                | First review after implementation — independent second opinion | Codex CLI (uncommitted/base/commit options) |
+| `/codex {instruction}`         | General second opinion                                         | Runs `codex exec` in read-only sandbox      |
+| `/pr-review-toolkit:review-pr` | Deep multi-analyzer review (6 agents)                          | Silent failures, test coverage, type design |
+| `/simplify`                    | Clean up modified files                                        | Built-in command, no plugin needed          |
+| `verify-app` agent             | Unit tests, migration check, lint, types                       | "Use the verify-app agent"                  |
+| `verify-e2e` agent             | User-journey E2E (API / UI / CLI) + regression suite replay    | "Use the verify-e2e agent"                  |
+
+## Research Enforcement (Pre-Design — Phase 2)
+
+Your AI assistant's knowledge has a cutoff. Libraries ship breaking changes weekly. The `research-first` agent runs in Phase 2 of `/new-feature` — before any design begins — querying Context7, official docs, and changelogs for each dependency your feature touches. It produces a structured brief in `docs/research/` that the design phase reads. No more building on stale docs.
+
+For bug fixes, targeted research runs after root-cause isolation (Phase 2.5 of `/fix-bug`).
+
+## PR Review Comments (Post-PR)
+
+| Command               | Purpose                              | Notes                                                           |
+| --------------------- | ------------------------------------ | --------------------------------------------------------------- |
+| `/review-pr-comments` | Address automated PR review comments | Requires GitHub Copilot, Codex, or Claude PR reviews configured |
+
+## Built-in Commands
+
+| Command        | Purpose                                             |
+| -------------- | --------------------------------------------------- |
+| `/clear`       | Clear context (triggers SessionStart hook)          |
+| `/compact`     | Compact context manually (triggers PreCompact hook) |
+| `/memory`      | View/edit memory files (auto memory + CLAUDE.md)    |
+| `/cost`        | Show session costs                                  |
+| `/hooks`       | View configured hooks                               |
+| `/permissions` | View/modify permissions                             |
+| `/help`        | List all commands                                   |
+| `Shift+Tab`    | Toggle auto-accept mode (mid-session)               |
+
+---
+
+## Subagents
+
+Custom subagents available via the Task tool.
+
+| Agent             | Purpose                                                                                           | Invocation                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `verify-app`      | Unit tests + lint + type checks + migrations                                                      | "Use the verify-app agent"                                      |
+| `verify-e2e`      | User-journey E2E through API / UI / CLI; produces markdown report at `tests/e2e/reports/`         | "Use the verify-e2e agent"                                      |
+| `research-first`  | Pre-design library/API research via Context7 + official docs; writes `docs/research/<feature>.md` | Phase 2 of `/new-feature`, Phase 2.5 of `/fix-bug`              |
+| `council-advisor` | Engineering Council advisor (persona via prompt)                                                  | Dispatched by `/council` skill — not invoked directly           |
