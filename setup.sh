@@ -30,6 +30,8 @@ usage() {
     echo "  -u, --upgrade       Smart upgrade: merge new hooks/permissions into existing settings"
     echo "  -g, --global        Set up global memory system (~/.claude/)"
     echo "  -w, --with-playwright  Install Playwright framework templates (requires -t fullstack or typescript)"
+    echo "  --playwright-dir DIR   Scaffold Playwright into DIR instead of repo root (monorepo layouts)"
+    echo "                         If omitted: auto-detect frontend/apps/web/web/client if exactly one matches"
     echo ""
     echo "Examples:"
     echo "  $0                          # Setup with defaults"
@@ -80,6 +82,10 @@ while [[ $# -gt 0 ]]; do
         -w|--with-playwright)
             WITH_PLAYWRIGHT=true
             shift
+            ;;
+        --playwright-dir)
+            PLAYWRIGHT_DIR="$2"
+            shift 2
             ;;
         *)
             echo -e "${RED}Unknown option: $1${NC}"
@@ -446,46 +452,137 @@ if [[ "$WITH_PLAYWRIGHT" == true ]]; then
     echo ""
     echo -e "${YELLOW}Installing Playwright framework templates...${NC}"
 
-    if [[ ! -d "tests/e2e/specs" ]]; then
-        mkdir -p "tests/e2e/specs"
-        echo -e "  ${GREEN}✓${NC} Created tests/e2e/specs (for graduated .spec.ts files)"
+    # ------------------------------------------------------------------
+    # Determine where Playwright lives.
+    # Monorepos typically have package.json inside a frontend subdirectory
+    # (frontend/, apps/web/, web/, client/). Flat repos have it at root.
+    # We keep them as two separate concepts:
+    #   - PW_DIR:     where playwright.config.ts + tests/e2e/ get scaffolded
+    #   - PW_PKG_DIR: where `pnpm install` / `pnpm exec playwright` run
+    # In most layouts PW_DIR == PW_PKG_DIR. If a user has an unusual
+    # pnpm-workspace setup, they can override with --playwright-dir.
+    # ------------------------------------------------------------------
+    if [[ -n "$PLAYWRIGHT_DIR" ]]; then
+        PW_DIR="$PLAYWRIGHT_DIR"
+        echo -e "  ${BLUE}→${NC} Using explicit --playwright-dir: ${BLUE}$PW_DIR${NC}"
+    else
+        # Auto-detect: ONLY commit to a subdir if exactly one candidate matches.
+        # Ambiguous detections (multiple apps) fall back to repo root with a warning.
+        PW_CANDIDATES=()
+        for candidate in frontend apps/web web client; do
+            if [[ -f "$candidate/package.json" ]]; then
+                PW_CANDIDATES+=("$candidate")
+            fi
+        done
+
+        if [[ ${#PW_CANDIDATES[@]} -eq 1 ]]; then
+            PW_DIR="${PW_CANDIDATES[0]}"
+            echo -e "  ${GREEN}✓${NC} Detected frontend at ${BLUE}$PW_DIR${NC} — scaffolding Playwright there."
+            echo -e "    (override with ${BLUE}--playwright-dir <path>${NC} if that's wrong)"
+        elif [[ ${#PW_CANDIDATES[@]} -gt 1 ]]; then
+            echo -e "  ${YELLOW}⚠${NC}  Multiple frontend candidates found: ${PW_CANDIDATES[*]}"
+            echo -e "     Scaffolding at repo root to avoid picking wrong. Override with ${BLUE}--playwright-dir <path>${NC}."
+            PW_DIR="."
+        else
+            PW_DIR="."
+            echo -e "  ${BLUE}→${NC} No frontend subdirectory detected — scaffolding at repo root."
+        fi
+    fi
+
+    # Create the target dir if it doesn't exist (explicit --playwright-dir may point to a new path)
+    if [[ "$PW_DIR" != "." ]] && [[ ! -d "$PW_DIR" ]]; then
+        mkdir -p "$PW_DIR"
+        echo -e "  ${GREEN}✓${NC} Created $PW_DIR/"
+    fi
+
+    # All Playwright paths are relative to PW_DIR
+    PW_SPECS_DIR="$PW_DIR/tests/e2e/specs"
+    PW_FIXTURES_DIR="$PW_DIR/tests/e2e/fixtures"
+    PW_AUTH_DIR="$PW_DIR/tests/e2e/.auth"
+
+    if [[ ! -d "$PW_SPECS_DIR" ]]; then
+        mkdir -p "$PW_SPECS_DIR"
+        echo -e "  ${GREEN}✓${NC} Created $PW_SPECS_DIR (for graduated .spec.ts files)"
     fi
 
     # Playwright config
-    copy_file "$SCRIPT_DIR/templates/playwright/playwright.config.template.ts" "playwright.config.ts" "playwright.config.ts"
+    copy_file "$SCRIPT_DIR/templates/playwright/playwright.config.template.ts" "$PW_DIR/playwright.config.ts" "$PW_DIR/playwright.config.ts"
 
     # Auth fixture
-    mkdir -p tests/e2e/fixtures
-    copy_file "$SCRIPT_DIR/templates/playwright/auth.fixture.template.ts" "tests/e2e/fixtures/auth.ts" "tests/e2e/fixtures/auth.ts"
+    mkdir -p "$PW_FIXTURES_DIR"
+    copy_file "$SCRIPT_DIR/templates/playwright/auth.fixture.template.ts" "$PW_FIXTURES_DIR/auth.ts" "$PW_FIXTURES_DIR/auth.ts"
 
     # Auth storage directory — gitignored because it contains credentials
-    mkdir -p tests/e2e/.auth
-    if [[ ! -f "tests/e2e/.auth/.gitignore" ]]; then
-        cat > tests/e2e/.auth/.gitignore << 'EOF'
+    mkdir -p "$PW_AUTH_DIR"
+    if [[ ! -f "$PW_AUTH_DIR/.gitignore" ]]; then
+        cat > "$PW_AUTH_DIR/.gitignore" << 'EOF'
 # Auth storage state contains credentials - never commit
 *
 !.gitignore
 EOF
-        echo -e "  ${GREEN}✓${NC} Created tests/e2e/.auth/.gitignore (credentials protected)"
+        echo -e "  ${GREEN}✓${NC} Created $PW_AUTH_DIR/.gitignore (credentials protected)"
     fi
 
-    # CI workflow reference (NOT auto-activated)
+    # Persist the chosen PW_DIR so workflow commands (new-feature, fix-bug) can
+    # pick it up in Phase 5.4b framework detection and dep-install loops.
+    # Falls back to repo root via candidate list if this marker file is missing.
+    mkdir -p .claude
+    echo "$PW_DIR" > .claude/playwright-dir
+    echo -e "  ${GREEN}✓${NC} Recorded Playwright dir in .claude/playwright-dir ($PW_DIR)"
+
+    # CI workflow reference (NOT auto-activated).
+    # Stamp PW_DIR into the workflow so defaults.run.working-directory matches
+    # the actual scaffold location. Two important subtleties:
+    # (1) Use bash parameter expansion (${var//pat/repl}) for the substitution.
+    #     Unlike sed AND awk — both of which interpret '&' in the replacement
+    #     string as "the matched text" — bash parameter expansion does literal
+    #     substitution with NO metachar interpretation. Paths containing &, |,
+    #     \, or $ (e.g. --playwright-dir 'apps/r&d') substitute correctly.
+    # (2) Preserve user-edited files on non-force reruns (matches copy_file
+    #     semantics). setup.sh --with-playwright should be idempotent; a
+    #     second run without -f must not clobber CI customizations.
+    stamp_ci_template() {
+        local src="$1" dest="$2" desc="$3"
+        [[ ! -f "$src" ]] && return 0
+        if [[ -f "$dest" ]] && [[ "$FORCE" != true ]]; then
+            echo -e "  ${BLUE}○${NC} $desc already exists (use -f to overwrite)"
+            return 0
+        fi
+        # Read → literal-substitute → write. $(<file) strips trailing newlines;
+        # the source templates always end with a newline, so we restore one
+        # unconditionally via printf '%s\n'.
+        local content
+        content=$(<"$src")
+        printf '%s\n' "${content//__PLAYWRIGHT_DIR__/$PW_DIR}" > "$dest"
+        echo -e "  ${GREEN}✓${NC} Created $desc (working-directory stamped: $PW_DIR)"
+    }
+
     mkdir -p docs/ci-templates
-    copy_file "$SCRIPT_DIR/templates/ci-workflows/e2e.yml" "docs/ci-templates/e2e.yml" "docs/ci-templates/e2e.yml (reference — NOT auto-activated)"
-    copy_file "$SCRIPT_DIR/templates/ci-workflows/README.md" "docs/ci-templates/README.md" "docs/ci-templates/README.md"
+    stamp_ci_template "$SCRIPT_DIR/templates/ci-workflows/e2e.yml" "docs/ci-templates/e2e.yml" "docs/ci-templates/e2e.yml"
+    stamp_ci_template "$SCRIPT_DIR/templates/ci-workflows/README.md" "docs/ci-templates/README.md" "docs/ci-templates/README.md"
+
+    # Show the right commands in the next-steps summary based on PW_DIR
+    if [[ "$PW_DIR" == "." ]]; then
+        CD_HINT=""
+        PW_RUN="pnpm exec playwright test"
+    else
+        CD_HINT="cd $PW_DIR && "
+        PW_RUN="cd $PW_DIR && pnpm exec playwright test"
+    fi
 
     echo ""
-    echo -e "${GREEN}✓ Playwright templates installed.${NC}"
+    echo -e "${GREEN}✓ Playwright templates installed into ${BLUE}$PW_DIR${GREEN}.${NC}"
     echo -e "${YELLOW}Next steps to complete Playwright setup:${NC}"
-    echo -e "  1. Install the framework: ${BLUE}pnpm add -D @playwright/test${NC}"
-    echo -e "     (or npm: ${BLUE}npm install --save-dev @playwright/test${NC})"
-    echo -e "  2. Install browsers:      ${BLUE}pnpm exec playwright install${NC}"
-    echo -e "  3. Review ${BLUE}playwright.config.ts${NC} — set baseURL and uncomment webServer if needed"
+    echo -e "  1. Install the framework: ${BLUE}${CD_HINT}pnpm add -D @playwright/test${NC}"
+    echo -e "     (or npm: ${BLUE}${CD_HINT}npm install --save-dev @playwright/test${NC})"
+    echo -e "  2. Install browsers:      ${BLUE}${CD_HINT}pnpm exec playwright install${NC}"
+    echo -e "  3. Review ${BLUE}$PW_DIR/playwright.config.ts${NC} — set baseURL and uncomment webServer if needed"
     echo -e "  4. (Optional) Activate CI:"
     echo -e "     ${BLUE}mkdir -p .github/workflows && cp docs/ci-templates/e2e.yml .github/workflows/e2e.yml${NC}"
-    echo -e "     Note: CI template uses pnpm — adjust for npm/yarn in .github/workflows/e2e.yml if needed"
-    echo -e "  5. Configure auth via env vars: TEST_API_KEY or TEST_USER_EMAIL + TEST_USER_PASSWORD"
-    echo -e "  6. Run tests: ${BLUE}pnpm exec playwright test${NC}"
+    echo -e "     Note: CI template uses pnpm with working-directory=$PW_DIR — adjust in .github/workflows/e2e.yml if needed"
+    echo -e "  5. Configure auth via env vars: TEST_USER_EMAIL + TEST_USER_PASSWORD (preferred)"
+    echo -e "     TEST_API_KEY is supported but insecure — see tests/e2e/fixtures/auth.ts"
+    echo -e "  6. Run tests: ${BLUE}$PW_RUN${NC}"
 fi
 
 echo ""

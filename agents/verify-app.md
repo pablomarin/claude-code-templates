@@ -29,17 +29,37 @@ Categorize:
 
 **Backend (if Python files changed):**
 
+Find the backend directory by looking for `pyproject.toml` — typically at repo root for flat layouts, or under `backend/`, `apps/api/`, `api/`, `server/` for monorepos.
+
 ```bash
-cd src && uv run pytest -v --tb=short
-cd src && uv run mypy --strict {package_name}
-cd src && uv run ruff check .
+# Locate the Python package root
+for d in . backend apps/api api server src; do
+  if [ -f "$d/pyproject.toml" ]; then
+    BACKEND_DIR="$d"
+    break
+  fi
+done
+
+cd "$BACKEND_DIR" && uv run pytest -v --tb=short
+cd "$BACKEND_DIR" && uv run mypy --strict {package_name}
+cd "$BACKEND_DIR" && uv run ruff check .
 ```
 
 **Frontend (if TS/TSX files changed):**
 
+Find the frontend directory by looking for `package.json` — typically `frontend/`, `apps/web/`, `web/`, `client/`, or repo root.
+
 ```bash
-cd frontend && pnpm test
-cd frontend && pnpm build
+# Locate the frontend package
+for d in frontend apps/web web client .; do
+  if [ -f "$d/package.json" ]; then
+    FRONTEND_DIR="$d"
+    break
+  fi
+done
+
+cd "$FRONTEND_DIR" && pnpm test
+cd "$FRONTEND_DIR" && pnpm build
 ```
 
 ### Step 3: Check Migrations

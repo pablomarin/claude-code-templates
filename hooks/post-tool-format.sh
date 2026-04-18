@@ -54,12 +54,36 @@ EXTENSION="${FILE_PATH##*.}"
 # Format based on file type
 case "$EXTENSION" in
     py)
-        # Python files - format with ruff
-        if [ -d "$CLAUDE_PROJECT_DIR/src" ]; then
-            cd "$CLAUDE_PROJECT_DIR/src" 2>/dev/null && uv run ruff format "$FILE_PATH" 2>/dev/null || true
-        else
-            uv run ruff format "$FILE_PATH" 2>/dev/null || true
+        # Python files — format with ruff, using the nearest pyproject.toml as config.
+        # Walks up from the edited file to find the project root (works for
+        # monorepo layouts like backend/src/ or apps/api/, not just flat repos).
+        # Runs `ruff check --fix` and `ruff format` independently so a lint
+        # failure does not skip formatting.
+
+        # Normalize to absolute path (so dir walking works regardless of cwd)
+        ABS_PATH="$FILE_PATH"
+        case "$ABS_PATH" in
+            /*) ;;
+            *) ABS_PATH="${CLAUDE_PROJECT_DIR:-$(pwd)}/$FILE_PATH" ;;
+        esac
+
+        # Walk up from the file's directory looking for pyproject.toml
+        SEARCH_DIR="$(dirname "$ABS_PATH")"
+        RUFF_ROOT=""
+        while [ "$SEARCH_DIR" != "/" ] && [ -n "$SEARCH_DIR" ]; do
+            if [ -f "$SEARCH_DIR/pyproject.toml" ]; then
+                RUFF_ROOT="$SEARCH_DIR"
+                break
+            fi
+            SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+        done
+
+        if [ -n "$RUFF_ROOT" ]; then
+            # Run from the project root so ruff picks up [tool.ruff] config
+            (cd "$RUFF_ROOT" && uv run ruff check --fix "$ABS_PATH" 2>/dev/null) || true
+            (cd "$RUFF_ROOT" && uv run ruff format "$ABS_PATH" 2>/dev/null) || true
         fi
+        # If no pyproject.toml found anywhere above: skip silently.
         ;;
     ts|tsx|js|jsx)
         # TypeScript/JavaScript files - format with prettier

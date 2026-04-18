@@ -83,15 +83,27 @@ cd "$WORKTREE_PATH"
 **Install dependencies (if needed):**
 
 ```bash
-# Node.js
-if [ -f "package.json" ] && [ ! -d "node_modules" ]; then
-  pnpm install --silent 2>/dev/null || npm install --silent 2>/dev/null || yarn install --silent 2>/dev/null
-fi
+# Build the Node candidate list: read the marker file setup.sh wrote at
+# scaffold time (honors --playwright-dir), falling back to a default set.
+NODE_DIRS=". frontend apps/web web client"
+[ -f .claude/playwright-dir ] && NODE_DIRS="$(cat .claude/playwright-dir) $NODE_DIRS"
 
-# Python
-if [ -f "pyproject.toml" ]; then
-  uv sync 2>/dev/null || pip install -e . 2>/dev/null || echo "Run 'uv sync' manually"
-fi
+# Node.js — dedupe and install in each dir that has package.json
+seen=""
+for d in $NODE_DIRS; do
+  case " $seen " in *" $d "*) continue;; esac
+  seen="$seen $d"
+  if [ -f "$d/package.json" ] && [ ! -d "$d/node_modules" ]; then
+    (cd "$d" && (pnpm install --silent 2>/dev/null || npm install --silent 2>/dev/null || yarn install --silent 2>/dev/null))
+  fi
+done
+
+# Python — checks repo root AND common monorepo subdirectories
+for d in . backend apps/api api server; do
+  if [ -f "$d/pyproject.toml" ]; then
+    (cd "$d" && (uv sync 2>/dev/null || pip install -e . 2>/dev/null || echo "Run 'uv sync' manually in $d"))
+  fi
+done
 ```
 
 **⚠️ IMPORTANT: You are now working inside the worktree.**
@@ -530,7 +542,7 @@ npm test && npm run lint && npm run typecheck  # Node
 
 **MUST use the `verify-e2e` subagent** — Do NOT test user flows yourself.
 
-The verify-e2e agent tests as a real user: no database access, no internal endpoints, no source code reading. It executes the use cases from your Phase 3.2b plan through the product's actual user-facing interfaces and produces a markdown report at `tests/e2e/reports/`.
+The verify-e2e agent tests as a real user: no database access, no internal endpoints, no source code reading. It executes the use cases from your Phase 3.2b plan through the product's actual user-facing interfaces and returns a markdown report in its response. **The agent is read-only — YOU persist the report to disk.**
 
 **Step 1: Ensure servers are running from this worktree**
 
@@ -539,15 +551,35 @@ If you're in a worktree, dev servers may still be running from the main director
 **Step 2: Invoke verify-e2e**
 
 ```
-Task tool → subagent_type: "verify-e2e", prompt: "Mode: feature. Plan file: [path to your plan file]. Project type: [fullstack|api|cli|hybrid from CLAUDE.md]. Execute all E2E use cases and produce a verification report."
+Task tool → subagent_type: "verify-e2e", prompt: "Mode: feature. Plan file: [path to your plan file]. Project type: [fullstack|api|cli|hybrid from CLAUDE.md]. Execute all E2E use cases and return a verification report."
 ```
 
-**Step 3: Act on the verdict**
+**Step 3: Persist the report (MANDATORY)**
 
-- **PASS:** Proceed to Phase 5.4b
-- **FAIL_BUG:** Fix the issue in code, re-run verify-e2e. Do NOT check the box until PASS.
-- **FAIL_STALE:** Update the stale use case file, re-run
-- **FAIL_INFRA:** Retry once manually; if still infra, report to user for decision
+The agent's response starts with a two-line header:
+
+```
+VERDICT: PASS | FAIL | PARTIAL
+SUGGESTED_PATH: tests/e2e/reports/YYYY-MM-DD-HH-MM-<feature-or-mode>.md
+---
+<full markdown report body>
+```
+
+Parse the header, then `Write` the report body (everything after `---`) to the suggested path. Create the `tests/e2e/reports/` directory if it doesn't exist:
+
+```bash
+mkdir -p tests/e2e/reports
+```
+
+**Step 4: Act on the verdict**
+
+The header's `VERDICT:` line is the top-level outcome. For `FAIL` and `PARTIAL`, inspect the per-UC classifications in the report body (`FAIL_BUG` / `FAIL_STALE` / `FAIL_INFRA`) to decide next action:
+
+- **VERDICT: PASS** — Proceed to Phase 5.4b.
+- **VERDICT: FAIL** — At least one UC was classified `FAIL_BUG` in the body. Fix the issue in code, re-run verify-e2e. Do NOT check the box until PASS. (If the body has mixed `FAIL_BUG` + `FAIL_STALE`, fix the bugs first; stale UCs are addressed separately.)
+- **VERDICT: PARTIAL** — No `FAIL_BUG` in the body, but at least one `FAIL_STALE` or `FAIL_INFRA`. Look at each failed UC:
+  - `FAIL_STALE`: update the stale use case file (interface or selector changed), re-run.
+  - `FAIL_INFRA`: retry once manually; if still infra, report to user for decision.
 
 **If purely internal (no user-facing impact):** Check the box with justification:
 `- [x] E2E verified — N/A: internal migration, no user-facing changes`
@@ -568,31 +600,53 @@ If no files (empty directory, or directory missing): check the box with `- [x] E
 
 **Detect which regression path to use.** The framework path is only safe when every markdown UC has a matching spec — otherwise un-spec'd UCs would silently drop out of regression coverage during partial Playwright adoption.
 
-1. **Count unspecced use cases:**
+1. **Locate Playwright framework + count unspecced use cases:**
 
    ```bash
+   # Find playwright.config.ts. Prefer the marker file setup.sh wrote at
+   # scaffold time (honors --playwright-dir custom paths like apps/dashboard).
+   # Fall back to scanning common frontend subdirectories for users who never
+   # ran setup.sh or whose marker is missing.
+   PW_DIR=""
+   if [ -f .claude/playwright-dir ]; then
+     candidate=$(cat .claude/playwright-dir)
+     [ -f "$candidate/playwright.config.ts" ] && PW_DIR="$candidate"
+   fi
+   if [ -z "$PW_DIR" ]; then
+     for d in . frontend apps/web web client; do
+       if [ -f "$d/playwright.config.ts" ]; then
+         PW_DIR="$d"
+         break
+       fi
+     done
+   fi
+
    unspecced=0
-   for md in tests/e2e/use-cases/*.md; do
-     [ -f "$md" ] || continue
-     name=$(basename "$md" .md)
-     [ -f "tests/e2e/specs/$name.spec.ts" ] || unspecced=$((unspecced+1))
-   done
-   if [ -f playwright.config.ts ] && [ "$unspecced" -eq 0 ] && ls tests/e2e/specs/*.spec.ts >/dev/null 2>&1; then
-     echo FRAMEWORK
+   if [ -n "$PW_DIR" ]; then
+     for md in "$PW_DIR"/tests/e2e/use-cases/*.md tests/e2e/use-cases/*.md; do
+       [ -f "$md" ] || continue
+       name=$(basename "$md" .md)
+       [ -f "$PW_DIR/tests/e2e/specs/$name.spec.ts" ] || unspecced=$((unspecced+1))
+     done
+   fi
+
+   if [ -n "$PW_DIR" ] && [ "$unspecced" -eq 0 ] && ls "$PW_DIR"/tests/e2e/specs/*.spec.ts >/dev/null 2>&1; then
+     echo "FRAMEWORK (playwright at: $PW_DIR)"
    else
      echo AGENT
    fi
    ```
 
 2. **If FRAMEWORK path** (framework installed AND every UC has a matching spec):
-   - Run specs directly (no package.json script needed):
+   - Run specs directly from the detected Playwright directory (no package.json script needed):
      ```bash
-     pnpm exec playwright test
+     cd "$PW_DIR" && pnpm exec playwright test
      ```
+     For monorepo layouts where Playwright was scaffolded into `frontend/`, `apps/web/`, etc., `$PW_DIR` is set by the detection block above. For flat layouts `$PW_DIR` is `.` and the `cd` is a no-op.
      If pnpm is not the project's package manager, use `npm exec playwright test` or `yarn playwright test`.
    - Exit code 0 = all pass. Non-zero = failures.
-   - Review the HTML report: `pnpm exec playwright show-report`
-   - Trace viewer for failures: `pnpm exec playwright show-trace <trace.zip>`
+   - Review the HTML report: `cd "$PW_DIR" && pnpm exec playwright show-report`
+   - Trace viewer for failures: `cd "$PW_DIR" && pnpm exec playwright show-trace <trace.zip>`
 
 3. **If AGENT path** (no framework, no specs yet, OR partial spec coverage):
    Invoke the verify-e2e agent in regression mode — it runs every markdown UC, guaranteeing no un-spec'd UC is missed during migration:

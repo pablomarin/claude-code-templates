@@ -82,12 +82,17 @@ See `.claude/rules/testing.md` for the full interface capability matrix.
 
 If you enabled Playwright via `setup.sh --with-playwright`, this project has:
 
-- `playwright.config.ts` at root
-- `tests/e2e/specs/` — generated spec files (via Phase 6.2c)
-- `tests/e2e/fixtures/auth.ts` — auth bypass pattern
-- `docs/ci-templates/e2e.yml` — CI workflow template (copy to `.github/workflows/` to activate)
+- `playwright.config.ts` — at repo root for flat layouts, or inside a frontend subdirectory (`frontend/`, `apps/web/`, etc.) that was detected or passed via `--playwright-dir` at setup time
+- `tests/e2e/specs/` — generated spec files (via Phase 6.2c), adjacent to `playwright.config.ts`
+- `tests/e2e/fixtures/auth.ts` — auth bypass pattern, adjacent to `playwright.config.ts`
+- `docs/ci-templates/e2e.yml` — CI workflow template (copy to `.github/workflows/` to activate); `working-directory` is already stamped to match where Playwright was scaffolded
 
-Run specs locally: `pnpm exec playwright test`
+Run specs locally from wherever `playwright.config.ts` lives:
+
+```bash
+pnpm exec playwright test             # flat layout
+cd frontend && pnpm exec playwright test   # monorepo layout
+```
 
 ### Research Enforcement
 
@@ -107,9 +112,10 @@ For bug fixes, targeted research runs after root-cause isolation (Phase 2.5 of `
 /council <question>     # Multi-perspective decision analysis (5 advisors + chairman)
 /codex <instruction>    # Second opinion from OpenAI Codex CLI
 
-# Example project commands:
-cd src && uv run pytest                    # Run tests
-cd src && uv run ruff check .              # Lint
+# Example project commands (adjust to your layout — backend/ for monorepo, src/ or repo root for flat):
+cd backend && uv run pytest                # Run backend tests (or `cd src`, or plain `uv run pytest` for flat repos)
+cd backend && uv run ruff check .          # Lint
+cd frontend && pnpm test                   # Run frontend tests (only if the project has a frontend)
 /finish-branch                             # Merge PR + cleanup worktree
 ```
 

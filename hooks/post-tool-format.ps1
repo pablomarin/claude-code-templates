@@ -56,20 +56,45 @@ $extension = [System.IO.Path]::GetExtension($filePath).ToLower()
 # Format based on file type
 switch ($extension) {
     ".py" {
-        # Python files - format with ruff
-        $projectDir = $env:CLAUDE_PROJECT_DIR
-        if ($projectDir) {
-            $srcPath = Join-Path $projectDir "src"
+        # Python files — format with ruff, using the nearest pyproject.toml as config.
+        # Walks up from the edited file to find the project root (works for
+        # monorepo layouts like backend/src/ or apps/api/, not just flat repos).
+        # Runs `ruff check --fix` and `ruff format` independently so a lint
+        # failure does not skip formatting.
+
+        # Normalize to absolute path
+        if ([System.IO.Path]::IsPathRooted($filePath)) {
+            $absPath = $filePath
+        } elseif ($env:CLAUDE_PROJECT_DIR) {
+            $absPath = Join-Path $env:CLAUDE_PROJECT_DIR $filePath
         } else {
-            $srcPath = Join-Path (Get-Location) "src"
+            $absPath = Join-Path (Get-Location) $filePath
         }
-        if (Test-Path $srcPath) {
-            Push-Location $srcPath
-            uv run ruff format $filePath 2>$null
+
+        # Walk up from the file's directory looking for pyproject.toml
+        $searchDir = Split-Path -Parent $absPath
+        $ruffRoot = $null
+        while ($searchDir -and (Test-Path $searchDir)) {
+            if (Test-Path (Join-Path $searchDir "pyproject.toml")) {
+                $ruffRoot = $searchDir
+                break
+            }
+            $parent = Split-Path -Parent $searchDir
+            if ($parent -eq $searchDir) { break }
+            $searchDir = $parent
+        }
+
+        if ($ruffRoot) {
+            Push-Location $ruffRoot
+            try {
+                uv run ruff check --fix $absPath 2>$null
+            } catch {}
+            try {
+                uv run ruff format $absPath 2>$null
+            } catch {}
             Pop-Location
-        } else {
-            uv run ruff format $filePath 2>$null
         }
+        # If no pyproject.toml found anywhere above: skip silently.
     }
     { $_ -in ".ts", ".tsx", ".js", ".jsx" } {
         # TypeScript/JavaScript files - format with prettier

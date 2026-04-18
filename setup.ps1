@@ -24,7 +24,9 @@ param(
     [switch]$Global,
 
     [Alias("w")]
-    [switch]$WithPlaywright
+    [switch]$WithPlaywright,
+
+    [string]$PlaywrightDir
 )
 
 # Upgrade implies force for hooks/commands/rules
@@ -485,69 +487,167 @@ if ($WithPlaywright) {
     Write-Host ""
     Write-Color "Installing Playwright framework templates..." "Yellow"
 
-    # Create the specs/ directory (not in the default directories array —
-    # only relevant when framework is installed)
-    if (-not (Test-Path "tests\e2e\specs")) {
-        New-Item -ItemType Directory -Path "tests\e2e\specs" -Force | Out-Null
+    # ------------------------------------------------------------------
+    # Determine where Playwright lives.
+    # Monorepos typically have package.json inside a frontend subdirectory
+    # (frontend/, apps/web/, web/, client/). Flat repos have it at root.
+    # Users can override with -PlaywrightDir <path>.
+    # ------------------------------------------------------------------
+    if ($PlaywrightDir) {
+        $PwDir = $PlaywrightDir
+        Write-Host "  " -NoNewline
+        Write-Color "->" "Blue"
+        Write-Host " Using explicit -PlaywrightDir: $PwDir"
+    } else {
+        # Auto-detect: ONLY commit to a subdir if exactly one candidate matches.
+        $candidates = @()
+        foreach ($c in @("frontend", "apps\web", "web", "client")) {
+            if (Test-Path (Join-Path $c "package.json")) {
+                $candidates += $c
+            }
+        }
+
+        if ($candidates.Count -eq 1) {
+            $PwDir = $candidates[0]
+            Write-Host "  " -NoNewline
+            Write-Color "+" "Green"
+            Write-Host " Detected frontend at $PwDir - scaffolding Playwright there."
+            Write-Host "    (override with -PlaywrightDir <path> if that's wrong)"
+        } elseif ($candidates.Count -gt 1) {
+            Write-Host "  " -NoNewline
+            Write-Color "!" "Yellow"
+            Write-Host "  Multiple frontend candidates found: $($candidates -join ', ')"
+            Write-Host "     Scaffolding at repo root to avoid picking wrong. Override with -PlaywrightDir <path>."
+            $PwDir = "."
+        } else {
+            $PwDir = "."
+            Write-Host "  " -NoNewline
+            Write-Color "->" "Blue"
+            Write-Host " No frontend subdirectory detected - scaffolding at repo root."
+        }
+    }
+
+    if ($PwDir -ne "." -and -not (Test-Path $PwDir)) {
+        New-Item -ItemType Directory -Path $PwDir -Force | Out-Null
         Write-Host "  " -NoNewline
         Write-Color "+" "Green"
-        Write-Host " Created tests\e2e\specs (for graduated .spec.ts files)"
+        Write-Host " Created $PwDir\"
+    }
+
+    $PwSpecsDir = Join-Path $PwDir "tests\e2e\specs"
+    $PwFixturesDir = Join-Path $PwDir "tests\e2e\fixtures"
+    $PwAuthDir = Join-Path $PwDir "tests\e2e\.auth"
+
+    if (-not (Test-Path $PwSpecsDir)) {
+        New-Item -ItemType Directory -Path $PwSpecsDir -Force | Out-Null
+        Write-Host "  " -NoNewline
+        Write-Color "+" "Green"
+        Write-Host " Created $PwSpecsDir (for graduated .spec.ts files)"
     }
 
     $pwTemplateDir = Join-Path (Join-Path $ScriptDir "templates") "playwright"
     $ciTemplateDir = Join-Path (Join-Path $ScriptDir "templates") "ci-workflows"
 
     # Playwright config
-    Copy-TemplateFile (Join-Path $pwTemplateDir "playwright.config.template.ts") "playwright.config.ts" "playwright.config.ts"
+    Copy-TemplateFile (Join-Path $pwTemplateDir "playwright.config.template.ts") (Join-Path $PwDir "playwright.config.ts") "$PwDir\playwright.config.ts"
 
     # Auth fixture
-    if (-not (Test-Path "tests\e2e\fixtures")) {
-        New-Item -ItemType Directory -Path "tests\e2e\fixtures" -Force | Out-Null
+    if (-not (Test-Path $PwFixturesDir)) {
+        New-Item -ItemType Directory -Path $PwFixturesDir -Force | Out-Null
     }
-    Copy-TemplateFile (Join-Path $pwTemplateDir "auth.fixture.template.ts") "tests\e2e\fixtures\auth.ts" "tests\e2e\fixtures\auth.ts"
+    Copy-TemplateFile (Join-Path $pwTemplateDir "auth.fixture.template.ts") (Join-Path $PwFixturesDir "auth.ts") "$PwFixturesDir\auth.ts"
 
     # Auth storage directory - gitignored because it contains credentials
-    if (-not (Test-Path "tests\e2e\.auth")) {
-        New-Item -ItemType Directory -Path "tests\e2e\.auth" -Force | Out-Null
+    if (-not (Test-Path $PwAuthDir)) {
+        New-Item -ItemType Directory -Path $PwAuthDir -Force | Out-Null
     }
-    if (-not (Test-Path "tests\e2e\.auth\.gitignore")) {
+    $PwAuthGitignore = Join-Path $PwAuthDir ".gitignore"
+    if (-not (Test-Path $PwAuthGitignore)) {
         @"
 # Auth storage state contains credentials - never commit
 *
 !.gitignore
-"@ | Set-Content -Path "tests\e2e\.auth\.gitignore" -NoNewline -Encoding UTF8
+"@ | Set-Content -Path $PwAuthGitignore -NoNewline -Encoding UTF8
         Write-Host "  " -NoNewline
         Write-Color "+" "Green"
-        Write-Host " Created tests\e2e\.auth\.gitignore (credentials protected)"
+        Write-Host " Created $PwAuthGitignore (credentials protected)"
     }
 
-    # CI workflow reference (NOT auto-activated)
+    # Persist the chosen PW_DIR so workflow commands (new-feature, fix-bug)
+    # can pick it up in Phase 5.4b framework detection and dep-install loops.
+    if (-not (Test-Path ".claude")) {
+        New-Item -ItemType Directory -Path ".claude" -Force | Out-Null
+    }
+    $PwDir | Set-Content -Path ".claude\playwright-dir" -NoNewline -Encoding UTF8
+    Write-Host "  " -NoNewline
+    Write-Color "+" "Green"
+    Write-Host " Recorded Playwright dir in .claude\playwright-dir ($PwDir)"
+
+    # CI workflow reference (NOT auto-activated).
+    # Stamp PW_DIR into the workflow so working-directory matches. Use a literal
+    # placeholder replacement to avoid regex metacharacter interpretation in
+    # user paths (& and | are safe in .NET -replace, but backslashes / dollar-
+    # signs are not — using [regex]::Escape on the pattern and a literal on the
+    # replacement). Preserve user-edited files on non-force reruns (matches
+    # Copy-TemplateFile semantics).
     if (-not (Test-Path "docs\ci-templates")) {
         New-Item -ItemType Directory -Path "docs\ci-templates" -Force | Out-Null
     }
-    Copy-TemplateFile (Join-Path $ciTemplateDir "e2e.yml") "docs\ci-templates\e2e.yml" "docs\ci-templates\e2e.yml (reference - NOT auto-activated)"
-    Copy-TemplateFile (Join-Path $ciTemplateDir "README.md") "docs\ci-templates\README.md" "docs\ci-templates\README.md"
+    $e2eTemplate = Join-Path $ciTemplateDir "e2e.yml"
+    $readmeTemplate = Join-Path $ciTemplateDir "README.md"
+    $PwDirForCI = $PwDir -replace '\\', '/'  # YAML uses forward slashes even on Windows
+
+    function Stamp-CiTemplate($src, $dest, $desc) {
+        if (-not (Test-Path $src)) { return }
+        if ((Test-Path $dest) -and (-not $Force)) {
+            Write-Host "  " -NoNewline
+            Write-Color "o" "Blue"
+            Write-Host " $desc already exists (use -Force to overwrite)"
+            return
+        }
+        # Pattern: literal placeholder (no regex metachars in __PLAYWRIGHT_DIR__).
+        # Replacement: wrapped in [System.Text.RegularExpressions.Regex]::Escape
+        # would be wrong because -replace's replacement string interprets `$1` etc.
+        # Safer: use .NET String.Replace which does no regex interpretation.
+        $content = (Get-Content $src -Raw).Replace('__PLAYWRIGHT_DIR__', $PwDirForCI)
+        $content | Set-Content -Path $dest -NoNewline -Encoding UTF8
+        Write-Host "  " -NoNewline
+        Write-Color "+" "Green"
+        Write-Host " Created $desc (working-directory stamped: $PwDirForCI)"
+    }
+
+    Stamp-CiTemplate $e2eTemplate "docs\ci-templates\e2e.yml" "docs\ci-templates\e2e.yml"
+    Stamp-CiTemplate $readmeTemplate "docs\ci-templates\README.md" "docs\ci-templates\README.md"
+
+    if ($PwDir -eq ".") {
+        $cdHint = ""
+        $pwRun = "pnpm exec playwright test"
+    } else {
+        $cdHint = "cd $PwDir; "
+        $pwRun = "cd $PwDir; pnpm exec playwright test"
+    }
 
     Write-Host ""
-    Write-Color "Playwright templates installed." "Green"
+    Write-Color "Playwright templates installed into $PwDir." "Green"
     Write-Color "Next steps to complete Playwright setup:" "Yellow"
     Write-Host "  1. Install the framework: " -NoNewline
-    Write-Color "pnpm add -D @playwright/test" "Blue"
+    Write-Color "$cdHint`pnpm add -D @playwright/test" "Blue"
     Write-Host "     (or npm: " -NoNewline
-    Write-Color "npm install --save-dev @playwright/test" "Blue"
+    Write-Color "$cdHint`npm install --save-dev @playwright/test" "Blue"
     Write-Host ")"
     Write-Host "  2. Install browsers:      " -NoNewline
-    Write-Color "pnpm exec playwright install" "Blue"
+    Write-Color "$cdHint`pnpm exec playwright install" "Blue"
     Write-Host "  3. Review " -NoNewline
-    Write-Color "playwright.config.ts" "Blue"
+    Write-Color "$PwDir\playwright.config.ts" "Blue"
     Write-Host " - set baseURL and uncomment webServer if needed"
     Write-Host "  4. (Optional) Activate CI:"
     Write-Host "     " -NoNewline
     Write-Color "mkdir .github\workflows; cp docs\ci-templates\e2e.yml .github\workflows\e2e.yml" "Blue"
-    Write-Host "     Note: CI template uses pnpm - adjust for npm/yarn in .github\workflows\e2e.yml if needed"
-    Write-Host "  5. Configure auth via env vars: TEST_API_KEY or TEST_USER_EMAIL + TEST_USER_PASSWORD"
+    Write-Host "     Note: CI template uses pnpm with working-directory=$PwDirForCI - adjust if needed"
+    Write-Host "  5. Configure auth via env vars: TEST_USER_EMAIL + TEST_USER_PASSWORD (preferred)"
+    Write-Host "     TEST_API_KEY is supported but insecure - see tests\e2e\fixtures\auth.ts"
     Write-Host "  6. Run tests: " -NoNewline
-    Write-Color "pnpm exec playwright test" "Blue"
+    Write-Color $pwRun "Blue"
 }
 
 Write-Host ""
