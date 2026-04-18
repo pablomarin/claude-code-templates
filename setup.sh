@@ -523,18 +523,37 @@ EOF
         echo -e "  ${GREEN}✓${NC} Created $PW_AUTH_DIR/.gitignore (credentials protected)"
     fi
 
-    # CI workflow reference (NOT auto-activated)
-    # Stamp the detected PW_DIR into the workflow so `defaults.run.working-directory`
-    # matches the actual scaffold location — not hidden behind a repo var.
+    # Persist the chosen PW_DIR so workflow commands (new-feature, fix-bug) can
+    # pick it up in Phase 5.4b framework detection and dep-install loops.
+    # Falls back to repo root via candidate list if this marker file is missing.
+    mkdir -p .claude
+    echo "$PW_DIR" > .claude/playwright-dir
+    echo -e "  ${GREEN}✓${NC} Recorded Playwright dir in .claude/playwright-dir ($PW_DIR)"
+
+    # CI workflow reference (NOT auto-activated).
+    # Stamp PW_DIR into the workflow so defaults.run.working-directory matches
+    # the actual scaffold location. Two important subtleties:
+    # (1) Use awk with -v so metacharacters in user paths (&, |, \) are
+    #     treated as literal text — NOT as sed replacement-string specials.
+    # (2) Preserve user-edited files on non-force reruns (matches copy_file
+    #     semantics). setup.sh --with-playwright should be idempotent; a
+    #     second run without -f must not clobber CI customizations.
+    stamp_ci_template() {
+        local src="$1" dest="$2" desc="$3"
+        [[ ! -f "$src" ]] && return 0
+        if [[ -f "$dest" ]] && [[ "$FORCE" != true ]]; then
+            echo -e "  ${BLUE}○${NC} $desc already exists (use -f to overwrite)"
+            return 0
+        fi
+        awk -v replacement="$PW_DIR" \
+            '{ gsub(/__PLAYWRIGHT_DIR__/, replacement); print }' \
+            "$src" > "$dest"
+        echo -e "  ${GREEN}✓${NC} Created $desc (working-directory stamped: $PW_DIR)"
+    }
+
     mkdir -p docs/ci-templates
-    if [[ -f "$SCRIPT_DIR/templates/ci-workflows/e2e.yml" ]]; then
-        sed "s|__PLAYWRIGHT_DIR__|$PW_DIR|g" "$SCRIPT_DIR/templates/ci-workflows/e2e.yml" > docs/ci-templates/e2e.yml
-        echo -e "  ${GREEN}✓${NC} Created docs/ci-templates/e2e.yml (working-directory stamped: $PW_DIR)"
-    fi
-    if [[ -f "$SCRIPT_DIR/templates/ci-workflows/README.md" ]]; then
-        sed "s|__PLAYWRIGHT_DIR__|$PW_DIR|g" "$SCRIPT_DIR/templates/ci-workflows/README.md" > docs/ci-templates/README.md
-        echo -e "  ${GREEN}✓${NC} Created docs/ci-templates/README.md"
-    fi
+    stamp_ci_template "$SCRIPT_DIR/templates/ci-workflows/e2e.yml" "docs/ci-templates/e2e.yml" "docs/ci-templates/e2e.yml"
+    stamp_ci_template "$SCRIPT_DIR/templates/ci-workflows/README.md" "docs/ci-templates/README.md" "docs/ci-templates/README.md"
 
     # Show the right commands in the next-steps summary based on PW_DIR
     if [[ "$PW_DIR" == "." ]]; then

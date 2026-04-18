@@ -573,27 +573,51 @@ if ($WithPlaywright) {
         Write-Host " Created $PwAuthGitignore (credentials protected)"
     }
 
+    # Persist the chosen PW_DIR so workflow commands (new-feature, fix-bug)
+    # can pick it up in Phase 5.4b framework detection and dep-install loops.
+    if (-not (Test-Path ".claude")) {
+        New-Item -ItemType Directory -Path ".claude" -Force | Out-Null
+    }
+    $PwDir | Set-Content -Path ".claude\playwright-dir" -NoNewline -Encoding UTF8
+    Write-Host "  " -NoNewline
+    Write-Color "+" "Green"
+    Write-Host " Recorded Playwright dir in .claude\playwright-dir ($PwDir)"
+
     # CI workflow reference (NOT auto-activated).
-    # Stamp the detected PW_DIR into the workflow so working-directory matches.
+    # Stamp PW_DIR into the workflow so working-directory matches. Use a literal
+    # placeholder replacement to avoid regex metacharacter interpretation in
+    # user paths (& and | are safe in .NET -replace, but backslashes / dollar-
+    # signs are not — using [regex]::Escape on the pattern and a literal on the
+    # replacement). Preserve user-edited files on non-force reruns (matches
+    # Copy-TemplateFile semantics).
     if (-not (Test-Path "docs\ci-templates")) {
         New-Item -ItemType Directory -Path "docs\ci-templates" -Force | Out-Null
     }
     $e2eTemplate = Join-Path $ciTemplateDir "e2e.yml"
     $readmeTemplate = Join-Path $ciTemplateDir "README.md"
-    # CI YAML uses forward slashes even on Windows
-    $PwDirForCI = $PwDir -replace '\\', '/'
-    if (Test-Path $e2eTemplate) {
-        (Get-Content $e2eTemplate -Raw) -replace '__PLAYWRIGHT_DIR__', $PwDirForCI | Set-Content -Path "docs\ci-templates\e2e.yml" -NoNewline -Encoding UTF8
+    $PwDirForCI = $PwDir -replace '\\', '/'  # YAML uses forward slashes even on Windows
+
+    function Stamp-CiTemplate($src, $dest, $desc) {
+        if (-not (Test-Path $src)) { return }
+        if ((Test-Path $dest) -and (-not $Force)) {
+            Write-Host "  " -NoNewline
+            Write-Color "o" "Blue"
+            Write-Host " $desc already exists (use -Force to overwrite)"
+            return
+        }
+        # Pattern: literal placeholder (no regex metachars in __PLAYWRIGHT_DIR__).
+        # Replacement: wrapped in [System.Text.RegularExpressions.Regex]::Escape
+        # would be wrong because -replace's replacement string interprets `$1` etc.
+        # Safer: use .NET String.Replace which does no regex interpretation.
+        $content = (Get-Content $src -Raw).Replace('__PLAYWRIGHT_DIR__', $PwDirForCI)
+        $content | Set-Content -Path $dest -NoNewline -Encoding UTF8
         Write-Host "  " -NoNewline
         Write-Color "+" "Green"
-        Write-Host " Created docs\ci-templates\e2e.yml (working-directory stamped: $PwDirForCI)"
+        Write-Host " Created $desc (working-directory stamped: $PwDirForCI)"
     }
-    if (Test-Path $readmeTemplate) {
-        (Get-Content $readmeTemplate -Raw) -replace '__PLAYWRIGHT_DIR__', $PwDirForCI | Set-Content -Path "docs\ci-templates\README.md" -NoNewline -Encoding UTF8
-        Write-Host "  " -NoNewline
-        Write-Color "+" "Green"
-        Write-Host " Created docs\ci-templates\README.md"
-    }
+
+    Stamp-CiTemplate $e2eTemplate "docs\ci-templates\e2e.yml" "docs\ci-templates\e2e.yml"
+    Stamp-CiTemplate $readmeTemplate "docs\ci-templates\README.md" "docs\ci-templates\README.md"
 
     if ($PwDir -eq ".") {
         $cdHint = ""

@@ -83,8 +83,16 @@ cd "$WORKTREE_PATH"
 **Install dependencies (if needed):**
 
 ```bash
-# Node.js — checks repo root AND common monorepo subdirectories
-for d in . frontend apps/web web client; do
+# Build the Node candidate list: read the marker file setup.sh wrote at
+# scaffold time (honors --playwright-dir), falling back to a default set.
+NODE_DIRS=". frontend apps/web web client"
+[ -f .claude/playwright-dir ] && NODE_DIRS="$(cat .claude/playwright-dir) $NODE_DIRS"
+
+# Node.js — dedupe and install in each dir that has package.json
+seen=""
+for d in $NODE_DIRS; do
+  case " $seen " in *" $d "*) continue;; esac
+  seen="$seen $d"
   if [ -f "$d/package.json" ] && [ ! -d "$d/node_modules" ]; then
     (cd "$d" && (pnpm install --silent 2>/dev/null || npm install --silent 2>/dev/null || yarn install --silent 2>/dev/null))
   fi
@@ -530,10 +538,13 @@ mkdir -p tests/e2e/reports
 
 **Step 4: Act on the verdict**
 
-- **PASS:** Proceed to Phase 5.4b
-- **FAIL_BUG:** Fix the issue in code, re-run verify-e2e. Do NOT check the box until PASS.
-- **FAIL_STALE:** Update the stale use case file, re-run
-- **FAIL_INFRA:** Retry once manually; if still infra, report to user for decision
+The header's `VERDICT:` line is the top-level outcome. For `FAIL` and `PARTIAL`, inspect the per-UC classifications in the report body (`FAIL_BUG` / `FAIL_STALE` / `FAIL_INFRA`) to decide next action:
+
+- **VERDICT: PASS** — Proceed to Phase 5.4b.
+- **VERDICT: FAIL** — At least one UC was classified `FAIL_BUG` in the body. Fix the issue in code, re-run verify-e2e. Do NOT check the box until PASS. (If the body has mixed `FAIL_BUG` + `FAIL_STALE`, fix the bugs first; stale UCs are addressed separately.)
+- **VERDICT: PARTIAL** — No `FAIL_BUG` in the body, but at least one `FAIL_STALE` or `FAIL_INFRA`. Look at each failed UC:
+  - `FAIL_STALE`: update the stale use case file (interface or selector changed), re-run.
+  - `FAIL_INFRA`: retry once manually; if still infra, report to user for decision.
 
 **If purely internal (no user-facing impact):** Check the box with justification:
 `- [x] E2E verified — N/A: internal fix, no user-facing changes`
@@ -557,16 +568,23 @@ If no files (empty directory, or directory missing): check the box with `- [x] E
 1. **Locate Playwright framework + count unspecced use cases:**
 
    ```bash
-   # Find playwright.config.ts — could be at root or inside a subdir
-   # (setup.sh --with-playwright may have scaffolded into frontend/,
-   # apps/web/, etc. on monorepo layouts).
+   # Find playwright.config.ts. Prefer the marker file setup.sh wrote at
+   # scaffold time (honors --playwright-dir custom paths like apps/dashboard).
+   # Fall back to scanning common frontend subdirectories for users who never
+   # ran setup.sh or whose marker is missing.
    PW_DIR=""
-   for d in . frontend apps/web web client; do
-     if [ -f "$d/playwright.config.ts" ]; then
-       PW_DIR="$d"
-       break
-     fi
-   done
+   if [ -f .claude/playwright-dir ]; then
+     candidate=$(cat .claude/playwright-dir)
+     [ -f "$candidate/playwright.config.ts" ] && PW_DIR="$candidate"
+   fi
+   if [ -z "$PW_DIR" ]; then
+     for d in . frontend apps/web web client; do
+       if [ -f "$d/playwright.config.ts" ]; then
+         PW_DIR="$d"
+         break
+       fi
+     done
+   fi
 
    unspecced=0
    if [ -n "$PW_DIR" ]; then
