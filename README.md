@@ -1,26 +1,6 @@
-<!-- TEMPORARY: comparing hero image options — pick one before merging -->
-
-<p align="center"><strong>Option A — Profile silhouettes + workflow pipeline</strong></p>
 <p align="center">
-  <img src="docs/images/hero-a.png" alt="Option A — Claude and Codex profile silhouettes with 7-stage workflow pipeline between them" width="860">
+  <img src="docs/images/hero.png" alt="Claude and Codex — two AI coding agents shaping the work through a 7-phase workflow (PRD → Research → Design → Review → Build → Verify → Ship) held together by an engineering harness" width="100%">
 </p>
-
-<p align="center"><strong>Option B — Assembly line workshop</strong></p>
-<p align="center">
-  <img src="docs/images/hero-b.png" alt="Option B — Workshop cross-section with code object transforming through stations" width="860">
-</p>
-
-<p align="center"><strong>Option C — Cockpit readout / engineering dashboard</strong></p>
-<p align="center">
-  <img src="docs/images/hero-c.png" alt="Option C — Circular 14-phase workflow rendered as an aerospace cockpit readout" width="860">
-</p>
-
-<p align="center"><em>Original (abstract blueprint → forge) for reference:</em></p>
-<p align="center">
-  <img src="docs/images/hero.png" alt="Original — abstract blueprint-to-forge metaphor" width="860">
-</p>
-
-<!-- END TEMPORARY -->
 
 <h1 align="center">Claude Codex Forge</h1>
 
