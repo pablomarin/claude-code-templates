@@ -652,8 +652,11 @@ if ($WithPlaywright) {
 
 Write-Host ""
 
-# Create CHANGELOG if it doesn't exist
-if ((-not (Test-Path "docs\CHANGELOG.md")) -or $Force) {
+# Create CHANGELOG only if it doesn't exist — NEVER overwrite on -Force / -Upgrade.
+# docs\CHANGELOG.md is user content (each project's own release history). Same
+# policy as CLAUDE.md and CONTINUITY.md: templates initialize the file on first
+# install and never touch it afterward.
+if (-not (Test-Path "docs\CHANGELOG.md")) {
     Write-Color "Creating docs\CHANGELOG.md..." "Yellow"
 
     $changelogLines = @(
