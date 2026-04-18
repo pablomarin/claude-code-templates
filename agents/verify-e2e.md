@@ -79,9 +79,14 @@ For each use case:
 
 ### Step 5: Produce the report
 
-Write markdown to `tests/e2e/reports/YYYY-MM-DD-HH-MM-<feature-or-mode>.md`:
+You do NOT write files. Return the report as your response using the exact format below. The invoking agent (main) writes it to disk at the path you suggest.
 
-```markdown
+**Your response MUST start with a two-line header followed by the full markdown report:**
+
+```
+VERDICT: PASS | FAIL | PARTIAL
+SUGGESTED_PATH: tests/e2e/reports/YYYY-MM-DD-HH-MM-<feature-or-mode>.md
+---
 # E2E Verification Report
 
 ## Summary
@@ -143,18 +148,17 @@ Write markdown to `tests/e2e/reports/YYYY-MM-DD-HH-MM-<feature-or-mode>.md`:
 - Only FAIL_INFRA after retry, no FAIL_BUG → `PARTIAL` (human decides)
 - All PASS → `PASS`
 
-### Step 6: Return summary
+### Step 6: What the caller does
 
-Return a brief summary to the caller pointing to the report. Example:
+After your response returns, the invoking agent:
 
-```
-E2E verification complete.
-Verdict: FAIL
-Report: tests/e2e/reports/2026-04-13-15-30-todo-crud.md
-Passed: 2 / Failed (bug): 1 / Failed (stale): 1 / Failed (infra): 0
+1. Parses the `VERDICT:` and `SUGGESTED_PATH:` header lines
+2. Writes everything after the `---` separator to the path you suggested
+3. Acts on the verdict (proceed to next phase on PASS, iterate on FAIL)
 
-UC3 (User deletes a todo) → FAIL_BUG: DELETE /api/v1/todos/1 returned 500 instead of 204.
-```
+You do NOT write the file. You do NOT confirm it was written. Your response IS the artifact; persistence is the caller's job.
+
+If you want to reference the report path in follow-up reasoning (you won't — you only respond once), use the `SUGGESTED_PATH` from your own header, not a claim that the file exists.
 
 ## Use Case Graduation (not your responsibility)
 

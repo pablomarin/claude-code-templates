@@ -484,7 +484,7 @@ npm test && npm run lint && npm run typecheck  # Node
 
 **MUST use the `verify-e2e` subagent** — Do NOT test user flows yourself.
 
-The verify-e2e agent tests as a real user: no database access, no internal endpoints, no source code reading. It executes user journey use cases through the product's actual user-facing interfaces and produces a markdown report at `tests/e2e/reports/`.
+The verify-e2e agent tests as a real user: no database access, no internal endpoints, no source code reading. It executes user journey use cases through the product's actual user-facing interfaces and returns a markdown report in its response. **The agent is read-only — YOU persist the report to disk.**
 
 **Step 0: Ensure use cases exist (simple-fix path only)**
 
@@ -504,10 +504,27 @@ If you're in a worktree, dev servers may still be running from the main director
 **Step 2: Invoke verify-e2e**
 
 ```
-Task tool → subagent_type: "verify-e2e", prompt: "Mode: feature. Plan file: [path to plan file OR docs/plans/<bug-name>-use-cases.md for simple fixes]. Project type: [fullstack|api|cli|hybrid from CLAUDE.md]. Execute all E2E use cases and produce a verification report."
+Task tool → subagent_type: "verify-e2e", prompt: "Mode: feature. Plan file: [path to plan file OR docs/plans/<bug-name>-use-cases.md for simple fixes]. Project type: [fullstack|api|cli|hybrid from CLAUDE.md]. Execute all E2E use cases and return a verification report."
 ```
 
-**Step 3: Act on the verdict**
+**Step 3: Persist the report (MANDATORY)**
+
+The agent's response starts with a two-line header:
+
+```
+VERDICT: PASS | FAIL | PARTIAL
+SUGGESTED_PATH: tests/e2e/reports/YYYY-MM-DD-HH-MM-<feature-or-mode>.md
+---
+<full markdown report body>
+```
+
+Parse the header, then `Write` the report body (everything after `---`) to the suggested path. Create the `tests/e2e/reports/` directory if needed:
+
+```bash
+mkdir -p tests/e2e/reports
+```
+
+**Step 4: Act on the verdict**
 
 - **PASS:** Proceed to Phase 5.4b
 - **FAIL_BUG:** Fix the issue in code, re-run verify-e2e. Do NOT check the box until PASS.
