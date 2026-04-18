@@ -14,3 +14,10 @@ docs/solutions/
 docs/research/
 docs/ci-templates/
 .worktrees/
+
+# tests/e2e/ is the user-runtime convention scaffolded by
+# `setup.sh --with-playwright` into downstream projects. If this template
+# repo ever gets run through its own setup.sh (e.g. while dogfooding),
+# we don't want the scaffolded dir tracked. The template's own regression
+# suite lives in tests/template/, which IS tracked.
+tests/e2e/
