@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Playwright configuration for claude-codex-forge E2E tests.
+ * Playwright configuration.
  * See https://playwright.dev/docs/test-configuration for full options.
  */
 export default defineConfig({
@@ -32,14 +32,33 @@ export default defineConfig({
     // Base URL — override via PLAYWRIGHT_BASE_URL env var
     baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000",
 
-    // Collect trace on retry; full trace on first failure in CI
-    trace: process.env.CI ? "on-first-retry" : "retain-on-failure",
+    // SECURITY: trace and video are OFF by default in CI.
+    //
+    // Why: storageState (see below) persists cookies + localStorage for
+    // authenticated tests. Playwright traces and videos can capture those
+    // values into CI artifacts that are downloadable by anyone with repo
+    // read access. Leaving trace/video on in CI is a credential-leak risk.
+    //
+    // Local dev: retain on failure — you want them for debugging.
+    // CI: off by default. To opt in temporarily for a debugging session,
+    // set PLAYWRIGHT_CI_TRACE=1 and PLAYWRIGHT_CI_VIDEO=1 on that run only,
+    // and review artifacts before making the run public.
+    //
+    // See tests/e2e/fixtures/auth.ts for the auth/storage-state pattern.
+    trace: process.env.CI
+      ? process.env.PLAYWRIGHT_CI_TRACE
+        ? "on-first-retry"
+        : "off"
+      : "retain-on-failure",
 
-    // Screenshots on failure
+    // Screenshots on failure (no credentials in screenshots by default)
     screenshot: "only-on-failure",
 
-    // Video on failure
-    video: "retain-on-failure",
+    video: process.env.CI
+      ? process.env.PLAYWRIGHT_CI_VIDEO
+        ? "retain-on-failure"
+        : "off"
+      : "retain-on-failure",
 
     // Reuse authenticated storage state from auth fixture
     // Uncomment after running auth setup (see tests/e2e/fixtures/auth.ts):
