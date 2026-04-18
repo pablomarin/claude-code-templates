@@ -214,6 +214,8 @@ assert_hash_equals "$S6/docs/ci-templates/e2e.yml" "$HASH_YML_BEFORE" \
 
 # ===========================================================================
 # Test 8: --upgrade smoke — the actual downstream pain path
+# Also exercises the "user content is never clobbered" invariant: CLAUDE.md,
+# CONTINUITY.md, AND docs/CHANGELOG.md must survive -f and --upgrade intact.
 # ===========================================================================
 start_test "Test 8: --upgrade smoke on existing install"
 
@@ -221,26 +223,51 @@ S8=$(scratch_dir upgrade)
 make_project "$S8" frontend
 LOG8a="$S8/.setup.install.log"
 LOG8b="$S8/.setup.upgrade.log"
+LOG8c="$S8/.setup.force.log"
 
 # Initial install
 run_setup "$S8" "$LOG8a" -p "UpgradeTest" -t fullstack --with-playwright
 assert_equals "$?" "0" "initial install exits 0"
 assert_file_exists "$S8/.claude/commands/new-feature.md" \
     "initial install populated .claude/commands"
+assert_file_exists "$S8/docs/CHANGELOG.md" \
+    "initial install created docs/CHANGELOG.md"
 
-# Simulate a user customization in settings.json
-if [[ -f "$S8/.claude/settings.json" ]]; then
-    # Run upgrade — should preserve CLAUDE.md, CONTINUITY.md, and the merge
-    # behavior for settings should keep our marker intact
-    run_setup "$S8" "$LOG8b" --upgrade
-    assert_equals "$?" "0" "--upgrade exits 0"
-    assert_file_exists "$S8/.claude/commands/new-feature.md" \
-        ".claude/commands still present after --upgrade"
-    assert_file_exists "$S8/CLAUDE.md" \
-        "CLAUDE.md preserved by --upgrade"
-else
-    fail "settings.json missing after initial install — cannot test --upgrade"
-fi
+# Simulate the user actually using CHANGELOG and CLAUDE.md — they add their
+# own release entries and project notes. This is the content that MUST NOT
+# be wiped on later upgrade/force.
+CHANGELOG_SENTINEL="## 1.2.3 — USER RELEASE ENTRY SENTINEL"
+echo "$CHANGELOG_SENTINEL" >> "$S8/docs/CHANGELOG.md"
+CLAUDE_SENTINEL="## USER-OWNED PROJECT NOTE SENTINEL"
+echo "$CLAUDE_SENTINEL" >> "$S8/CLAUDE.md"
+HASH_CHANGELOG=$(hash_file "$S8/docs/CHANGELOG.md")
+HASH_CLAUDE=$(hash_file "$S8/CLAUDE.md")
+
+# Run --upgrade — the downstream pain path
+run_setup "$S8" "$LOG8b" --upgrade
+assert_equals "$?" "0" "--upgrade exits 0"
+assert_file_exists "$S8/.claude/commands/new-feature.md" \
+    ".claude/commands still present after --upgrade"
+assert_file_exists "$S8/CLAUDE.md" \
+    "CLAUDE.md preserved by --upgrade"
+assert_contains "$S8/CLAUDE.md" "USER-OWNED PROJECT NOTE SENTINEL" \
+    "--upgrade preserves user content in CLAUDE.md"
+assert_contains "$S8/docs/CHANGELOG.md" "USER RELEASE ENTRY SENTINEL" \
+    "--upgrade preserves user entries in docs/CHANGELOG.md"
+assert_hash_equals "$S8/docs/CHANGELOG.md" "$HASH_CHANGELOG" \
+    "--upgrade does not touch CHANGELOG at all"
+assert_hash_equals "$S8/CLAUDE.md" "$HASH_CLAUDE" \
+    "--upgrade does not touch CLAUDE.md at all"
+
+# Also verify -f (force) preserves user content. -f is the big hammer that
+# SHOULD refresh .claude/* and CI templates, but MUST still leave CLAUDE.md,
+# CONTINUITY.md, and docs/CHANGELOG.md alone — they are user content.
+run_setup "$S8" "$LOG8c" -p "UpgradeTest" -t fullstack --with-playwright -f
+assert_equals "$?" "0" "-f exits 0"
+assert_hash_equals "$S8/docs/CHANGELOG.md" "$HASH_CHANGELOG" \
+    "-f does not touch CHANGELOG"
+assert_hash_equals "$S8/CLAUDE.md" "$HASH_CLAUDE" \
+    "-f does not touch CLAUDE.md"
 
 # ===========================================================================
 # Report

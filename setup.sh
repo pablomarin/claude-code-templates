@@ -587,8 +587,11 @@ fi
 
 echo ""
 
-# Create CHANGELOG if it doesn't exist
-if [[ ! -f "docs/CHANGELOG.md" ]] || [[ "$FORCE" == true ]]; then
+# Create CHANGELOG only if it doesn't exist — NEVER overwrite on -f / --upgrade.
+# docs/CHANGELOG.md is user content (each project's own release history). Same
+# policy as CLAUDE.md and CONTINUITY.md: templates initialize the file on first
+# install and never touch it afterward.
+if [[ ! -f "docs/CHANGELOG.md" ]]; then
     echo -e "${YELLOW}Creating docs/CHANGELOG.md...${NC}"
     cat > docs/CHANGELOG.md << EOF
 # Changelog
