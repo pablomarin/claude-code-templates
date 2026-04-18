@@ -83,15 +83,19 @@ cd "$WORKTREE_PATH"
 **Install dependencies (if needed):**
 
 ```bash
-# Node.js
-if [ -f "package.json" ] && [ ! -d "node_modules" ]; then
-  pnpm install --silent 2>/dev/null || npm install --silent 2>/dev/null || yarn install --silent 2>/dev/null
-fi
+# Node.js — checks repo root AND common monorepo subdirectories
+for d in . frontend apps/web web client; do
+  if [ -f "$d/package.json" ] && [ ! -d "$d/node_modules" ]; then
+    (cd "$d" && (pnpm install --silent 2>/dev/null || npm install --silent 2>/dev/null || yarn install --silent 2>/dev/null))
+  fi
+done
 
-# Python
-if [ -f "pyproject.toml" ]; then
-  uv sync 2>/dev/null || pip install -e . 2>/dev/null || echo "Run 'uv sync' manually"
-fi
+# Python — checks repo root AND common monorepo subdirectories
+for d in . backend apps/api api server; do
+  if [ -f "$d/pyproject.toml" ]; then
+    (cd "$d" && (uv sync 2>/dev/null || pip install -e . 2>/dev/null || echo "Run 'uv sync' manually in $d"))
+  fi
+done
 ```
 
 **⚠️ IMPORTANT: You are now working inside the worktree.**
@@ -550,31 +554,46 @@ If no files (empty directory, or directory missing): check the box with `- [x] E
 
 **Detect which regression path to use.** The framework path is only safe when every markdown UC has a matching spec — otherwise un-spec'd UCs would silently drop out of regression coverage during partial Playwright adoption.
 
-1. **Count unspecced use cases:**
+1. **Locate Playwright framework + count unspecced use cases:**
 
    ```bash
-   unspecced=0
-   for md in tests/e2e/use-cases/*.md; do
-     [ -f "$md" ] || continue
-     name=$(basename "$md" .md)
-     [ -f "tests/e2e/specs/$name.spec.ts" ] || unspecced=$((unspecced+1))
+   # Find playwright.config.ts — could be at root or inside a subdir
+   # (setup.sh --with-playwright may have scaffolded into frontend/,
+   # apps/web/, etc. on monorepo layouts).
+   PW_DIR=""
+   for d in . frontend apps/web web client; do
+     if [ -f "$d/playwright.config.ts" ]; then
+       PW_DIR="$d"
+       break
+     fi
    done
-   if [ -f playwright.config.ts ] && [ "$unspecced" -eq 0 ] && ls tests/e2e/specs/*.spec.ts >/dev/null 2>&1; then
-     echo FRAMEWORK
+
+   unspecced=0
+   if [ -n "$PW_DIR" ]; then
+     for md in "$PW_DIR"/tests/e2e/use-cases/*.md tests/e2e/use-cases/*.md; do
+       [ -f "$md" ] || continue
+       name=$(basename "$md" .md)
+       [ -f "$PW_DIR/tests/e2e/specs/$name.spec.ts" ] || unspecced=$((unspecced+1))
+     done
+   fi
+
+   if [ -n "$PW_DIR" ] && [ "$unspecced" -eq 0 ] && ls "$PW_DIR"/tests/e2e/specs/*.spec.ts >/dev/null 2>&1; then
+     echo "FRAMEWORK (playwright at: $PW_DIR)"
    else
      echo AGENT
    fi
    ```
 
 2. **If FRAMEWORK path** (framework installed AND every UC has a matching spec):
-   - Run specs directly (no package.json script needed):
+   - Run specs directly from the detected Playwright directory (no package.json script needed):
      ```bash
-     pnpm exec playwright test
+     cd "$PW_DIR" && pnpm exec playwright test
      ```
+     For monorepo layouts where Playwright was scaffolded into `frontend/`, `apps/web/`, etc., `$PW_DIR` is set by the detection block above. For flat layouts `$PW_DIR` is `.` and the `cd` is a no-op.
      If pnpm is not the project's package manager, use `npm exec playwright test` or `yarn playwright test`.
    - Exit code 0 = all pass. Non-zero = failures.
-   - Review the HTML report: `pnpm exec playwright show-report`
-   - Trace viewer for failures: `pnpm exec playwright show-trace <trace.zip>`
+   - Review the HTML report: `cd "$PW_DIR" && pnpm exec playwright show-report`
+   - Trace viewer for failures: `cd "$PW_DIR" && pnpm exec playwright show-trace <trace.zip>`
 
 3. **If AGENT path** (no framework, no specs yet, OR partial spec coverage):
    Invoke the verify-e2e agent in regression mode — it runs every markdown UC, guaranteeing no un-spec'd UC is missed during migration:
