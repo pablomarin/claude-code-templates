@@ -1,7 +1,10 @@
 # E2E Tests — GitHub Actions workflow
 #
 # This template is installed by `setup.sh --with-playwright` to
-# `docs/ci-templates/e2e.yml`. To ACTIVATE it, move to `.github/workflows/e2e.yml`:
+# `docs/ci-templates/e2e.yml`. The __PLAYWRIGHT_DIR__ placeholder below is
+# substituted at setup time with the directory where Playwright was scaffolded
+# (repo root for flat layouts, frontend/ or apps/web/ for monorepos, or
+# whatever --playwright-dir pointed at). To ACTIVATE:
 #
 #   mkdir -p .github/workflows
 #   cp docs/ci-templates/e2e.yml .github/workflows/e2e.yml
@@ -9,7 +12,7 @@
 #
 # Runs Playwright specs on every PR to main + nightly smoke cron.
 # Requires: @playwright/test installed, playwright.config.ts configured,
-# TEST_USER_EMAIL/TEST_USER_PASSWORD or TEST_API_KEY secrets configured.
+# TEST_USER_EMAIL/TEST_USER_PASSWORD secrets configured.
 #
 # CUSTOMIZATION CHECKLIST before activating:
 #   1. Package manager: this template uses pnpm. For npm, replace:
@@ -24,8 +27,15 @@
 #            Docker Compose, or `pnpm dev &` as a backgrounded step.
 #        (c) Use the `webServer` config in playwright.config.ts to auto-start.
 #      Choose one. This template assumes (a) — adjust if using (b) or (c).
-#   3. Secrets: configure `TEST_API_KEY` as a GitHub repo secret.
-#      Configure `PLAYWRIGHT_BASE_URL` as a repo variable.
+#   3. Secrets: configure `TEST_USER_EMAIL` + `TEST_USER_PASSWORD` as GitHub
+#      repo secrets. Configure `PLAYWRIGHT_BASE_URL` as a repo variable.
+#   4. Working directory: all pnpm/playwright steps below run inside
+#      __PLAYWRIGHT_DIR__ (set to "." if Playwright lives at repo root).
+#      The cache path for actions/setup-node must match.
+#   5. Workspace install: if your repo uses pnpm workspaces and install must
+#      happen at repo root (not inside __PLAYWRIGHT_DIR__), move the Install
+#      dependencies step out of the job-level working-directory by adding
+#      `working-directory: .` to that step explicitly.
 
 name: E2E Tests
 
@@ -42,6 +52,9 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: __PLAYWRIGHT_DIR__
     steps:
       - uses: actions/checkout@v4
 
@@ -49,6 +62,8 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
+          # Cache path must match where the lockfile lives
+          cache-dependency-path: '__PLAYWRIGHT_DIR__/pnpm-lock.yaml'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -63,7 +78,6 @@ jobs:
       - name: Run smoke tests
         run: pnpm exec playwright test --grep @smoke
         env:
-          TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           PLAYWRIGHT_BASE_URL: ${{ vars.PLAYWRIGHT_BASE_URL || 'http://localhost:3000' }}
@@ -73,7 +87,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-smoke
-          path: playwright-report/
+          path: __PLAYWRIGHT_DIR__/playwright-report/
           retention-days: 30
 
   e2e-full:
@@ -81,6 +95,9 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: __PLAYWRIGHT_DIR__
     steps:
       - uses: actions/checkout@v4
 
@@ -88,6 +105,7 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
+          cache-dependency-path: '__PLAYWRIGHT_DIR__/pnpm-lock.yaml'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -102,7 +120,6 @@ jobs:
       - name: Run full suite
         run: pnpm exec playwright test
         env:
-          TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           PLAYWRIGHT_BASE_URL: ${{ vars.PLAYWRIGHT_BASE_URL }}
@@ -112,5 +129,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-full
-          path: playwright-report/
+          path: __PLAYWRIGHT_DIR__/playwright-report/
           retention-days: 30
