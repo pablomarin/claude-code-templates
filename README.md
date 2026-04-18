@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/hero.png" alt="Claude and Codex — two AI coding agents shaping the work through a 7-phase workflow (PRD → Research → Design → Review → Build → Verify → Ship) held together by an engineering harness" width="100%">
+  <img src="docs/images/hero.png" alt="Claude and Codex — two AI coding agents shaping the work through a 7-phase workflow (PRD → Research → Design → Review → Build → Verify → Ship) held together by an engineering harness" width="720">
 </p>
 
 <h1 align="center">Claude Codex Forge</h1>
