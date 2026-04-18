@@ -43,24 +43,34 @@ Claude Codex Forge combines **Claude Code** and **OpenAI's Codex** into a single
 
 ## Quick start
 
+**Prerequisites:** [Claude Code](https://code.claude.com/docs) · [Node.js 22+](https://nodejs.org) · Git 2.23+ · a [ChatGPT Plus/Pro/Business plan or OpenAI API key](https://developers.openai.com/codex/) for Codex CLI.
+
 ```bash
-# 1. Clone once per machine
+# 1. Clone this harness repo (once per machine)
 git clone https://github.com/pablomarin/claude-codex-forge.git ~/claude-codex-forge
 chmod +x ~/claude-codex-forge/setup.sh
 
-# 2. Global setup once per machine (installs memory system)
+# 2. Global setup once per machine (installs the memory system)
 ~/claude-codex-forge/setup.sh --global
 
-# 3. Per-project setup
+# 3. Install Codex CLI + authenticate (required for dual-agent review)
+npm install -g @openai/codex   # or: brew install --cask codex
+codex login
+
+# 4. Per-project setup
 cd /path/to/your/project
 ~/claude-codex-forge/setup.sh -p "My Project"
 
-# 4. Start Claude Code and kick off your first workflow
+# 5. Start Claude Code, install the Superpowers plugin, restart
 claude
+> /plugin marketplace add obra/superpowers-marketplace
+> /plugin install superpowers@superpowers-marketplace
+
+# 6. Restart Claude Code, then kick off your first workflow
 > /new-feature my-feature
 ```
 
-Full walkthrough with prerequisites, plugin install, and Codex CLI setup: **[Getting Started →](docs/getting-started.md)**
+Full walkthrough with platform-specific (Windows/macOS/Linux) instructions, the "no Codex" fallback, and troubleshooting: **[Getting Started →](docs/getting-started.md)**
 
 Windows users: [PowerShell instructions](docs/getting-started.md#windows).
 
