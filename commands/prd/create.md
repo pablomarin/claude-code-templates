@@ -111,7 +111,6 @@ When {action}
 Then {expected result}
 And {additional result}
 ```
-````
 
 **Acceptance Criteria:**
 
@@ -199,8 +198,7 @@ And {additional result}
 - [ ] Product Owner approval
 - [ ] Technical Lead approval
 - [ ] Ready for technical design
-
-```
+````
 
 ## Validation Checklist
 
@@ -225,6 +223,7 @@ Before finalizing, verify PRD has:
 ## Error Handling
 
 **If no discussion file exists:**
+
 ```
 
 No discussion file found for "{feature-name}".
@@ -237,6 +236,7 @@ Then provide your user stories, and I'll help identify gaps before we write the 
 ```
 
 **If discussion is incomplete:**
+
 ```
 
 The discussion for "{feature-name}" appears incomplete (status: In Progress).
@@ -247,7 +247,5 @@ Would you like to:
 2. Create PRD anyway with current understanding
 
 Reply with your choice.
-
-```
 
 ```
