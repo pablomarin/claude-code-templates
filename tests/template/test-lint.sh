@@ -32,6 +32,7 @@ BASH_FILES=(
     "$REPO_ROOT/tests/template/test-setup.sh"
     "$REPO_ROOT/tests/template/test-fixtures.sh"
     "$REPO_ROOT/tests/template/test-contracts.sh"
+    "$REPO_ROOT/tests/template/test-hooks.sh"
     "$REPO_ROOT/tests/template/test-lint.sh"
     "$REPO_ROOT/tests/template/run-all.sh"
 )

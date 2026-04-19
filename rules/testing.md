@@ -123,7 +123,21 @@ Any change to **user-facing behavior**: API changes, UI changes, new pages, flow
 ### When E2E can be skipped (N/A)
 
 Purely internal changes with zero user-facing impact: migrations, internal scripts, CI config, dev tooling, behavior-preserving refactors.
-Must write justification: `- [x] E2E use cases tested — N/A: [reason]`
+Must write justification: `- [x] E2E verified — N/A: [reason]`
+
+## Canonical E2E gate vocabulary
+
+There is **one** gated marker name. The Stop hook (`check-workflow-gates.sh`/`.ps1`) blocks `git commit` / `git push` / `gh pr create` when the marker is `- [ ]` (unchecked) in the active Workflow checklist.
+
+| Gate element              | Canonical form                                                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Marker stem**           | `E2E verified` — this exact two-word phrase appears in every gated context                                 |
+| **Checklist entry**       | `- [ ] E2E verified via verify-e2e agent (Phase 5.4)` (from `new-feature.md` / `fix-bug.md`)               |
+| **Checked after passing** | `- [x] E2E verified via verify-e2e agent (Phase 5.4)`                                                      |
+| **Checked as N/A**        | `- [x] E2E verified — N/A: <reason>` (reason must be specific; "not needed" does not satisfy human review) |
+| **Hook regex key**        | `E2E verified` (literal substring match, present in all three checked-state variants)                      |
+
+Changing any of these strings in one place requires updating the hook + tests in the same PR. The `test-contracts.sh` cross-file contract asserts this.
 
 ## E2E Interface Capability Matrix
 

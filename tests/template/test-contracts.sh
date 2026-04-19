@@ -119,6 +119,51 @@ assert_contains "$FB" ".claude/playwright-dir" \
     "commands/fix-bug.md reads marker file"
 
 # ---------------------------------------------------------------------------
+# Contract 6: E2E verified gate — canonical marker vocabulary
+#
+# The Council (minority report from Contrarian + Maintainer) flagged that
+# the "E2E verified" gate string is referenced in multiple places and will
+# drift if not contracted. This asserts all references use the same stem.
+# ---------------------------------------------------------------------------
+start_test "E2E verified gate — canonical marker across files"
+
+# The marker stem that the hook regex matches on — this is the single
+# source of truth. Any other file that references the gate must use it.
+CANONICAL_STEM="E2E verified"
+
+# Both hook implementations must grep/match for the canonical stem
+assert_contains "$REPO_ROOT/hooks/check-workflow-gates.sh" "$CANONICAL_STEM" \
+    "check-workflow-gates.sh references '$CANONICAL_STEM'"
+assert_contains "$REPO_ROOT/hooks/check-workflow-gates.ps1" "$CANONICAL_STEM" \
+    "check-workflow-gates.ps1 references '$CANONICAL_STEM'"
+
+# Workflow command checklists must use the canonical stem (checked or unchecked)
+assert_contains "$REPO_ROOT/commands/new-feature.md" "$CANONICAL_STEM" \
+    "new-feature.md checklist uses '$CANONICAL_STEM'"
+assert_contains "$REPO_ROOT/commands/fix-bug.md" "$CANONICAL_STEM" \
+    "fix-bug.md checklist uses '$CANONICAL_STEM'"
+
+# The canonical N/A escape form must match exactly in both commands + rules
+# Form: `- [x] E2E verified — N/A: <reason>` (em-dash "—", not double-hyphen)
+CANONICAL_NA="E2E verified — N/A:"
+assert_contains "$REPO_ROOT/commands/new-feature.md" "$CANONICAL_NA" \
+    "new-feature.md uses canonical N/A form ('$CANONICAL_NA')"
+assert_contains "$REPO_ROOT/commands/fix-bug.md" "$CANONICAL_NA" \
+    "fix-bug.md uses canonical N/A form"
+assert_contains "$REPO_ROOT/rules/testing.md" "$CANONICAL_NA" \
+    "rules/testing.md uses canonical N/A form (was 'E2E use cases tested' before canonicalization)"
+
+# rules/testing.md must be the canonical documentation — hook stderr
+# points there, so the anchor must exist
+assert_contains "$REPO_ROOT/rules/testing.md" "Canonical E2E gate vocabulary" \
+    "rules/testing.md has the Canonical E2E gate vocabulary section"
+
+# Regression: the old drifting string "E2E use cases tested" must NOT appear
+# anywhere as a marker (it's been replaced with "E2E verified")
+assert_not_contains "$REPO_ROOT/rules/testing.md" 'E2E use cases tested — N/A' \
+    "rules/testing.md no longer uses the old 'E2E use cases tested' N/A form"
+
+# ---------------------------------------------------------------------------
 # Contract 5: runtime preflight parity — both installers check the same files
 # and document the same canonical guide. Prevents one platform from silently
 # diverging.

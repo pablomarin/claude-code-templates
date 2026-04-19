@@ -7,9 +7,15 @@
 # 2. The command is git commit, git push, or gh pr create
 # 3. Always-required quality gate checklist items aren't checked off
 #
-# Only gates on ALWAYS-REQUIRED items (review, simplify, verify).
-# Conditional items like "E2E use cases tested (if user-facing)" are NOT gated —
-# the model decides if they apply.
+# Gated markers (canonical vocabulary — see rules/testing.md "Canonical E2E gate vocabulary"):
+#   "Code review loop"  — code review must pass
+#   "Simplified"        — code simplification must run
+#   "Verified (tests"   — unit tests + lint + types + migrations must pass
+#   "E2E verified"      — Phase 5.4 E2E must pass OR be explicitly N/A with reason
+#
+# Non-gated (conditional) items like "E2E use cases designed" and "E2E regression
+# passed" stay advisory — the model decides if they apply. The E2E verified gate
+# has an explicit N/A escape: `- [x] E2E verified — N/A: <reason>`.
 #
 # Input (JSON via stdin): {session_id, cwd, tool_name, tool_input: {command}}
 # Block: exit 2 + message on stderr
@@ -52,15 +58,19 @@ WORKFLOW_CMD=$(grep -iE '\|\s*Command\s*\|' CONTINUITY.md 2>/dev/null | head -1 
 # Extract the Checklist section (between ### Checklist and next ## heading)
 CHECKLIST=$(sed -n '/^### Checklist/,/^## /p' CONTINUITY.md 2>/dev/null)
 
-# Only gate on the 3 pre-ship quality gates:
+# Only gate on the 4 pre-ship quality gates:
 #   "Code review loop" — code review must pass before shipping
 #   "Simplified" — code simplification must run before shipping
-#   "Verified" — tests/lint/types must pass before shipping
+#   "Verified (tests" — tests/lint/types must pass before shipping
+#   "E2E verified" — Phase 5.4 must pass OR be checked [x] with an N/A reason
 # Explicitly exclude non-gate items that contain similar words:
 #   "PR reviews addressed" — happens AFTER PR, not a pre-ship gate
 #   "Plugins verified" — pre-flight check, not a quality gate
 #   "Plan review loop" — design phase discipline, not a pre-ship gate
-UNCHECKED=$(echo "$CHECKLIST" | grep '\- \[ \]' | grep -iE '(Code review loop|Simplified|Verified \(tests)' || true)
+#   "E2E use cases designed" — Phase 3.2b, conditional on user-facing change
+#   "E2E regression passed" — Phase 5.4b, conditional on accumulated UCs
+#   "E2E use cases graduated" / "E2E specs graduated" — post-PASS housekeeping
+UNCHECKED=$(echo "$CHECKLIST" | grep '\- \[ \]' | grep -iE '(Code review loop|Simplified|Verified \(tests|E2E verified)' || true)
 
 if [ -n "$UNCHECKED" ]; then
     UNCHECKED_COUNT=$(echo "$UNCHECKED" | wc -l | tr -d ' ')
@@ -68,6 +78,14 @@ if [ -n "$UNCHECKED" ]; then
     echo "WORKFLOW GATE: $UNCHECKED_COUNT required quality gate(s) incomplete." >&2
     echo "Complete these before shipping:" >&2
     echo "$MISSING" >&2
+    echo "" >&2
+    echo "How to clear each gate:" >&2
+    echo "  - Code review loop:  run /codex review + /pr-review-toolkit:review-pr, fix findings" >&2
+    echo "  - Simplified:        run /simplify" >&2
+    echo "  - Verified (tests):  run the verify-app agent" >&2
+    echo "  - E2E verified:      run the verify-e2e agent AND persist its report, OR mark N/A:" >&2
+    echo '                         - [x] E2E verified — N/A: <specific reason>' >&2
+    echo "  See .claude/rules/testing.md for the canonical gate vocabulary." >&2
     exit 2
 fi
 

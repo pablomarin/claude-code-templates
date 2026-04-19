@@ -6,8 +6,16 @@
 # 2. The command is git commit, git push, or gh pr create
 # 3. Always-required quality gate checklist items aren't checked off
 #
-# Only gates on ALWAYS-REQUIRED items (review, simplify, verify).
-# Conditional items like "E2E use cases tested (if user-facing)" are NOT gated.
+# Gated markers (canonical vocabulary — see rules/testing.md):
+#   "Code review loop"  — code review must pass
+#   "Simplified"        — simplification must run
+#   "Verified (tests"   — tests/lint/types/migrations must pass
+#   "E2E verified"      — Phase 5.4 must pass OR be checked [x] with N/A reason
+#
+# Non-gated (conditional) items ("E2E use cases designed", "E2E regression
+# passed", post-PASS housekeeping) stay advisory — the model decides.
+# The E2E verified gate has an explicit N/A escape:
+#   - [x] E2E verified — N/A: <reason>
 #
 # Requirements: PowerShell 5.1+
 
@@ -50,10 +58,13 @@ $unchecked = @()
 foreach ($line in ($content -split "`n")) {
     if ($line -match '^### Checklist') { $inChecklist = $true; continue }
     if ($line -match '^## ' -and $inChecklist) { break }
-    # Only gate on: "Code review loop", "Simplified", "Verified (tests"
-    # Exclude: "PR reviews addressed" (post-PR), "Plugins verified" (pre-flight),
-    #          "Plan review loop" (design phase discipline, not pre-ship gate)
-    if ($inChecklist -and $line -match '- \[ \]' -and $line -match '(Code review loop|Simplified|Verified \(tests)') {
+    # Gate on the 4 canonical pre-ship markers:
+    #   Code review loop | Simplified | Verified (tests | E2E verified
+    # Exclude non-gate items that share words:
+    #   "PR reviews addressed" (post-PR), "Plugins verified" (pre-flight),
+    #   "Plan review loop" (design phase), "E2E use cases designed/graduated"
+    #   (Phase 3.2b / 6.2b — conditional), "E2E regression passed" (Phase 5.4b).
+    if ($inChecklist -and $line -match '- \[ \]' -and $line -match '(Code review loop|Simplified|Verified \(tests|E2E verified)') {
         $unchecked += $line
     }
 }
@@ -64,6 +75,14 @@ if ($unchecked.Count -gt 0) {
     foreach ($item in $unchecked) {
         [Console]::Error.WriteLine("  $($item.Trim() -replace '- \[ \] ', '- ')")
     }
+    [Console]::Error.WriteLine("")
+    [Console]::Error.WriteLine("How to clear each gate:")
+    [Console]::Error.WriteLine("  - Code review loop:  run /codex review + /pr-review-toolkit:review-pr, fix findings")
+    [Console]::Error.WriteLine("  - Simplified:        run /simplify")
+    [Console]::Error.WriteLine("  - Verified (tests):  run the verify-app agent")
+    [Console]::Error.WriteLine("  - E2E verified:      run the verify-e2e agent AND persist its report, OR mark N/A:")
+    [Console]::Error.WriteLine('                         - [x] E2E verified — N/A: <specific reason>')
+    [Console]::Error.WriteLine("  See .claude\rules\testing.md for the canonical gate vocabulary.")
     exit 2
 }
 
