@@ -86,4 +86,70 @@ if ($unchecked.Count -gt 0) {
     exit 2
 }
 
+# ---------------------------------------------------------------------------
+# Evidence-based gate for E2E verified. Mirrors the .sh logic:
+# a checked '[x] E2E verified' without 'N/A:' must have a fresh report file
+# in tests/e2e/reports/ whose LastWriteTime is later than the branch-off
+# commit. Skips gracefully if git state prevents determining branch-off.
+# ---------------------------------------------------------------------------
+$e2eCheckedLine = $null
+foreach ($line in ($content -split "`n")) {
+    if ($line -match '- \[x\]\s+E2E verified') {
+        $e2eCheckedLine = $line
+        break
+    }
+}
+
+if ($e2eCheckedLine -and ($e2eCheckedLine -notmatch 'N/A:')) {
+    # Find branch-off commit (try main, fall back to master, else skip)
+    $branchOff = git merge-base HEAD main 2>$null
+    if (-not $branchOff) { $branchOff = git merge-base HEAD master 2>$null }
+
+    # If HEAD itself IS the branch-off point (user is on main/master, not a
+    # feature branch), there's no meaningful "produced on this branch"
+    # comparison. Skip the evidence check — matches the documented "on main
+    # → skip" contract in rules/testing.md.
+    $headSha = git rev-parse HEAD 2>$null
+    if ($branchOff -and $headSha -and ($branchOff.Trim() -eq $headSha.Trim())) {
+        $branchOff = $null  # Force the skip path below
+    }
+
+    if ($branchOff) {
+        $branchOffTsStr = git log -1 --format=%ct $branchOff 2>$null
+        $branchOffTs = 0
+        if ($branchOffTsStr) { $branchOffTs = [long]$branchOffTsStr }
+
+        $branchOffDate = [DateTimeOffset]::FromUnixTimeSeconds($branchOffTs).LocalDateTime
+
+        $freshReportFound = $false
+        if (Test-Path "tests/e2e/reports") {
+            $reports = Get-ChildItem "tests/e2e/reports" -Filter "*.md" -File -ErrorAction SilentlyContinue
+            foreach ($report in $reports) {
+                if ($report.LastWriteTime -gt $branchOffDate) {
+                    $freshReportFound = $true
+                    break
+                }
+            }
+        }
+
+        if (-not $freshReportFound) {
+            [Console]::Error.WriteLine("WORKFLOW GATE: E2E verified is checked, but no fresh report was found.")
+            [Console]::Error.WriteLine("")
+            [Console]::Error.WriteLine("The checklist says [x] E2E verified, but tests\e2e\reports\ has no")
+            [Console]::Error.WriteLine("report file newer than this branch's commit off main. That usually means")
+            [Console]::Error.WriteLine("the verify-e2e agent was never actually run on this branch.")
+            [Console]::Error.WriteLine("")
+            [Console]::Error.WriteLine("Either:")
+            [Console]::Error.WriteLine("  (a) Run the verify-e2e agent and have the main agent persist its")
+            [Console]::Error.WriteLine("      report to tests\e2e\reports\<YYYY-MM-DD-HH-MM>-<feature>.md,")
+            [Console]::Error.WriteLine("  (b) Mark the gate N/A with justification:")
+            [Console]::Error.WriteLine('        - [x] E2E verified — N/A: <specific reason>')
+            [Console]::Error.WriteLine("")
+            [Console]::Error.WriteLine("See .claude\rules\testing.md for the full policy.")
+            exit 2
+        }
+    }
+    # No branch-off (user on main / no main or master) → skip evidence check.
+}
+
 exit 0

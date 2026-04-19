@@ -139,6 +139,25 @@ There is **one** gated marker name. The Stop hook (`check-workflow-gates.sh`/`.p
 
 Changing any of these strings in one place requires updating the hook + tests in the same PR. The `test-contracts.sh` cross-file contract asserts this.
 
+### Evidence-based gate
+
+The `check-workflow-gates.sh`/`.ps1` hook does TWO checks on the `E2E verified` marker:
+
+1. **Checklist check** — `- [ ] E2E verified ...` in an active workflow blocks the commit/push/PR.
+2. **Evidence check** — `- [x] E2E verified ...` **without** `N/A:` requires a real report file in `tests/e2e/reports/` whose mtime is later than the branch-off commit. If no such file exists, the hook blocks with a specific "checkbox is typed but no report was actually produced" error.
+
+Why: a bad-faith actor can type `[x]` without running the verify-e2e agent. The evidence check binds the checkbox claim to a filesystem artifact — the agent's report, persisted via Phase 5.4 Step 3 (`mkdir -p tests/e2e/reports && Write`).
+
+The N/A escape (`- [x] E2E verified — N/A: <reason>`) skips the evidence check. Human reviewers catch lazy N/A justifications at PR review time.
+
+Intentionally NOT covered by evidence check (gracefully skipped):
+
+- User is on `main` (no feature branch) → no merge-base → skip
+- Repo has neither `main` nor `master` → skip
+- Repo has no git history that reaches a branch point → skip
+
+These are degraded environments, not policy violations. The checklist check still fires.
+
 ## E2E Interface Capability Matrix
 
 The E2E scope depends on the project's user interfaces (declared in `CLAUDE.md` under `## E2E Configuration`):

@@ -89,4 +89,89 @@ if [ -n "$UNCHECKED" ]; then
     exit 2
 fi
 
+# ---------------------------------------------------------------------------
+# Evidence-based gate for E2E verified
+#
+# The checklist-only gate above is paperwork enforcement: a bad-faith actor
+# can type '[x] E2E verified ...' without actually running the verify-e2e
+# agent. This check binds the '[x] E2E verified' claim to a real filesystem
+# artifact — a report file in tests/e2e/reports/ with mtime later than the
+# branch-off point.
+#
+# Escape valve: the N/A form ('[x] E2E verified — N/A: <reason>') is trusted
+# and skips the evidence check. Human reviewers catch lazy N/A justifications.
+#
+# Failure modes intentionally accepted:
+#   - User on main (no branch) → can't compute merge-base → skip evidence
+#   - No git / no main or master branch → skip evidence
+#   - Report path writes fail → next commit-attempt catches it
+# ---------------------------------------------------------------------------
+E2E_CHECKED_LINE=$(echo "$CHECKLIST" | grep -E '^\s*- \[x\]\s+E2E verified' | head -1)
+
+if [ -n "$E2E_CHECKED_LINE" ] && ! echo "$E2E_CHECKED_LINE" | grep -qE 'N/A:'; then
+    # [x] E2E verified checked without N/A → require a fresh report file.
+
+    # Find the branch-off commit (try main, fall back to master, else skip).
+    BRANCH_OFF=$(git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null || true)
+
+    # If HEAD itself IS the branch-off point (i.e., user is on main/master
+    # directly, not a feature branch), there's no meaningful "produced on
+    # this branch" comparison to make. Skip the evidence check — matches
+    # the documented "on main → skip" contract in rules/testing.md.
+    HEAD_SHA=$(git rev-parse HEAD 2>/dev/null || true)
+    if [ -n "$BRANCH_OFF" ] && [ -n "$HEAD_SHA" ] && [ "$BRANCH_OFF" = "$HEAD_SHA" ]; then
+        BRANCH_OFF=""  # Force the skip path below
+    fi
+
+    if [ -n "$BRANCH_OFF" ]; then
+        BRANCH_OFF_TS=$(git log -1 --format=%ct "$BRANCH_OFF" 2>/dev/null || echo "")
+    else
+        BRANCH_OFF_TS=""
+    fi
+
+    # Detect platform for stat syntax (GNU vs BSD/macOS)
+    if stat -c %Y /dev/null >/dev/null 2>&1; then
+        STAT_MTIME_CMD='stat -c %Y'
+    else
+        STAT_MTIME_CMD='stat -f %m'
+    fi
+
+    # Look for at least one fresh report. A "fresh" report has mtime greater
+    # than the branch-off commit's timestamp — meaning it was produced on
+    # THIS branch, not inherited from a previous feature.
+    FRESH_REPORT_FOUND=0
+    if [ -n "$BRANCH_OFF_TS" ] && [ -d "tests/e2e/reports" ]; then
+        for report in tests/e2e/reports/*.md; do
+            [ -f "$report" ] || continue
+            REPORT_MTIME=$($STAT_MTIME_CMD "$report" 2>/dev/null || echo "0")
+            if [ "$REPORT_MTIME" -gt "$BRANCH_OFF_TS" ] 2>/dev/null; then
+                FRESH_REPORT_FOUND=1
+                break
+            fi
+        done
+    elif [ -z "$BRANCH_OFF_TS" ]; then
+        # No merge-base (user on main, or no main/master branch).
+        # Skip evidence check rather than fail closed — this is a degraded
+        # environment, not a policy violation.
+        FRESH_REPORT_FOUND=1
+    fi
+
+    if [ "$FRESH_REPORT_FOUND" -eq 0 ]; then
+        echo "WORKFLOW GATE: E2E verified is checked, but no fresh report was found." >&2
+        echo "" >&2
+        echo "The checklist says [x] E2E verified, but tests/e2e/reports/ has no" >&2
+        echo "report file newer than this branch's commit off main. That usually means" >&2
+        echo "the verify-e2e agent was never actually run on this branch." >&2
+        echo "" >&2
+        echo "Either:" >&2
+        echo "  (a) Run the verify-e2e agent and have the main agent persist its" >&2
+        echo "      report to tests/e2e/reports/<YYYY-MM-DD-HH-MM>-<feature>.md," >&2
+        echo "  (b) Mark the gate N/A with justification:" >&2
+        echo '        - [x] E2E verified — N/A: <specific reason>' >&2
+        echo "" >&2
+        echo "See .claude/rules/testing.md for the full policy." >&2
+        exit 2
+    fi
+fi
+
 exit 0

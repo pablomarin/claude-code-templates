@@ -245,6 +245,137 @@ else
 fi
 
 # ===========================================================================
+# Evidence-gate scenarios (Phase 2 — closes the paperwork-not-evidence loophole)
+# These require a real git repo with a branch-off point, so each test sets up
+# a scratch repo with main + feature branch before invoking the hook.
+# ===========================================================================
+
+# Helper: build a scratch git repo with main + feature branch.
+# Feature branch's HEAD is where we're "at"; main's last commit is the
+# branch-off point whose timestamp the hook compares against.
+# Echoes the scratch dir path.
+setup_git_scratch() {
+    local dir
+    dir=$(scratch_dir e2e-evidence)
+    (
+        cd "$dir" || exit 1
+        git init -q --initial-branch=main
+        git -c user.email=test@test -c user.name=test commit -q --allow-empty -m "initial-on-main"
+        # Wait a second so branch-off timestamp is strictly less than
+        # any files we create post-checkout (avoids flaky == comparisons
+        # on fast CPUs).
+        sleep 1
+        git checkout -q -b feature/test
+        # Real feature branches have at least one commit beyond the
+        # branch-off point. Without this, HEAD == merge-base and the
+        # evidence check would (correctly) skip as "on main directly"
+        # — making the feature-branch tests no-ops.
+        git -c user.email=test@test -c user.name=test commit -q --allow-empty -m "feature work"
+    )
+    echo "$dir"
+}
+
+# Helper: inject an E2E verified [x] entry into the checklist template.
+CHECKLIST_E2E_CHECKED_NO_NA='- [x] Code review loop (1 iterations) — PASS
+- [x] Simplified
+- [x] Verified (tests/lint/types)
+- [x] E2E verified via verify-e2e agent (Phase 5.4)'
+
+CHECKLIST_E2E_CHECKED_NA='- [x] Code review loop (1 iterations) — PASS
+- [x] Simplified
+- [x] Verified (tests/lint/types)
+- [x] E2E verified — N/A: internal migration, no user-facing changes'
+
+# ===========================================================================
+# Test 9: [x] E2E verified without N/A + fresh report → exit 0
+# ===========================================================================
+start_test "[x] E2E verified + fresh report → exit 0 (evidence satisfied)"
+
+S9=$(setup_git_scratch)
+mkdir -p "$S9/tests/e2e/reports"
+# Create a report file AFTER branch-off (its mtime is > branch-off-ts)
+echo "# E2E report" > "$S9/tests/e2e/reports/2026-04-19-10-00-feature.md"
+rc=$(run_hook_sh "$S9" 'git commit -m x' "$CHECKLIST_E2E_CHECKED_NO_NA")
+assert_equals "$rc" "0" "fresh report present → hook passes"
+
+# ===========================================================================
+# Test 10: [x] E2E verified without N/A + no report → exit 2
+# ===========================================================================
+start_test "[x] E2E verified + no report → exit 2 (evidence missing)"
+
+S10=$(setup_git_scratch)
+# No tests/e2e/reports/ directory at all
+rc=$(run_hook_sh "$S10" 'git commit -m x' "$CHECKLIST_E2E_CHECKED_NO_NA")
+assert_equals "$rc" "2" "no reports dir → hook blocks"
+assert_contains "$S10/.hook-stderr" "no fresh report was found" \
+    "stderr explains the evidence gap"
+assert_contains "$S10/.hook-stderr" "verify-e2e agent was never actually run" \
+    "stderr explains the likely cause"
+assert_contains "$S10/.hook-stderr" "E2E verified — N/A:" \
+    "stderr shows the N/A escape syntax"
+
+# ===========================================================================
+# Test 11: [x] E2E verified without N/A + STALE report (pre-branch-off) → exit 2
+# ===========================================================================
+start_test "[x] E2E verified + only stale reports → exit 2"
+
+S11=$(setup_git_scratch)
+mkdir -p "$S11/tests/e2e/reports"
+echo "# old report" > "$S11/tests/e2e/reports/2024-01-01-old.md"
+# Force mtime to 2024-01-01 — definitely before any branch-off we just made
+touch -t 202401010000.00 "$S11/tests/e2e/reports/2024-01-01-old.md"
+rc=$(run_hook_sh "$S11" 'git commit -m x' "$CHECKLIST_E2E_CHECKED_NO_NA")
+assert_equals "$rc" "2" "only stale reports → hook blocks"
+
+# ===========================================================================
+# Test 12: [x] E2E verified — N/A: reason → exit 0 (no evidence needed)
+# ===========================================================================
+start_test "[x] E2E verified — N/A: reason → exit 0 (N/A bypasses evidence check)"
+
+S12=$(setup_git_scratch)
+# No reports directory — N/A should bypass the evidence check entirely
+rc=$(run_hook_sh "$S12" 'git commit -m x' "$CHECKLIST_E2E_CHECKED_NA")
+assert_equals "$rc" "0" "N/A form skips evidence check even without a report"
+
+# ===========================================================================
+# Test 13: No merge-base (repo without main) → skip evidence check gracefully
+# ===========================================================================
+start_test "no merge-base available → skip evidence check (degraded env)"
+
+S13=$(scratch_dir e2e-nomaster)
+(
+    cd "$S13" || exit 1
+    git init -q --initial-branch=weird
+    git -c user.email=test@test -c user.name=test commit -q --allow-empty -m "initial"
+)
+# No main, no master. Hook can't compute merge-base; should skip evidence
+# rather than fail. User gets no protection here — documented as a
+# degraded env, not a policy violation.
+rc=$(run_hook_sh "$S13" 'git commit -m x' "$CHECKLIST_E2E_CHECKED_NO_NA")
+assert_equals "$rc" "0" "degraded env (no main/master) → hook passes with warning"
+
+# ===========================================================================
+# Test 14: On main itself → skip evidence check (trunk-based workflow)
+# Regression guard for Codex's P1: git merge-base HEAD main returns HEAD
+# when on main, which is NOT empty. Without special-case handling, the
+# hook would require reports newer than HEAD — which is usually impossible
+# because reports are produced AFTER HEAD, not before.
+# ===========================================================================
+start_test "user on main → skip evidence check (trunk-based)"
+
+S14=$(scratch_dir e2e-on-main)
+(
+    cd "$S14" || exit 1
+    git init -q --initial-branch=main
+    git -c user.email=test@test -c user.name=test commit -q --allow-empty -m "initial"
+    # STAY on main — no feature branch checkout.
+)
+# [x] E2E verified without N/A + no reports. Without the HEAD==branch-off
+# fix, this would block. With the fix, it should pass (skip evidence).
+rc=$(run_hook_sh "$S14" 'git commit -m x' "$CHECKLIST_E2E_CHECKED_NO_NA")
+assert_equals "$rc" "0" "on main directly → evidence check skipped (trunk-based workflow supported)"
+
+# ===========================================================================
 # Report
 # ===========================================================================
 report "test-hooks.sh"
