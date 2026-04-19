@@ -2,6 +2,25 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.10 — 2026-04-18 · Evidence-based E2E gate (Phase 2 of the enforcement cycle)
+
+Closes the Contrarian's deferred P0 from the 5.9 Council session: the paperwork-only gate let a bad-faith operator type `[x] E2E verified` without actually running the verify-e2e agent. Phase 2 binds the checkbox claim to a real filesystem artifact.
+
+Motivation: user observed downstream sessions attempting `gh pr create` before code reviews, simplify, or E2E were actually done — Claude was checking boxes prematurely and the 5.9 checklist-only gate couldn't catch it.
+
+- **Evidence check in `check-workflow-gates.sh` + `.ps1`**. When `- [x] E2E verified` is present WITHOUT an `N/A:` suffix, the hook now requires a file in `tests/e2e/reports/` whose mtime is later than the branch-off commit (`git merge-base HEAD main`, falling back to `master`). Without a fresh report: exit 2 with a specific "checkbox is typed but no report was produced" error. The N/A escape (`- [x] E2E verified — N/A: <reason>`) still bypasses the check.
+- **Cross-platform mtime**: `stat -c %Y` for GNU, `stat -f %m` for BSD/macOS. PowerShell uses `LastWriteTime` against a UnixTime-derived `DateTimeOffset`. Detected at runtime.
+- **Graceful degradation**: user on `main`, repo with neither `main` nor `master`, or missing git history → evidence check skipped. The checklist check still fires. Documented as degraded env, not policy violation.
+- **`rules/testing.md`**: new "Evidence-based gate" subsection under "Canonical E2E gate vocabulary" explaining the two-phase check + degradation behavior.
+- **`tests/template/test-hooks.sh`**: 8 new assertions (5 scenarios) exercising the evidence check — fresh report → 0, no report → 2 + stderr, stale report only → 2, N/A bypass → 0, degraded env (no main/master) → 0. Each scenario builds a real scratch git repo with a branch-off point to give the hook something to compare against.
+
+Suite: 170 → 178 assertions, all pass.
+
+Explicitly still NOT covered by evidence check:
+
+- **Code review loop**, **Simplified**, **Verified (tests)** — these gates still use the paperwork-only check. They have no natural filesystem artifact convention yet. Adding them would require agents/commands to persist status files, which is a separate design pass.
+- Report quality — only file existence + freshness is verified. A trivial report that claims PASS on no actual UCs still passes. Human reviewer catches this.
+
 ## 5.9 — 2026-04-18 · E2E verified gate — close the silent-skip loophole
 
 Closes the loophole the Engineering Council flagged: before this release, `check-workflow-gates.sh` blocked commit/push/PR on `Code review loop` / `Simplified` / `Verified (tests`, but NOT on `E2E verified`. A downstream project (msai-v2) shipped 155 commits with every E2E checklist item unchecked. Council verdict (5 advisors + Codex chairman): ship narrow enforcement, canonicalize marker vocabulary in the same PR, defer operator-verification redesign.
