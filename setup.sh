@@ -281,8 +281,13 @@ preflight_python_version() {
     local required="$1"
     # Try version managers + system interpreter in order of reliability.
     # If ANY of them can supply the required version, we're good.
+    #
+    # NOTE: `uv python find` checks only *installed* interpreters (exits 0 if
+    # one satisfies the request, non-zero otherwise). `uv python list` shows
+    # downloadable versions too, which would cause false positives — don't
+    # use list here.
     if command -v uv &>/dev/null; then
-        uv python list 2>/dev/null | grep -qF "$required" && return 0
+        uv python find "$required" >/dev/null 2>&1 && return 0
     fi
     if command -v pyenv &>/dev/null; then
         pyenv versions --bare 2>/dev/null | grep -qF "$required" && return 0
@@ -304,19 +309,36 @@ preflight_node_version() {
     local required="$1"
     # Strip leading 'v' if present (.nvmrc sometimes has it)
     required="${required#v}"
+
+    # Distinguish bare-major pins ('20') from full versions ('20.11.0').
+    # Bare major ⇒ any patch under that major satisfies.
+    # Full version ⇒ require exact match.
+    local is_full_version=0
+    [[ "$required" == *.* ]] && is_full_version=1
+
     if command -v node &>/dev/null; then
         local current
         current=$(node --version 2>/dev/null | sed 's/^v//')
-        # Match major version (.nvmrc often says just "20" meaning any 20.x)
-        local req_major cur_major
-        req_major=$(echo "$required" | awk -F. '{print $1}')
-        cur_major=$(echo "$current" | awk -F. '{print $1}')
-        [[ "$req_major" == "$cur_major" ]] && return 0
+        if [[ "$is_full_version" == 1 ]]; then
+            [[ "$required" == "$current" ]] && return 0
+        else
+            local req_major cur_major
+            req_major=$(echo "$required" | awk -F. '{print $1}')
+            cur_major=$(echo "$current" | awk -F. '{print $1}')
+            [[ "$req_major" == "$cur_major" ]] && return 0
+        fi
     fi
-    # Version managers
+    # Version manager listings — match the version as a bounded token so
+    # '20.11.0' does NOT accidentally satisfy '20.11.01' and '18' does NOT
+    # accidentally match '20.18.x'.
     for vm in fnm nvm volta; do
-        if command -v "$vm" &>/dev/null; then
-            "$vm" list 2>/dev/null | grep -qF "$required" && return 0
+        command -v "$vm" &>/dev/null || continue
+        if [[ "$is_full_version" == 1 ]]; then
+            # Match "v?20.11.0" followed by end-of-line, whitespace, or non-digit
+            "$vm" list 2>/dev/null | grep -qE "v?${required//./\\.}([^0-9]|$)" && return 0
+        else
+            # Match "v?20.<digit>" — any patch under this major
+            "$vm" list 2>/dev/null | grep -qE "v?${required}\\.[0-9]" && return 0
         fi
     done
     return 1
@@ -377,17 +399,21 @@ if [[ -f ".nvmrc" ]]; then
     fi
 fi
 
-# Root package.json engines.node (only check root to keep v1 scope narrow)
+# Root package.json engines.node (only check root to keep v1 scope narrow).
+# `|| true` guards against `set -e` aborting setup if jq fails on malformed
+# JSON or if jq isn't installed at all. Missing jq / unparseable JSON just
+# silently skips the engines check — mirrors the PowerShell try/catch path.
+NODE_ENGINES=""
 if [[ -f "package.json" ]] && command -v jq &>/dev/null; then
-    NODE_ENGINES=$(jq -r '.engines.node // empty' package.json 2>/dev/null)
-    if [[ -n "$NODE_ENGINES" ]]; then
-        if preflight_node_engines "$NODE_ENGINES"; then
-            echo -e "  ${GREEN}✓${NC} Node satisfies engines.node ${BLUE}$NODE_ENGINES${NC}"
-        else
-            PREFLIGHT_WARNED=1
-            echo -e "  ${YELLOW}⚠${NC} package.json engines.node requires ${YELLOW}$NODE_ENGINES${NC}, current Node does not match."
-            echo -e "    Install a matching Node version via fnm / nvm / volta."
-        fi
+    NODE_ENGINES=$(jq -r '.engines.node // empty' package.json 2>/dev/null || true)
+fi
+if [[ -n "$NODE_ENGINES" ]]; then
+    if preflight_node_engines "$NODE_ENGINES"; then
+        echo -e "  ${GREEN}✓${NC} Node satisfies engines.node ${BLUE}$NODE_ENGINES${NC}"
+    else
+        PREFLIGHT_WARNED=1
+        echo -e "  ${YELLOW}⚠${NC} package.json engines.node requires ${YELLOW}$NODE_ENGINES${NC}, current Node does not match."
+        echo -e "    Install a matching Node version via fnm / nvm / volta."
     fi
 fi
 

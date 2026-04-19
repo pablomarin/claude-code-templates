@@ -338,6 +338,32 @@ else
     printf "  %s·%s skipped (python3 not installed): Case D\n" "$C_DIM" "$C_RESET"
 fi
 
+# Case E: .nvmrc with an EXACT version that can't possibly exist → warning
+# Regression guard for Codex's P2 finding: an exact version pin like
+# "20.11.0" must NOT be satisfied by ANY 20.x — check exact-match semantics.
+# Use "20.99999.0" which is guaranteed absent from any reasonable system.
+S9e=$(scratch_dir preflight-nvmrc-exact)
+make_project "$S9e" flat
+echo "20.99999.0" > "$S9e/.nvmrc"
+LOG9e="$S9e/.setup.log"
+
+run_setup "$S9e" "$LOG9e" -p "PreflightE" -t typescript
+assert_equals "$?" "0" "exact .nvmrc mismatch → setup exits 0"
+assert_matches "$LOG9e" ".nvmrc requires Node.*20\.99999\.0" \
+    "preflight warns when exact .nvmrc version is missing (even if major matches system)"
+
+# Case F: malformed package.json → preflight must NOT abort setup
+# Regression guard for Codex's P2 finding about set -e + jq.
+S9f=$(scratch_dir preflight-bad-json)
+make_project "$S9f" flat
+echo '{"name": "bad", this is not valid json' > "$S9f/package.json"
+LOG9f="$S9f/.setup.log"
+
+run_setup "$S9f" "$LOG9f" -p "PreflightF" -t typescript
+assert_equals "$?" "0" "malformed package.json → setup STILL exits 0 (no set -e abort)"
+assert_contains "$LOG9f" "Prerequisites OK" \
+    "setup reached Prerequisites OK despite malformed package.json"
+
 # ===========================================================================
 # Report
 # ===========================================================================
