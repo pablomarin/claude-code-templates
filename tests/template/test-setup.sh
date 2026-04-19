@@ -270,6 +270,75 @@ assert_hash_equals "$S8/CLAUDE.md" "$HASH_CLAUDE" \
     "-f does not touch CLAUDE.md"
 
 # ===========================================================================
+# Test 9: runtime preflight — warns but never blocks
+# ===========================================================================
+start_test "Test 9: runtime preflight is warn-only"
+
+# Case A: .python-version pinned to an impossible version → warning + exit 0
+S9a=$(scratch_dir preflight-py)
+make_project "$S9a" flat
+echo "99.99.99" > "$S9a/.python-version"
+LOG9a="$S9a/.setup.log"
+
+run_setup "$S9a" "$LOG9a" -p "PreflightA" -t python
+assert_equals "$?" "0" "impossible .python-version → setup still exits 0"
+assert_matches "$LOG9a" ".python-version requires.*99\.99\.99" \
+    "preflight warns about missing Python version"
+assert_contains "$LOG9a" "uv python install 99.99.99" \
+    "warning includes install guidance"
+assert_contains "$LOG9a" "multi-project-isolation.md" \
+    "warning points to the canonical doc"
+assert_contains "$LOG9a" "Prerequisites OK" \
+    "setup proceeds past preflight to Prerequisites OK"
+
+# Case B: .nvmrc pinned to an impossible version → warning + exit 0
+S9b=$(scratch_dir preflight-node)
+make_project "$S9b" flat
+echo "999" > "$S9b/.nvmrc"
+LOG9b="$S9b/.setup.log"
+
+run_setup "$S9b" "$LOG9b" -p "PreflightB" -t typescript
+assert_equals "$?" "0" "impossible .nvmrc → setup still exits 0"
+assert_matches "$LOG9b" ".nvmrc requires Node.*999" \
+    "preflight warns about missing Node version"
+assert_contains "$LOG9b" "fnm install 999" \
+    "warning includes fnm install guidance"
+
+# Case C: no version pins at all → preflight silent (no warnings emitted)
+S9c=$(scratch_dir preflight-none)
+make_project "$S9c" flat
+LOG9c="$S9c/.setup.log"
+
+run_setup "$S9c" "$LOG9c" -p "PreflightC" -t fullstack
+assert_equals "$?" "0" "no pins → setup exits 0"
+assert_not_contains "$LOG9c" ".python-version requires" \
+    "no Python warning when no .python-version"
+assert_not_contains "$LOG9c" ".nvmrc requires" \
+    "no Node warning when no .nvmrc"
+assert_not_contains "$LOG9c" "multi-project-isolation.md" \
+    "no canonical-doc reference when no warnings fired"
+
+# Case D: .python-version matching the system interpreter → green check, no warning
+# Use the actual running python3 version so this is deterministic across CI machines.
+S9d=$(scratch_dir preflight-match)
+make_project "$S9d" flat
+if command -v python3 >/dev/null 2>&1; then
+    PY_CURRENT=$(python3 --version 2>&1 | awk '{print $2}')
+    if [[ -n "$PY_CURRENT" ]]; then
+        echo "$PY_CURRENT" > "$S9d/.python-version"
+        LOG9d="$S9d/.setup.log"
+        run_setup "$S9d" "$LOG9d" -p "PreflightD" -t python
+        assert_equals "$?" "0" "matching .python-version → setup exits 0"
+        assert_contains "$LOG9d" "Python $PY_CURRENT available" \
+            "preflight reports Python version as available"
+        assert_not_contains "$LOG9d" ".python-version requires" \
+            "no warning when version is available"
+    fi
+else
+    printf "  %s·%s skipped (python3 not installed): Case D\n" "$C_DIM" "$C_RESET"
+fi
+
+# ===========================================================================
 # Report
 # ===========================================================================
 report "test-setup.sh"

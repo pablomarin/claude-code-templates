@@ -266,6 +266,135 @@ if [[ ! -f "$HOME/.claude/CLAUDE.md" ]]; then
     echo -e "${YELLOW}⚠ Global memory not set up. Run: $SCRIPT_DIR/setup.sh --global${NC}"
 fi
 
+# ---------------------------------------------------------------------------
+# Runtime version preflight (warn-only, never blocks).
+#
+# Scope (intentionally narrow for v1, per Engineering Council verdict):
+#   - Reads repo-root .python-version, .nvmrc, and root package.json:engines.node
+#   - Prints a warning with install guidance if the declared runtime is missing
+#   - NEVER sets a non-zero exit code — --upgrade must always complete
+#   - Silent if no pins exist
+#
+# Full rationale + troubleshooting: docs/guides/multi-project-isolation.md
+# ---------------------------------------------------------------------------
+preflight_python_version() {
+    local required="$1"
+    # Try version managers + system interpreter in order of reliability.
+    # If ANY of them can supply the required version, we're good.
+    if command -v uv &>/dev/null; then
+        uv python list 2>/dev/null | grep -qF "$required" && return 0
+    fi
+    if command -v pyenv &>/dev/null; then
+        pyenv versions --bare 2>/dev/null | grep -qF "$required" && return 0
+    fi
+    # System python3.X where X matches (e.g., python3.12 for .python-version=3.12.5)
+    local major_minor
+    major_minor=$(echo "$required" | awk -F. '{print $1"."$2}')
+    if [[ -n "$major_minor" ]] && command -v "python$major_minor" &>/dev/null; then
+        return 0
+    fi
+    # Fallback: exact match from plain python3 --version
+    if command -v python3 &>/dev/null; then
+        python3 --version 2>&1 | grep -qF "$required" && return 0
+    fi
+    return 1
+}
+
+preflight_node_version() {
+    local required="$1"
+    # Strip leading 'v' if present (.nvmrc sometimes has it)
+    required="${required#v}"
+    if command -v node &>/dev/null; then
+        local current
+        current=$(node --version 2>/dev/null | sed 's/^v//')
+        # Match major version (.nvmrc often says just "20" meaning any 20.x)
+        local req_major cur_major
+        req_major=$(echo "$required" | awk -F. '{print $1}')
+        cur_major=$(echo "$current" | awk -F. '{print $1}')
+        [[ "$req_major" == "$cur_major" ]] && return 0
+    fi
+    # Version managers
+    for vm in fnm nvm volta; do
+        if command -v "$vm" &>/dev/null; then
+            "$vm" list 2>/dev/null | grep -qF "$required" && return 0
+        fi
+    done
+    return 1
+}
+
+preflight_node_engines() {
+    # $1 = engines.node constraint (e.g., ">=20", "^18.0.0", "20")
+    local constraint="$1"
+    # Extract minimum major version from constraint for a rough check.
+    # Not a full semver solver — good enough for "is node the right major-ish?"
+    local min_major
+    min_major=$(echo "$constraint" | grep -oE '[0-9]+' | head -1)
+    [[ -z "$min_major" ]] && return 0  # Unparseable — skip rather than false-warn
+    if ! command -v node &>/dev/null; then
+        return 1
+    fi
+    local current_major
+    current_major=$(node --version 2>/dev/null | sed 's/^v//' | awk -F. '{print $1}')
+    [[ -z "$current_major" ]] && return 1
+    # Simple >= check; doesn't handle complex ranges but covers 95% of real engines fields
+    [[ "$current_major" -ge "$min_major" ]]
+}
+
+echo -e "${YELLOW}Runtime version preflight...${NC}"
+PREFLIGHT_WARNED=0
+
+# .python-version (strip whitespace/comments)
+if [[ -f ".python-version" ]]; then
+    PY_REQ=$(head -1 .python-version | tr -d '[:space:]')
+    if [[ -n "$PY_REQ" ]]; then
+        if preflight_python_version "$PY_REQ"; then
+            echo -e "  ${GREEN}✓${NC} Python $PY_REQ available (from .python-version)"
+        else
+            PREFLIGHT_WARNED=1
+            echo -e "  ${YELLOW}⚠${NC} .python-version requires ${YELLOW}$PY_REQ${NC}, not detected on this machine."
+            echo -e "    Install one of:"
+            echo -e "      ${BLUE}uv python install $PY_REQ${NC}       (fastest — uv-native)"
+            echo -e "      ${BLUE}pyenv install $PY_REQ${NC}          (classic)"
+            echo -e "    Setup continues; uv sync will retry at project build time."
+        fi
+    fi
+fi
+
+# .nvmrc
+if [[ -f ".nvmrc" ]]; then
+    NODE_REQ=$(head -1 .nvmrc | tr -d '[:space:]')
+    if [[ -n "$NODE_REQ" ]]; then
+        if preflight_node_version "$NODE_REQ"; then
+            echo -e "  ${GREEN}✓${NC} Node $NODE_REQ available (from .nvmrc)"
+        else
+            PREFLIGHT_WARNED=1
+            echo -e "  ${YELLOW}⚠${NC} .nvmrc requires Node ${YELLOW}$NODE_REQ${NC}, not detected on this machine."
+            echo -e "    Install one of:"
+            echo -e "      ${BLUE}fnm install $NODE_REQ${NC}           (fastest — auto-switches)"
+            echo -e "      ${BLUE}nvm install $NODE_REQ${NC}           (classic)"
+            echo -e "      ${BLUE}volta install node@$NODE_REQ${NC}"
+        fi
+    fi
+fi
+
+# Root package.json engines.node (only check root to keep v1 scope narrow)
+if [[ -f "package.json" ]] && command -v jq &>/dev/null; then
+    NODE_ENGINES=$(jq -r '.engines.node // empty' package.json 2>/dev/null)
+    if [[ -n "$NODE_ENGINES" ]]; then
+        if preflight_node_engines "$NODE_ENGINES"; then
+            echo -e "  ${GREEN}✓${NC} Node satisfies engines.node ${BLUE}$NODE_ENGINES${NC}"
+        else
+            PREFLIGHT_WARNED=1
+            echo -e "  ${YELLOW}⚠${NC} package.json engines.node requires ${YELLOW}$NODE_ENGINES${NC}, current Node does not match."
+            echo -e "    Install a matching Node version via fnm / nvm / volta."
+        fi
+    fi
+fi
+
+if [[ "$PREFLIGHT_WARNED" -eq 1 ]]; then
+    echo -e "  ${BLUE}ℹ${NC} See docs/guides/multi-project-isolation.md for the full policy."
+fi
+
 echo -e "${GREEN}✓ Prerequisites OK${NC}"
 echo ""
 
