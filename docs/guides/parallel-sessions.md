@@ -2,6 +2,8 @@
 
 Run multiple Claude Code sessions simultaneously on the same project — each working on a different feature without conflicts.
 
+> **Working across multiple projects with different Python/Node versions?** Worktree isolation only covers one project. For per-project interpreter isolation see [Multi-Project Isolation](multi-project-isolation.md).
+
 ## How It Works
 
 When you run `/new-feature` or `/fix-bug` from the `main` branch, the workflow automatically:

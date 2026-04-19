@@ -119,6 +119,24 @@ assert_contains "$FB" ".claude/playwright-dir" \
     "commands/fix-bug.md reads marker file"
 
 # ---------------------------------------------------------------------------
+# Contract 5: runtime preflight parity — both installers check the same files
+# and document the same canonical guide. Prevents one platform from silently
+# diverging.
+# ---------------------------------------------------------------------------
+start_test "Runtime preflight parity — setup.sh ↔ setup.ps1"
+
+for file in ".python-version" ".nvmrc" "package.json" "multi-project-isolation.md"; do
+    assert_contains "$REPO_ROOT/setup.sh" "$file" \
+        "setup.sh references $file"
+    assert_contains "$REPO_ROOT/setup.ps1" "$file" \
+        "setup.ps1 references $file"
+done
+
+# The guide itself must exist (warnings point to it)
+assert_file_exists "$REPO_ROOT/docs/guides/multi-project-isolation.md" \
+    "canonical isolation guide exists"
+
+# ---------------------------------------------------------------------------
 # Contract 4: CI template placeholder ↔ setup.sh substitution
 # ---------------------------------------------------------------------------
 start_test "__PLAYWRIGHT_DIR__ placeholder ↔ setup.sh substitution"

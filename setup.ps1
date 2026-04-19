@@ -254,6 +254,153 @@ if (-not (Test-Path $globalClaude)) {
     Write-Color "Warning: Global memory not set up. Run: & $ScriptDir\setup.ps1 -Global" "Yellow"
 }
 
+# ---------------------------------------------------------------------------
+# Runtime version preflight (warn-only, never blocks).
+# Mirrors the POSIX logic in setup.sh. See docs/guides/multi-project-isolation.md
+# for the full policy. Scope for v1: repo-root .python-version, .nvmrc, and
+# root package.json engines.node. Never changes exit code.
+# ---------------------------------------------------------------------------
+function Test-PythonVersion([string]$required) {
+    # NOTE: use `uv python find` (checks only installed interpreters), not
+    # `uv python list` (which includes downloadable ones and would false-positive).
+    if (Get-Command uv -ErrorAction SilentlyContinue) {
+        uv python find $required *>$null 2>&1
+        if ($LASTEXITCODE -eq 0) { return $true }
+    }
+    if (Get-Command pyenv -ErrorAction SilentlyContinue) {
+        $pyenvList = pyenv versions --bare 2>$null
+        if ($pyenvList -and ($pyenvList -match [regex]::Escape($required))) { return $true }
+    }
+    $parts = $required.Split('.')
+    if ($parts.Length -ge 2) {
+        $mm = "python$($parts[0]).$($parts[1])"
+        if (Get-Command $mm -ErrorAction SilentlyContinue) { return $true }
+    }
+    if (Get-Command python3 -ErrorAction SilentlyContinue) {
+        $v = (python3 --version 2>&1) -join ""
+        if ($v -match [regex]::Escape($required)) { return $true }
+    }
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        $v = (python --version 2>&1) -join ""
+        if ($v -match [regex]::Escape($required)) { return $true }
+    }
+    return $false
+}
+
+function Test-NodeVersion([string]$required) {
+    $required = $required.TrimStart('v')
+    # Bare-major pin ('20') vs full version ('20.11.0'). Full versions require
+    # exact match; bare majors allow any patch under that major.
+    $isFullVersion = $required.Contains('.')
+
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        $current = ((node --version 2>$null) -replace '^v', '').Trim()
+        if ($isFullVersion) {
+            if ($required -eq $current) { return $true }
+        } else {
+            $reqMajor = ($required.Split('.'))[0]
+            $curMajor = ($current.Split('.'))[0]
+            if ($reqMajor -eq $curMajor) { return $true }
+        }
+    }
+    foreach ($vm in @('fnm', 'nvm', 'volta')) {
+        if (Get-Command $vm -ErrorAction SilentlyContinue) {
+            $list = (& $vm list 2>$null) -join "`n"
+            if (-not $list) { continue }
+            if ($isFullVersion) {
+                # Match bounded: v?20.11.0 followed by non-digit or EOL
+                $escaped = [regex]::Escape($required)
+                if ($list -match "v?$escaped(?:[^0-9]|$)") { return $true }
+            } else {
+                # Match v?20.<digit> — any patch under the major
+                if ($list -match "v?$required\.[0-9]") { return $true }
+            }
+        }
+    }
+    return $false
+}
+
+function Test-NodeEngines([string]$constraint) {
+    $minMajorMatch = [regex]::Match($constraint, '\d+')
+    if (-not $minMajorMatch.Success) { return $true }  # unparseable — skip
+    $minMajor = [int]$minMajorMatch.Value
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) { return $false }
+    $current = ((node --version 2>$null) -replace '^v', '').Trim()
+    $curMajor = [int]($current.Split('.'))[0]
+    return $curMajor -ge $minMajor
+}
+
+Write-Color "Runtime version preflight..." "Yellow"
+$script:PreflightWarned = $false
+
+if (Test-Path ".python-version") {
+    $pyReq = (Get-Content ".python-version" -TotalCount 1).Trim()
+    if ($pyReq) {
+        if (Test-PythonVersion $pyReq) {
+            Write-Host "  " -NoNewline
+            Write-Color "+" "Green"
+            Write-Host " Python $pyReq available (from .python-version)"
+        } else {
+            $script:PreflightWarned = $true
+            Write-Host "  " -NoNewline
+            Write-Color "!" "Yellow"
+            Write-Host " .python-version requires $pyReq, not detected on this machine."
+            Write-Host "    Install one of:"
+            Write-Host "      uv python install $pyReq       (fastest - uv-native)"
+            Write-Host "      pyenv install $pyReq           (classic)"
+            Write-Host "    Setup continues; uv sync will retry at project build time."
+        }
+    }
+}
+
+if (Test-Path ".nvmrc") {
+    $nodeReq = (Get-Content ".nvmrc" -TotalCount 1).Trim()
+    if ($nodeReq) {
+        if (Test-NodeVersion $nodeReq) {
+            Write-Host "  " -NoNewline
+            Write-Color "+" "Green"
+            Write-Host " Node $nodeReq available (from .nvmrc)"
+        } else {
+            $script:PreflightWarned = $true
+            Write-Host "  " -NoNewline
+            Write-Color "!" "Yellow"
+            Write-Host " .nvmrc requires Node $nodeReq, not detected on this machine."
+            Write-Host "    Install one of:"
+            Write-Host "      fnm install $nodeReq           (fastest - auto-switches)"
+            Write-Host "      nvm install $nodeReq           (classic)"
+            Write-Host "      volta install node@$nodeReq"
+        }
+    }
+}
+
+if (Test-Path "package.json") {
+    try {
+        $pkg = Get-Content "package.json" -Raw | ConvertFrom-Json
+        $enginesNode = $pkg.engines.node
+        if ($enginesNode) {
+            if (Test-NodeEngines $enginesNode) {
+                Write-Host "  " -NoNewline
+                Write-Color "+" "Green"
+                Write-Host " Node satisfies engines.node $enginesNode"
+            } else {
+                $script:PreflightWarned = $true
+                Write-Host "  " -NoNewline
+                Write-Color "!" "Yellow"
+                Write-Host " package.json engines.node requires $enginesNode, current Node does not match."
+                Write-Host "    Install a matching Node version via fnm / nvm / volta."
+            }
+        }
+    } catch {
+        # Unparseable package.json — skip rather than false-warn
+    }
+}
+
+if ($script:PreflightWarned) {
+    Write-Host "  " -NoNewline
+    Write-Color "i" "Blue"
+    Write-Host " See docs\guides\multi-project-isolation.md for the full policy."
+}
+
 Write-Host "  " -NoNewline
 Write-Color "+" "Green"
 Write-Host " Prerequisites OK"
