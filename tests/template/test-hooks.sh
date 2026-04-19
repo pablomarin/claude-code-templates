@@ -260,12 +260,17 @@ setup_git_scratch() {
     (
         cd "$dir" || exit 1
         git init -q --initial-branch=main
-        git -c user.email=test@test -c user.name=test commit -q --allow-empty -m "initial"
+        git -c user.email=test@test -c user.name=test commit -q --allow-empty -m "initial-on-main"
         # Wait a second so branch-off timestamp is strictly less than
         # any files we create post-checkout (avoids flaky == comparisons
         # on fast CPUs).
         sleep 1
         git checkout -q -b feature/test
+        # Real feature branches have at least one commit beyond the
+        # branch-off point. Without this, HEAD == merge-base and the
+        # evidence check would (correctly) skip as "on main directly"
+        # — making the feature-branch tests no-ops.
+        git -c user.email=test@test -c user.name=test commit -q --allow-empty -m "feature work"
     )
     echo "$dir"
 }
@@ -348,6 +353,27 @@ S13=$(scratch_dir e2e-nomaster)
 # degraded env, not a policy violation.
 rc=$(run_hook_sh "$S13" 'git commit -m x' "$CHECKLIST_E2E_CHECKED_NO_NA")
 assert_equals "$rc" "0" "degraded env (no main/master) → hook passes with warning"
+
+# ===========================================================================
+# Test 14: On main itself → skip evidence check (trunk-based workflow)
+# Regression guard for Codex's P1: git merge-base HEAD main returns HEAD
+# when on main, which is NOT empty. Without special-case handling, the
+# hook would require reports newer than HEAD — which is usually impossible
+# because reports are produced AFTER HEAD, not before.
+# ===========================================================================
+start_test "user on main → skip evidence check (trunk-based)"
+
+S14=$(scratch_dir e2e-on-main)
+(
+    cd "$S14" || exit 1
+    git init -q --initial-branch=main
+    git -c user.email=test@test -c user.name=test commit -q --allow-empty -m "initial"
+    # STAY on main — no feature branch checkout.
+)
+# [x] E2E verified without N/A + no reports. Without the HEAD==branch-off
+# fix, this would block. With the fix, it should pass (skip evidence).
+rc=$(run_hook_sh "$S14" 'git commit -m x' "$CHECKLIST_E2E_CHECKED_NO_NA")
+assert_equals "$rc" "0" "on main directly → evidence check skipped (trunk-based workflow supported)"
 
 # ===========================================================================
 # Report

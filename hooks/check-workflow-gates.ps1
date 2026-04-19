@@ -105,6 +105,15 @@ if ($e2eCheckedLine -and ($e2eCheckedLine -notmatch 'N/A:')) {
     $branchOff = git merge-base HEAD main 2>$null
     if (-not $branchOff) { $branchOff = git merge-base HEAD master 2>$null }
 
+    # If HEAD itself IS the branch-off point (user is on main/master, not a
+    # feature branch), there's no meaningful "produced on this branch"
+    # comparison. Skip the evidence check — matches the documented "on main
+    # → skip" contract in rules/testing.md.
+    $headSha = git rev-parse HEAD 2>$null
+    if ($branchOff -and $headSha -and ($branchOff.Trim() -eq $headSha.Trim())) {
+        $branchOff = $null  # Force the skip path below
+    }
+
     if ($branchOff) {
         $branchOffTsStr = git log -1 --format=%ct $branchOff 2>$null
         $branchOffTs = 0

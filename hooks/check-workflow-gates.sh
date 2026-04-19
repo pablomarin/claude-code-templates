@@ -114,6 +114,15 @@ if [ -n "$E2E_CHECKED_LINE" ] && ! echo "$E2E_CHECKED_LINE" | grep -qE 'N/A:'; t
     # Find the branch-off commit (try main, fall back to master, else skip).
     BRANCH_OFF=$(git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null || true)
 
+    # If HEAD itself IS the branch-off point (i.e., user is on main/master
+    # directly, not a feature branch), there's no meaningful "produced on
+    # this branch" comparison to make. Skip the evidence check — matches
+    # the documented "on main → skip" contract in rules/testing.md.
+    HEAD_SHA=$(git rev-parse HEAD 2>/dev/null || true)
+    if [ -n "$BRANCH_OFF" ] && [ -n "$HEAD_SHA" ] && [ "$BRANCH_OFF" = "$HEAD_SHA" ]; then
+        BRANCH_OFF=""  # Force the skip path below
+    fi
+
     if [ -n "$BRANCH_OFF" ]; then
         BRANCH_OFF_TS=$(git log -1 --format=%ct "$BRANCH_OFF" 2>/dev/null || echo "")
     else
