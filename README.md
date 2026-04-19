@@ -74,6 +74,20 @@ Full walkthrough with platform-specific (Windows/macOS/Linux) instructions, the 
 
 Windows users: [PowerShell instructions](docs/getting-started.md#windows).
 
+### Running setup later
+
+`setup.sh` is safe to re-run. Three modes:
+
+| Command                         | Use case                                                                                                                                                                                                                                                                           |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup.sh -p "Name"` (no flags) | **First install** on a new project. Also safe to re-run later to fill in missing template files without disturbing anything that already exists.                                                                                                                                   |
+| `setup.sh --upgrade`            | **Routine template updates** on an existing project. Refreshes hooks, commands, rules, and agents. **Merges** `.claude/settings.json` and `.mcp.json` so your customizations (permissions, plugins, extra MCP servers) are preserved. Creates a timestamped `.bak` before merging. |
+| `setup.sh -f`                   | **Reset to template verbatim.** Overwrites `.claude/settings.json` and `.mcp.json` — wipes your customizations. No backup. Use only if your setup is corrupted or you've never customized anything.                                                                                |
+
+`CLAUDE.md`, `CONTINUITY.md`, and `docs/CHANGELOG.md` are always preserved — the template initializes them on first install and never touches them afterward, regardless of flags.
+
+Full flag reference: **[Upgrading guide →](docs/guides/upgrading.md)**
+
 ## How it works
 
 One feature goes from idea to merged PR across 14 enforced phases — from PRD through research, dual-reviewer design loops, TDD execution, parallel code review, simplify + verify + E2E, compound learnings, and PR reviewer handling.
