@@ -2,6 +2,26 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.9 — 2026-04-18 · E2E verified gate — close the silent-skip loophole
+
+Closes the loophole the Engineering Council flagged: before this release, `check-workflow-gates.sh` blocked commit/push/PR on `Code review loop` / `Simplified` / `Verified (tests`, but NOT on `E2E verified`. A downstream project (msai-v2) shipped 155 commits with every E2E checklist item unchecked. Council verdict (5 advisors + Codex chairman): ship narrow enforcement, canonicalize marker vocabulary in the same PR, defer operator-verification redesign.
+
+- **`E2E verified` added to the gated markers** in `hooks/check-workflow-gates.sh` and `.ps1`. An active workflow with `- [ ] E2E verified` now blocks `git commit`, `git push`, and `gh pr create` with exit 2. The gate accepts either the checked-passing form (`- [x] E2E verified via verify-e2e agent (Phase 5.4)`) or the documented N/A escape (`- [x] E2E verified — N/A: <reason>`).
+- **Canonical marker vocabulary** — `rules/testing.md` now has a "Canonical E2E gate vocabulary" section naming the exact stem (`E2E verified`) and N/A form. The old drifting string `E2E use cases tested — N/A` in the rules has been unified to match the hook + workflow commands.
+- **Remediation message** — both hooks now print specific next-step commands when gates fail: `/codex review`, `/simplify`, `verify-app` agent, `verify-e2e` agent, plus the N/A format. Points at `rules/testing.md` for the full contract.
+- **`tests/template/test-hooks.sh`** — new fixture-driven suite (13 assertions) feeding synthetic CONTINUITY.md into the hook and asserting exit codes: all checked → exit 0, E2E unchecked → exit 2 + correct stderr, E2E N/A → exit 0, non-ship command → always 0, inactive workflow → always 0, near-miss items (PR reviews addressed, Plan review loop, E2E use cases designed) NOT gated, PowerShell parity (skipped without pwsh).
+- **`test-contracts.sh` Contract 6** — cross-file marker consistency: the exact stem `E2E verified` must appear in both hooks, both workflow commands, and `rules/testing.md`. The N/A form uses em-dash (—) literally, contracted across all files.
+
+Suite grows 147 → 170 assertions, all pass on this branch.
+
+Explicitly NOT in this PR (Council deferred):
+
+- Operator-driven verify-e2e mode (contradicts current ARRANGE/VERIFY boundary; needs its own design pass)
+- Non-fullstack guard reading `interface_type` from CLAUDE.md (acceptable risk for now — N/A escape handles library/CLI-only projects)
+- Evidence-based gating that checks for an actual `tests/e2e/reports/*.md` artifact (larger contract change)
+- CI activation via `setup.sh --with-ci` (separate PR)
+- Structured HTML-comment marker anchors for drift immunity (deferred to hardening pass)
+
 ## 5.8 — 2026-04-18 · Multi-project interpreter preflight + isolation guide
 
 Handles the "I work on 5 projects with different Python/Node versions" case. Recommendation came from a 5-advisor Engineering Council session with Codex chairman synthesis.
