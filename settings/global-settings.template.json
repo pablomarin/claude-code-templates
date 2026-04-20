@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'COMPACTION IMMINENT. Save any valuable learnings from this session to auto memory (MEMORY.md or topic files): patterns, bug root causes, architecture insights, user preferences. NOT session-specific state.' >&2; exit 2",
+            "command": "echo 'COMPACTION IMMINENT. Save any valuable learnings from this session to auto memory (MEMORY.md or topic files): patterns, bug root causes, architecture insights, user preferences. NOT session-specific state.' >&2; exit 0",
             "timeout": 10
           }
         ]
