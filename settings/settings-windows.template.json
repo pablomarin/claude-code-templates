@@ -78,7 +78,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -Command \"Write-Error 'COMPACTION IMMINENT. Save learnings to auto memory: bug root causes, patterns, architecture insights, user preferences. NOT session state (that goes in CONTINUITY.md).'; exit 2\"",
+            "command": "powershell -Command \"Write-Error 'COMPACTION IMMINENT. Save learnings to auto memory: bug root causes, patterns, architecture insights, user preferences. NOT session state (that goes in CONTINUITY.md).'; exit 0\"",
             "timeout": 10
           },
           {
