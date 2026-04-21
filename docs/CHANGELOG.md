@@ -2,6 +2,27 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.11 — 2026-04-20 · ARRANGE rule — close the E2E actor-boundary gap via text layer
+
+Closes the MSAI field-testing gap where Claude ran `docker exec postgres psql -c "INSERT INTO ..."` during E2E setup, bypassing the ARRANGE rule. When the user caught it, Claude "backed out" with a raw `DELETE` (compounding the violation) and had also sidestepped a real bug in the sanctioned CLI path (violating NO BUGS LEFT BEHIND in the same flow).
+
+**Council verdict on path forward** (5 advisors + Codex chairman, Contrarian reframe decisive): the failure is a rule-text + actor-boundary problem, not a command-detection problem. Ship text-layer fixes; shelf the shell-regex hook.
+
+- **`rules/critical-rules.md:9`** — E2E TESTING bullet now names ARRANGE explicitly with concrete forbidden examples (`psql -c "INSERT"`, `mysql -e "UPDATE"`, `mongosh --eval`) and ties to NO BUGS LEFT BEHIND. Previously only mentioned "No cheating in VERIFY" — silent on ARRANGE, the phase that was actually violated.
+- **`rules/testing.md:176`** — the sentence "This principle applies strictly to the VERIFY phase, **not** the ARRANGE phase" was a direct contradiction of the forbidden list immediately below. Rewritten: ARRANGE has flexibility about _which_ sanctioned interface to use, but not permission to sidestep them. Raw DB writes, internal endpoints, and file-injection are forbidden in both phases.
+- **`agents/verify-e2e.md` Critical Constraint #2** — was "ARRANGE may use sanctioned setup paths"; now explicitly forbids raw DB writes and tells the agent to report FAIL_INFRA on broken sanctioned paths rather than routing around them.
+- **`commands/new-feature.md` + `commands/fix-bug.md` Phase 5.4** — new phase-local ARRANGE-boundary reminder for the main agent _before_ verify-e2e dispatch. The Contrarian's actor-boundary insight: the cheat happened in the main session, not the subagent; bind the main agent to the same rule at the exact moment the behavior is decided.
+
+5 files changed, 7 insertions, 3 deletions.
+
+Explicitly NOT shipped — shell-regex PreToolUse hook:
+
+- **v1** (stderr WARN): wrong output channel — per Anthropic docs, `PreToolUse` stderr only reaches Claude on exit 2; exit 0 drops stderr silently.
+- **v2** (stdout JSON + pinned-start regex): still had greedy `.*` false positives on `SELECT ... '%INSERT%'` literals.
+- **v3** (anti-FP guards): Guard 2 (quote-prefix rejection) introduced a new false negative on `docker exec pg bash -lc "psql -c \"INSERT\""` — the hook would have FAILED to catch a near-variant of the motivating MSAI cheat. Still had persistent false positives on `python -c`, `jq`, `curl -d` payloads where `psql` appears as a string literal.
+
+Three rounds of polish traded one gap for another — the Scalability Hawk's original OBJECT was vindicated. Archived v3 plan + full council reasoning in `docs/plans/2026-04-20-arrange-rule-enforcement-plan.md` (gitignored). Revisit only if the text layer fails in field testing, and only with a different primitive (audit-log-only telemetry, Stop-hook phase-scoped reminder, etc. — **not** a PreToolUse shell-regex).
+
 ## 5.10 — 2026-04-18 · Evidence-based E2E gate (Phase 2 of the enforcement cycle)
 
 Closes the Contrarian's deferred P0 from the 5.9 Council session: the paperwork-only gate let a bad-faith operator type `[x] E2E verified` without actually running the verify-e2e agent. Phase 2 binds the checkbox claim to a real filesystem artifact.
