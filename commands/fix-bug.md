@@ -498,6 +498,8 @@ npm test && npm run lint && npm run typecheck  # Node
 
 The verify-e2e agent tests as a real user: no database access, no internal endpoints, no source code reading. It executes user journey use cases through the product's actual user-facing interfaces and returns a markdown report in its response. **The agent is read-only — YOU persist the report to disk.**
 
+**⚠ ARRANGE boundary (main agent, read before invoking verify-e2e):** Even when setting up test data for verify-e2e yourself, you are bound by the same ARRANGE rule. **Never** run raw DB writes (`psql -c "INSERT"`, `docker exec … psql -c "INSERT"`, `mysql -e "UPDATE"`, `mongosh --eval db.x.insertOne(…)`), internal/undocumented endpoints, or on-disk file-injection to seed state. Setup must go through the app's public API, signup/login flows, app CLI, UI, or documented seed commands (`make seed-dev`, `manage.py loaddata`). **If the sanctioned setup path is broken** (e.g., the app's seed CLI has a bug), **FIX the bug first** — do not route around it via direct DB writes. This is NO BUGS LEFT BEHIND applied at the E2E boundary.
+
 **Step 0: Ensure use cases exist (simple-fix path only)**
 
 Simple fixes (1-2 files, non-high-impact) skip Phase 3 entirely — so no plan file exists. If you took the simple-fix path AND the change is user-facing:

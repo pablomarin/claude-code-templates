@@ -173,7 +173,7 @@ The E2E scope depends on the project's user interfaces (declared in `CLAUDE.md` 
 
 ## ARRANGE vs VERIFY — The "No Cheating" Boundary
 
-E2E tests simulate a real user who has no access to internal systems. This principle applies strictly to the VERIFY phase, not the ARRANGE phase.
+E2E tests simulate a real user who has no access to internal systems. VERIFY must stay strictly within user-facing interfaces — no exceptions. ARRANGE has slightly wider latitude (setup through any user-accessible interface — see the allowed/forbidden lists below) but **also** forbids raw DB writes, internal endpoints, and file-injection. Setup gets flexibility about **which** sanctioned interface to use; it does not get permission to sidestep them. If the sanctioned path is broken, fix it — do not route around it (see `rules/critical-rules.md` **NO BUGS LEFT BEHIND**).
 
 **ARRANGE (test setup) — allowed methods:**
 
