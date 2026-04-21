@@ -2,6 +2,27 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.12 — 2026-04-21 · Template-drift notice on `setup.sh -f` / `--upgrade`
+
+Closes the downstream pain path the user surfaced directly: after bumping the harness repo, running `./setup.sh -f` in a pre-existing project didn't warn that `CLAUDE.template.md` had evolved since their `CLAUDE.md` was originally copied. The user only saw `Your CLAUDE.md and CONTINUITY.md were not modified` and had to manually ask Claude to reconcile the template against the local file.
+
+Codex second-opinion pass (5 plan-review iterations + 2 code-review iterations) locked the approach at: **loud notice, no auto-diff, no section-marker merging**. Rejected alternatives: auto-running `git diff` inline during install (noisy on heavily-customized CLAUDE.md) and section-marker-based partial ownership (user file is intentionally freeform).
+
+- **`setup.sh` + `setup.ps1`** — new helper (`print_template_drift_hint` / `Write-TemplateDriftHint`) fired at the CLAUDE.md / CONTINUITY.md preserved-file branches; consolidated reminder block at the end-of-`--upgrade` summary. Both installers capture pre-copy `had_claude_md` / `$hadClaude` booleans so we only claim a file was preserved when this run actually preserved it (fixing a pre-existing bug where the summary lied if the user deleted one of the files before `--upgrade`). Emitted `git diff --no-index` command uses single-quoted paths + `$(pwd)`-absolutized local side so it survives copy-paste across shells and working dirs.
+- **Final-summary line** now has four boolean-gated variants (both preserved / only CLAUDE / only CONTINUITY / neither). The legacy hardcoded `were not modified` is gone.
+- **`tests/template/test-setup.sh`** — Test 8 extended with CONTINUITY.md sentinel + hash check + drift-notice assertions + first-install regression guard; new Test 10 (Scenarios A/B/C) covers the asymmetric preservation matrix (CLAUDE deleted, CONTINUITY deleted, both deleted). Suite grows from 75 → 100 assertions in test-setup.sh.
+- **`tests/template/test-contracts.sh` Contract 7** — template-drift parity gate. Asserts both installers ship (i) the user-facing `Template may have drifted` string, (ii) both template filenames, (iii) `git diff --no-index`, (iv) exact call-site fingerprints like `print_template_drift_hint "CLAUDE.template.md" "CLAUDE.md"` (closes the dead-helper / missing-callsite loophole), (v) all three positive final-summary variants + negative guard against the legacy `were not modified` string. Contract 7 is the only Windows safety net — bash tests can't execute PowerShell — so variants must exist literally in both files.
+
+Suite: 179 → 223 assertions across 5 bash suites, ~5s local run.
+
+Explicitly NOT shipped (scope discipline, deferred per Codex iter-1 plan review):
+
+- **`--global` / `GLOBAL-CLAUDE.template.md`** — currently goes through `copy_file` which overwrites. Adding drift notice there would first require deciding whether `~/.claude/CLAUDE.md` should become user-owned. Separate policy question, separate PR.
+- **Auto-diff rendering** in the installer — Codex recommended deferring behind an opt-in `--show-template-diff` flag if demand emerges. Noisy by default on heavily-customized CLAUDE.md.
+- **Path-apostrophe escape in emitted `git diff` command** — P3 from code review iter 2 (project path like `Client's Repo` would break single-quoting). Fixing properly requires `printf %q` (bash) + `EscapeSingleQuotedStringContent` (PowerShell); real overkill for a diff suggestion string. Out of scope.
+
+**Remediation for existing installs:** `./setup.sh -f` to pick up the notice. The notice fires inside the existing-file branch which runs any time `CLAUDE.md` / `CONTINUITY.md` already exist — no new flags needed.
+
 ## 5.11 — 2026-04-20 · ARRANGE rule — close the E2E actor-boundary gap via text layer
 
 Closes the MSAI field-testing gap where Claude ran `docker exec postgres psql -c "INSERT INTO ..."` during E2E setup, bypassing the ARRANGE rule. When the user caught it, Claude "backed out" with a raw `DELETE` (compounding the violation) and had also sidestepped a real bug in the sanctioned CLI path (violating NO BUGS LEFT BEHIND in the same flow).

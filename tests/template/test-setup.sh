@@ -233,6 +233,12 @@ assert_file_exists "$S8/.claude/commands/new-feature.md" \
 assert_file_exists "$S8/docs/CHANGELOG.md" \
     "initial install created docs/CHANGELOG.md"
 
+# First-install drift-notice regression guard: LOG8a is the initial-install
+# log from above. CLAUDE.md/CONTINUITY.md did not exist before that run, so
+# no drift hint should have fired.
+assert_not_contains "$LOG8a" "Template may have drifted" \
+    "first install does NOT show drift notice (UC3 regression guard)"
+
 # Simulate the user actually using CHANGELOG and CLAUDE.md — they add their
 # own release entries and project notes. This is the content that MUST NOT
 # be wiped on later upgrade/force.
@@ -240,8 +246,11 @@ CHANGELOG_SENTINEL="## 1.2.3 — USER RELEASE ENTRY SENTINEL"
 echo "$CHANGELOG_SENTINEL" >> "$S8/docs/CHANGELOG.md"
 CLAUDE_SENTINEL="## USER-OWNED PROJECT NOTE SENTINEL"
 echo "$CLAUDE_SENTINEL" >> "$S8/CLAUDE.md"
+CONTINUITY_SENTINEL="## USER-OWNED TASK STATE SENTINEL"
+echo "$CONTINUITY_SENTINEL" >> "$S8/CONTINUITY.md"
 HASH_CHANGELOG=$(hash_file "$S8/docs/CHANGELOG.md")
 HASH_CLAUDE=$(hash_file "$S8/CLAUDE.md")
+HASH_CONTINUITY=$(hash_file "$S8/CONTINUITY.md")
 
 # Run --upgrade — the downstream pain path
 run_setup "$S8" "$LOG8b" --upgrade
@@ -252,12 +261,31 @@ assert_file_exists "$S8/CLAUDE.md" \
     "CLAUDE.md preserved by --upgrade"
 assert_contains "$S8/CLAUDE.md" "USER-OWNED PROJECT NOTE SENTINEL" \
     "--upgrade preserves user content in CLAUDE.md"
+assert_contains "$S8/CONTINUITY.md" "USER-OWNED TASK STATE SENTINEL" \
+    "--upgrade preserves user content in CONTINUITY.md"
 assert_contains "$S8/docs/CHANGELOG.md" "USER RELEASE ENTRY SENTINEL" \
     "--upgrade preserves user entries in docs/CHANGELOG.md"
 assert_hash_equals "$S8/docs/CHANGELOG.md" "$HASH_CHANGELOG" \
     "--upgrade does not touch CHANGELOG at all"
 assert_hash_equals "$S8/CLAUDE.md" "$HASH_CLAUDE" \
     "--upgrade does not touch CLAUDE.md at all"
+assert_hash_equals "$S8/CONTINUITY.md" "$HASH_CONTINUITY" \
+    "--upgrade does not touch CONTINUITY.md at all"
+
+# UC1 drift notice: --upgrade with BOTH user files present → per-file hints,
+# consolidated reminder, both-preserved final summary.
+assert_contains "$LOG8b" "Template may have drifted" \
+    "UC1: --upgrade shows drift notice"
+assert_contains "$LOG8b" "git diff --no-index" \
+    "UC1: --upgrade suggests git diff --no-index"
+assert_contains "$LOG8b" "CLAUDE.template.md" \
+    "UC1: --upgrade references CLAUDE.template.md"
+assert_contains "$LOG8b" "CONTINUITY.template.md" \
+    "UC1: --upgrade references CONTINUITY.template.md"
+assert_contains "$LOG8b" "Your CLAUDE.md and CONTINUITY.md were preserved (user content)" \
+    "UC1: --upgrade final summary = both-preserved variant"
+assert_not_contains "$LOG8b" "were not modified" \
+    "UC1: --upgrade does NOT contain legacy 'were not modified' string"
 
 # Also verify -f (force) preserves user content. -f is the big hammer that
 # SHOULD refresh .claude/* and CI templates, but MUST still leave CLAUDE.md,
@@ -268,6 +296,14 @@ assert_hash_equals "$S8/docs/CHANGELOG.md" "$HASH_CHANGELOG" \
     "-f does not touch CHANGELOG"
 assert_hash_equals "$S8/CLAUDE.md" "$HASH_CLAUDE" \
     "-f does not touch CLAUDE.md"
+assert_hash_equals "$S8/CONTINUITY.md" "$HASH_CONTINUITY" \
+    "-f does not touch CONTINUITY.md"
+
+# UC2 drift notice: -f also fires the per-file hint.
+assert_contains "$LOG8c" "Template may have drifted" \
+    "UC2: -f shows drift notice"
+assert_contains "$LOG8c" "git diff --no-index" \
+    "UC2: -f suggests git diff --no-index"
 
 # ===========================================================================
 # Test 9: runtime preflight — warns but never blocks
@@ -363,6 +399,84 @@ run_setup "$S9f" "$LOG9f" -p "PreflightF" -t typescript
 assert_equals "$?" "0" "malformed package.json → setup STILL exits 0 (no set -e abort)"
 assert_contains "$LOG9f" "Prerequisites OK" \
     "setup reached Prerequisites OK despite malformed package.json"
+
+# ===========================================================================
+# Test 10: Asymmetric preservation matrix — drift notice & final summary
+# variants per {CLAUDE.md, CONTINUITY.md} × {preserved, recreated}.
+# Codex P2 fix: test-8 only exercised the both-preserved path. Without this
+# test the four final-summary variants can silently regress — especially on
+# PowerShell since bash UCs don't execute .ps1.
+# ===========================================================================
+start_test "Test 10: asymmetric preservation drift notice"
+
+# Scenario A — user deleted CLAUDE.md, kept CONTINUITY.md.
+# Expect: only-CONTINUITY drift hint, only-CONTINUITY final summary variant.
+S10a=$(scratch_dir upgrade-asym-a)
+make_project "$S10a" frontend
+run_setup "$S10a" "$S10a/.install.log" -p "AsymA" -t fullstack
+assert_equals "$?" "0" "Scenario A: initial install exits 0"
+rm -f "$S10a/CLAUDE.md"  # simulate user clearing CLAUDE.md
+
+run_setup "$S10a" "$S10a/.upgrade.log" --upgrade
+assert_equals "$?" "0" "Scenario A: --upgrade exits 0"
+assert_file_exists "$S10a/CLAUDE.md" \
+    "Scenario A: CLAUDE.md recreated from template"
+assert_file_exists "$S10a/CONTINUITY.md" \
+    "Scenario A: CONTINUITY.md still present"
+
+# Drift hint must fire ONLY for CONTINUITY (CLAUDE was recreated, not preserved).
+assert_contains "$S10a/.upgrade.log" "Template may have drifted" \
+    "Scenario A: drift hint fires (for CONTINUITY)"
+assert_contains "$S10a/.upgrade.log" "CONTINUITY.template.md" \
+    "Scenario A: drift hint references CONTINUITY.template.md"
+# Final summary: only-CONTINUITY variant.
+assert_contains "$S10a/.upgrade.log" "Your CONTINUITY.md was preserved (user content)" \
+    "Scenario A: final summary = only-CONTINUITY variant"
+assert_not_contains "$S10a/.upgrade.log" "Your CLAUDE.md and CONTINUITY.md were preserved" \
+    "Scenario A: final summary is NOT the both-preserved variant"
+assert_not_contains "$S10a/.upgrade.log" "were not modified" \
+    "Scenario A: final summary does NOT contain legacy string"
+
+# Scenario B — user deleted CONTINUITY.md, kept CLAUDE.md.
+# Mirror of Scenario A.
+S10b=$(scratch_dir upgrade-asym-b)
+make_project "$S10b" frontend
+run_setup "$S10b" "$S10b/.install.log" -p "AsymB" -t fullstack
+assert_equals "$?" "0" "Scenario B: initial install exits 0"
+rm -f "$S10b/CONTINUITY.md"
+
+run_setup "$S10b" "$S10b/.upgrade.log" --upgrade
+assert_equals "$?" "0" "Scenario B: --upgrade exits 0"
+assert_contains "$S10b/.upgrade.log" "CLAUDE.template.md" \
+    "Scenario B: drift hint references CLAUDE.template.md"
+assert_contains "$S10b/.upgrade.log" "Your CLAUDE.md was preserved (user content)" \
+    "Scenario B: final summary = only-CLAUDE variant"
+assert_not_contains "$S10b/.upgrade.log" "Your CLAUDE.md and CONTINUITY.md were preserved" \
+    "Scenario B: final summary is NOT the both-preserved variant"
+assert_not_contains "$S10b/.upgrade.log" "were not modified" \
+    "Scenario B: final summary does NOT contain legacy string"
+
+# Scenario C — user deleted BOTH files. Drift block must be suppressed
+# entirely, and the final summary collapses to the bare "Upgrade done!" form.
+S10c=$(scratch_dir upgrade-asym-c)
+make_project "$S10c" frontend
+run_setup "$S10c" "$S10c/.install.log" -p "AsymC" -t fullstack
+assert_equals "$?" "0" "Scenario C: initial install exits 0"
+rm -f "$S10c/CLAUDE.md" "$S10c/CONTINUITY.md"
+
+run_setup "$S10c" "$S10c/.upgrade.log" --upgrade
+assert_equals "$?" "0" "Scenario C: --upgrade exits 0"
+assert_not_contains "$S10c/.upgrade.log" "Template may have drifted" \
+    "Scenario C: no drift block when nothing was preserved"
+assert_not_contains "$S10c/.upgrade.log" "was preserved" \
+    "Scenario C: final summary does NOT claim 'was preserved'"
+assert_not_contains "$S10c/.upgrade.log" "were preserved" \
+    "Scenario C: final summary does NOT claim 'were preserved'"
+assert_not_contains "$S10c/.upgrade.log" "were not modified" \
+    "Scenario C: final summary does NOT contain legacy string"
+# Bare variant should still be present (so users know the run succeeded).
+assert_contains "$S10c/.upgrade.log" "Upgrade done!" \
+    "Scenario C: bare 'Upgrade done!' variant present"
 
 # ===========================================================================
 # Report
