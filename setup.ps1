@@ -108,6 +108,28 @@ function Copy-TemplateFile {
     Write-Host " Created $Description"
 }
 
+# Template-drift hint: fired when a user-owned file is preserved and the
+# harness template may have evolved since the user's last upgrade. Points
+# the user at the canonical diff command (git diff --no-index works in
+# Git Bash on Windows, no bash prerequisite beyond git).
+#
+# Paths are wrapped in single-quotes in the emitted command so they survive
+# copy-paste regardless of shell metachars in the path. The local file is
+# absolutized against Get-Location so the suggestion still works if the user
+# cd's elsewhere before pasting.
+function Write-TemplateDriftHint {
+    param(
+        [string]$TemplateName,  # e.g., CLAUDE.template.md
+        [string]$LocalName      # e.g., CLAUDE.md
+    )
+    Write-Host "    " -NoNewline
+    Write-Color "!" "Yellow"
+    Write-Host "  Template may have drifted. To review:"
+    $templatePath = Join-Path $ScriptDir $TemplateName
+    $localAbs = Join-Path (Get-Location).Path $LocalName
+    Write-Host "         git diff --no-index -- '$templatePath' '$localAbs'"
+}
+
 # ============================================================================
 # GLOBAL SETUP (-Global flag)
 # ============================================================================
@@ -486,14 +508,21 @@ Write-Host ""
 # Copy templates
 Write-Color "Copying configuration files..." "Yellow"
 
-# Main files — CLAUDE.md and CONTINUITY.md are NEVER overwritten (user content)
-if (Test-Path "CLAUDE.md") {
+# Main files — CLAUDE.md and CONTINUITY.md are NEVER overwritten (user content).
+# Capture pre-state so the end-of-run summary can honestly report which files
+# were preserved (vs. freshly created from template in this run).
+$hadClaude = Test-Path "CLAUDE.md"
+$hadContinuity = Test-Path "CONTINUITY.md"
+
+if ($hadClaude) {
     Write-Host "  " -NoNewline; Write-Color "o" "Blue"; Write-Host " CLAUDE.md already exists (never overwritten - user content)"
+    Write-TemplateDriftHint "CLAUDE.template.md" "CLAUDE.md"
 } else {
     Copy-TemplateFile (Join-Path $ScriptDir "CLAUDE.template.md") "CLAUDE.md" "CLAUDE.md"
 }
-if (Test-Path "CONTINUITY.md") {
+if ($hadContinuity) {
     Write-Host "  " -NoNewline; Write-Color "o" "Blue"; Write-Host " CONTINUITY.md already exists (never overwritten - user content)"
+    Write-TemplateDriftHint "CONTINUITY.template.md" "CONTINUITY.md"
 } else {
     Copy-TemplateFile (Join-Path $ScriptDir "CONTINUITY.template.md") "CONTINUITY.md" "CONTINUITY.md"
 }
@@ -871,11 +900,19 @@ if ($Upgrade) {
     Write-Host "  .claude\settings.json    Hooks and permissions (merged - your customizations kept)"
     Write-Host "  .mcp.json                MCP servers (merged - your customizations kept)"
     Write-Host ""
-    Write-Color "Not touched:" "Yellow"
-    Write-Host ""
-    Write-Host "  CLAUDE.md                Your project description (preserved)"
-    Write-Host "  CONTINUITY.md            Your task state (preserved)"
-    Write-Host ""
+    # Drive "Not touched" from pre-copy booleans so we don't falsely claim a
+    # file was preserved when this run actually recreated it from template.
+    if ($hadClaude -or $hadContinuity) {
+        Write-Color "Not touched:" "Yellow"
+        Write-Host ""
+        if ($hadClaude) {
+            Write-Host "  CLAUDE.md                Your project description (preserved)"
+        }
+        if ($hadContinuity) {
+            Write-Host "  CONTINUITY.md            Your task state (preserved)"
+        }
+        Write-Host ""
+    }
     Write-Color "Next steps:" "Yellow"
     Write-Host ""
     Write-Host "1. " -NoNewline
@@ -893,7 +930,38 @@ if ($Upgrade) {
     Write-Host "   git commit -m `"chore: upgrade Claude Code automation templates`""
     Write-Host "   git push"
     Write-Host ""
-    Write-Color "Upgrade done! Your CLAUDE.md and CONTINUITY.md were not modified." "Green"
+    # Consolidated drift reminder — surface once at the end. Only mention files
+    # that were actually preserved (boolean-gated, no false claims).
+    if ($hadClaude -or $hadContinuity) {
+        Write-Color "! Template may have drifted since your last upgrade." "Yellow"
+        Write-Host "  Review and merge any new sections manually:"
+        # Single-quoted paths + Get-Location-absolutized local side so the
+        # command survives copy-paste regardless of shell metachars or cwd.
+        $cwd = (Get-Location).Path
+        if ($hadClaude) {
+            $templatePath = Join-Path $ScriptDir "CLAUDE.template.md"
+            $localAbs = Join-Path $cwd "CLAUDE.md"
+            Write-Host "    git diff --no-index -- '$templatePath' '$localAbs'"
+        }
+        if ($hadContinuity) {
+            $templatePath = Join-Path $ScriptDir "CONTINUITY.template.md"
+            $localAbs = Join-Path $cwd "CONTINUITY.md"
+            Write-Host "    git diff --no-index -- '$templatePath' '$localAbs'"
+        }
+        Write-Host "  (Or ask Claude to reconcile - point it at the diff output.)"
+        Write-Host ""
+    }
+    # Replaces a pre-existing hardcoded claim that lied whenever the user had
+    # deleted one of the files before running --upgrade.
+    if ($hadClaude -and $hadContinuity) {
+        Write-Color "Upgrade done! Your CLAUDE.md and CONTINUITY.md were preserved (user content)." "Green"
+    } elseif ($hadClaude) {
+        Write-Color "Upgrade done! Your CLAUDE.md was preserved (user content)." "Green"
+    } elseif ($hadContinuity) {
+        Write-Color "Upgrade done! Your CONTINUITY.md was preserved (user content)." "Green"
+    } else {
+        Write-Color "Upgrade done!" "Green"
+    }
 } else {
     Write-Color "============================================" "Green"
     Write-Color "  Setup Complete!" "Green"

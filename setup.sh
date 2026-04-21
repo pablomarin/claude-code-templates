@@ -115,6 +115,22 @@ copy_file() {
     echo -e "  ${GREEN}✓${NC} Created $desc"
 }
 
+# Template-drift hint: fired when a user-owned file is preserved and the
+# harness template may have evolved since the user's last upgrade. The user
+# has to reconcile manually — we point them at the canonical diff command.
+#
+# Paths are wrapped in single-quotes in the emitted command so they survive
+# copy-paste regardless of shell metachars in the path (a path containing
+# '$USER' would otherwise re-expand on paste). The local file is absolutized
+# against $(pwd) so the suggestion still works if the user cd's elsewhere
+# before pasting.
+print_template_drift_hint() {
+    local template_name="$1"  # e.g., CLAUDE.template.md
+    local local_name="$2"     # e.g., CLAUDE.md
+    echo -e "    ${YELLOW}⚠${NC}  Template may have drifted. To review:"
+    echo -e "         git diff --no-index -- '$SCRIPT_DIR/$template_name' '$(pwd)/$local_name'"
+}
+
 # ============================================================================
 # GLOBAL SETUP (--global flag)
 # ============================================================================
@@ -475,14 +491,21 @@ echo ""
 # Copy templates
 echo -e "${YELLOW}Copying configuration files...${NC}"
 
-# Main files — CLAUDE.md and CONTINUITY.md are NEVER overwritten (user content)
-if [[ -f "CLAUDE.md" ]]; then
+# Main files — CLAUDE.md and CONTINUITY.md are NEVER overwritten (user content).
+# Capture pre-state so the end-of-run summary can honestly report which files
+# were preserved (vs. freshly created from template in this run).
+if [[ -f "CLAUDE.md" ]]; then had_claude_md=true; else had_claude_md=false; fi
+if [[ -f "CONTINUITY.md" ]]; then had_continuity_md=true; else had_continuity_md=false; fi
+
+if [[ "$had_claude_md" == true ]]; then
     echo -e "  ${BLUE}○${NC} CLAUDE.md already exists (never overwritten — user content)"
+    print_template_drift_hint "CLAUDE.template.md" "CLAUDE.md"
 else
     copy_file "$SCRIPT_DIR/CLAUDE.template.md" "CLAUDE.md" "CLAUDE.md"
 fi
-if [[ -f "CONTINUITY.md" ]]; then
+if [[ "$had_continuity_md" == true ]]; then
     echo -e "  ${BLUE}○${NC} CONTINUITY.md already exists (never overwritten — user content)"
+    print_template_drift_hint "CONTINUITY.template.md" "CONTINUITY.md"
 else
     copy_file "$SCRIPT_DIR/CONTINUITY.template.md" "CONTINUITY.md" "CONTINUITY.md"
 fi
@@ -804,11 +827,19 @@ if [[ "$UPGRADE" == true ]]; then
     echo "  .claude/settings.json    Hooks and permissions (merged — your customizations kept)"
     echo "  .mcp.json                MCP servers (merged — your customizations kept)"
     echo ""
-    echo -e "${YELLOW}Not touched:${NC}"
-    echo ""
-    echo "  CLAUDE.md                Your project description (preserved)"
-    echo "  CONTINUITY.md            Your task state (preserved)"
-    echo ""
+    # Drive "Not touched" from pre-copy booleans so we don't falsely claim a
+    # file was preserved when this run actually recreated it from template.
+    if [[ "$had_claude_md" == true ]] || [[ "$had_continuity_md" == true ]]; then
+        echo -e "${YELLOW}Not touched:${NC}"
+        echo ""
+        if [[ "$had_claude_md" == true ]]; then
+            echo "  CLAUDE.md                Your project description (preserved)"
+        fi
+        if [[ "$had_continuity_md" == true ]]; then
+            echo "  CONTINUITY.md            Your task state (preserved)"
+        fi
+        echo ""
+    fi
     echo -e "${YELLOW}Next steps:${NC}"
     echo ""
     echo -e "1. ${BLUE}Verify everything works${NC}:"
@@ -822,7 +853,37 @@ if [[ "$UPGRADE" == true ]]; then
     echo "   git commit -m \"chore: upgrade Claude Code automation templates\""
     echo "   git push"
     echo ""
-    echo -e "${GREEN}Upgrade done! Your CLAUDE.md and CONTINUITY.md were not modified.${NC}"
+    # Consolidated drift reminder — surface once at the end so users who scrolled
+    # past the per-file hints still see a reconciliation prompt. Only mention
+    # files that were actually preserved (boolean-gated, no false claims).
+    if [[ "$had_claude_md" == true ]] || [[ "$had_continuity_md" == true ]]; then
+        echo -e "${YELLOW}⚠ Template may have drifted since your last upgrade.${NC}"
+        echo "  Review and merge any new sections manually:"
+        # Single-quoted paths + absolute local path so the command survives
+        # copy-paste regardless of shell metachars or working dir. cwd is
+        # captured once — avoids re-forking $(pwd) per emitted line and
+        # mirrors setup.ps1's $cwd = (Get-Location).Path pattern for parity.
+        local_cwd="$(pwd)"
+        if [[ "$had_claude_md" == true ]]; then
+            echo "    git diff --no-index -- '$SCRIPT_DIR/CLAUDE.template.md' '$local_cwd/CLAUDE.md'"
+        fi
+        if [[ "$had_continuity_md" == true ]]; then
+            echo "    git diff --no-index -- '$SCRIPT_DIR/CONTINUITY.template.md' '$local_cwd/CONTINUITY.md'"
+        fi
+        echo "  (Or ask Claude to reconcile — point it at the diff output.)"
+        echo ""
+    fi
+    # Replaces a pre-existing hardcoded claim that lied whenever the user had
+    # deleted one of the files before running --upgrade.
+    if [[ "$had_claude_md" == true ]] && [[ "$had_continuity_md" == true ]]; then
+        echo -e "${GREEN}Upgrade done! Your CLAUDE.md and CONTINUITY.md were preserved (user content).${NC}"
+    elif [[ "$had_claude_md" == true ]]; then
+        echo -e "${GREEN}Upgrade done! Your CLAUDE.md was preserved (user content).${NC}"
+    elif [[ "$had_continuity_md" == true ]]; then
+        echo -e "${GREEN}Upgrade done! Your CONTINUITY.md was preserved (user content).${NC}"
+    else
+        echo -e "${GREEN}Upgrade done!${NC}"
+    fi
 else
     echo -e "${GREEN}============================================${NC}"
     echo -e "${GREEN}  Setup Complete!${NC}"

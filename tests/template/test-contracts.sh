@@ -182,6 +182,61 @@ assert_file_exists "$REPO_ROOT/docs/guides/multi-project-isolation.md" \
     "canonical isolation guide exists"
 
 # ---------------------------------------------------------------------------
+# Contract 7: Template-drift hint + upgrade-summary parity
+#
+# Both installers must ship the same drift hint helper AND the same four
+# boolean-gated final-summary variants. Without this contract, setup.ps1 can
+# silently diverge from setup.sh (bash tests don't execute PowerShell).
+# ---------------------------------------------------------------------------
+start_test "Template-drift hint + upgrade-summary parity"
+
+SETUP_SH="$REPO_ROOT/setup.sh"
+SETUP_PS1="$REPO_ROOT/setup.ps1"
+
+# (i) User-facing drift-hint string
+DRIFT_MSG="Template may have drifted"
+assert_contains "$SETUP_SH"  "$DRIFT_MSG" "setup.sh contains drift-hint message"
+assert_contains "$SETUP_PS1" "$DRIFT_MSG" "setup.ps1 contains drift-hint message"
+
+# (ii) Template filenames referenced
+assert_contains "$SETUP_SH"  "CLAUDE.template.md"      "setup.sh references CLAUDE.template.md"
+assert_contains "$SETUP_SH"  "CONTINUITY.template.md"  "setup.sh references CONTINUITY.template.md"
+assert_contains "$SETUP_PS1" "CLAUDE.template.md"      "setup.ps1 references CLAUDE.template.md"
+assert_contains "$SETUP_PS1" "CONTINUITY.template.md"  "setup.ps1 references CONTINUITY.template.md"
+
+# (iii) git diff --no-index suggested (cross-platform, works in Git Bash)
+assert_contains "$SETUP_SH"  "git diff --no-index" "setup.sh suggests git diff --no-index"
+assert_contains "$SETUP_PS1" "git diff --no-index" "setup.ps1 suggests git diff --no-index"
+
+# (iv) Exact call-site fingerprints — prove helpers are invoked, not dead.
+# setup.sh: Bash helper name + positional args
+assert_contains "$SETUP_SH" 'print_template_drift_hint "CLAUDE.template.md" "CLAUDE.md"' \
+    "setup.sh calls drift-hint helper for CLAUDE.md"
+assert_contains "$SETUP_SH" 'print_template_drift_hint "CONTINUITY.template.md" "CONTINUITY.md"' \
+    "setup.sh calls drift-hint helper for CONTINUITY.md"
+# setup.ps1: PowerShell helper name + positional args
+assert_contains "$SETUP_PS1" 'Write-TemplateDriftHint "CLAUDE.template.md" "CLAUDE.md"' \
+    "setup.ps1 calls drift-hint helper for CLAUDE.md"
+assert_contains "$SETUP_PS1" 'Write-TemplateDriftHint "CONTINUITY.template.md" "CONTINUITY.md"' \
+    "setup.ps1 calls drift-hint helper for CONTINUITY.md"
+
+# (v) Final-summary parity: all three positive variants + negative legacy guard
+BOTH_VARIANT="Your CLAUDE.md and CONTINUITY.md were preserved (user content)"
+CLAUDE_VARIANT="Your CLAUDE.md was preserved (user content)"
+CONTINUITY_VARIANT="Your CONTINUITY.md was preserved (user content)"
+LEGACY_STRING="were not modified"
+
+assert_contains "$SETUP_SH"  "$BOTH_VARIANT"       "setup.sh has both-preserved final variant"
+assert_contains "$SETUP_SH"  "$CLAUDE_VARIANT"     "setup.sh has only-CLAUDE final variant"
+assert_contains "$SETUP_SH"  "$CONTINUITY_VARIANT" "setup.sh has only-CONTINUITY final variant"
+assert_not_contains "$SETUP_SH" "$LEGACY_STRING"   "setup.sh removed legacy 'were not modified'"
+
+assert_contains "$SETUP_PS1" "$BOTH_VARIANT"       "setup.ps1 has both-preserved final variant"
+assert_contains "$SETUP_PS1" "$CLAUDE_VARIANT"     "setup.ps1 has only-CLAUDE final variant"
+assert_contains "$SETUP_PS1" "$CONTINUITY_VARIANT" "setup.ps1 has only-CONTINUITY final variant"
+assert_not_contains "$SETUP_PS1" "$LEGACY_STRING"  "setup.ps1 removed legacy 'were not modified'"
+
+# ---------------------------------------------------------------------------
 # Contract 4: CI template placeholder ↔ setup.sh substitution
 # ---------------------------------------------------------------------------
 start_test "__PLAYWRIGHT_DIR__ placeholder ↔ setup.sh substitution"
