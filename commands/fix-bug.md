@@ -7,10 +7,10 @@
 
 This workflow requires the following plugins to be **installed AND enabled**:
 
-| Plugin                                      | Skills/Commands Used                                                                                                            |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `superpowers@superpowers-marketplace`       | `/superpowers:systematic-debugging`, `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:executing-plans` |
-| `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent, `/pr-review-toolkit:review-pr`                                                  |
+| Plugin                                      | Skills/Commands Used                                                                                                                                                                                           |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `superpowers@superpowers-marketplace`       | `/superpowers:systematic-debugging`, `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:subagent-driven-development` (default executor), `/superpowers:executing-plans` (headless mode) |
+| `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent, `/pr-review-toolkit:review-pr`                                                                                                                                 |
 
 **To enable plugins**, add to `~/.claude/settings.json`:
 
@@ -392,22 +392,28 @@ Write a failing test first, then fix. Single-threaded — no dispatch plan neede
 
 ### Complex fixes (3+ files, Phase 3 complete)
 
-> **Optional before starting:** Run `/compact` if the session is heavy with debugging + plan-review discussion. Consolidates prior phases into a summary and frees budget for execution.
+> **Optional before starting:** Run `/compact` if the session is heavy with debugging + plan-review discussion.
 
 #### 4.0 Dispatch Plan (MANDATORY before dispatching any subagent)
 
-Produce a **task DAG** and append to the plan file under a `## Dispatch Plan` heading. Task-level `Depends on` + `Writes (files)` columns, continuous dispatch with file-conflict constraints, default 3 concurrent subagents (max 5), sequential override for tightly-coupled fixes.
+Append a `## Dispatch Plan` heading to the plan file with one row per task. Format, scheduling rules, and failure semantics are identical to `/new-feature` — see `new-feature.md` in this same `.claude/commands/` directory, Phase 4.0, for the full spec. Key points restated:
 
-Rules, format, and rationale are identical to `/new-feature` Phase 4.0 — see `commands/new-feature.md` §4.0 for the full rule set. Key points restated:
-
-- Ready set = tasks with all deps complete; dispatch rule = `Writes` disjoint from running tasks
-- Two tasks writing the same physical file cannot run concurrently
-- Shared types/imports go in `Depends on`, not in file-overlap
-- Sequential override is legitimate for tightly-coupled fixes
+- `Writes` lists **concrete file paths**, not directories or globs
+- Default concurrency cap: 3 concurrent subagents (max 5 for small, genuinely independent tasks)
+- Serial is the default; parallel requires proven independence (all `Depends on` resolved AND disjoint `Writes`)
+- **No append-only fast-path** — tasks modifying the same existing file always serialize via `Depends on`
+- Shared types/imports → encode as explicit `Depends on`
+- Sequential override for tightly-coupled fixes is legitimate (Cognition's counter-position)
 
 #### 4.1 Execute via subagent-driven-development
 
-Use `superpowers:subagent-driven-development`. Dispatch cycle: pick next eligible task → dispatch fresh subagent with TDD discipline → review diff on return → re-evaluate ready set → dispatch next.
+Use `superpowers:subagent-driven-development`. Per cycle: pick next eligible task → dispatch fresh subagent with TDD discipline → review diff on return → re-evaluate ready set → dispatch next.
+
+**Handling failures:**
+
+- Subagent failure OR diff-review reject → mark the task failed, cancel any in-flight dependents, surface to the user
+- Rate limit or timeout → retry once with a fresh subagent; second failure is a real failure
+- After each task completes, verify in-flight dependents' assumptions still hold; cancel and re-dispatch if a breaking change landed upstream
 
 **If you encounter bugs during implementation:**
 
@@ -415,9 +421,9 @@ Use `superpowers:subagent-driven-development`. Dispatch cycle: pick next eligibl
 /superpowers:systematic-debugging
 ```
 
-#### 4.2 Headless / Walk-Away Mode (OPT-IN ESCAPE)
+#### 4.2 Headless / Walk-Away Mode (OPT-IN)
 
-Say **"walk-away mode"** or **"headless"** to switch to `/superpowers:executing-plans` in a separate session. Headless loses live parallelism but gains context independence. Default is in-session subagent-driven.
+Say **"walk-away mode"** or **"headless"** to switch to `/superpowers:executing-plans` in a separate session. Default is in-session subagent-driven.
 
 ---
 
