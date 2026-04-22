@@ -386,13 +386,38 @@ Gather severity-tagged findings from all available reviewers. Use this rubric:
 
 > **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `4 — Execute`, check off planning items.
 
-Implement using TDD (Red-Green-Refactor):
+### Simple fixes (1-2 files, Phase 3 skipped)
+
+Write a failing test first, then fix. Single-threaded — no dispatch plan needed.
+
+### Complex fixes (3+ files, Phase 3 complete)
+
+> **Optional before starting:** Run `/compact` if the session is heavy with debugging + plan-review discussion. Consolidates prior phases into a summary and frees budget for execution.
+
+#### 4.0 Dispatch Plan (MANDATORY before dispatching any subagent)
+
+Produce a **task DAG** and append to the plan file under a `## Dispatch Plan` heading. Task-level `Depends on` + `Writes (files)` columns, continuous dispatch with file-conflict constraints, default 3 concurrent subagents (max 5), sequential override for tightly-coupled fixes.
+
+Rules, format, and rationale are identical to `/new-feature` Phase 4.0 — see `commands/new-feature.md` §4.0 for the full rule set. Key points restated:
+
+- Ready set = tasks with all deps complete; dispatch rule = `Writes` disjoint from running tasks
+- Two tasks writing the same physical file cannot run concurrently
+- Shared types/imports go in `Depends on`, not in file-overlap
+- Sequential override is legitimate for tightly-coupled fixes
+
+#### 4.1 Execute via subagent-driven-development
+
+Use `superpowers:subagent-driven-development`. Dispatch cycle: pick next eligible task → dispatch fresh subagent with TDD discipline → review diff on return → re-evaluate ready set → dispatch next.
+
+**If you encounter bugs during implementation:**
 
 ```
-/superpowers:executing-plans
+/superpowers:systematic-debugging
 ```
 
-Or for simple fixes, write a failing test first, then fix.
+#### 4.2 Headless / Walk-Away Mode (OPT-IN ESCAPE)
+
+Say **"walk-away mode"** or **"headless"** to switch to `/superpowers:executing-plans` in a separate session. Headless loses live parallelism but gains context independence. Default is in-session subagent-driven.
 
 ---
 

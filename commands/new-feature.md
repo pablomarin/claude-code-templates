@@ -427,18 +427,52 @@ Gather severity-tagged findings from all available reviewers. Use this rubric:
 ## Phase 4: Execute
 
 > **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `4 — Execute`, check off design items (brainstorming, plan, review).
+>
+> **Optional before starting:** Run `/compact` if the session is heavy with brainstorm + plan-review discussion. Consolidates prior phases into a structured summary and frees budget for execution. Reminder, not a gate — skip if context is still lean.
 
-Implement using TDD (Red-Green-Refactor):
+### 4.0 Dispatch Plan (MANDATORY before dispatching any subagent)
 
-```
-/superpowers:executing-plans
-```
+Produce a **task DAG** (not a static wave schedule) and append it to the plan file under a `## Dispatch Plan` heading so it travels with the plan. For each task in the implementation plan:
+
+| Task ID | Depends on | Writes (files)         |
+| ------- | ---------- | ---------------------- |
+| B1      | —          | `alembic/versions/...` |
+| B2      | B1         | `schemas/backtest.py`  |
+| B3      | —          | `analytics_math/...`   |
+
+**Scheduling — continuous dispatch with file-conflict constraints:**
+
+- **Ready set:** tasks whose `Depends on` entries are all completed
+- **Dispatch rule:** pick any ready task whose `Writes` set is disjoint from every currently-running task's `Writes`
+- **Concurrency cap:** **default 3 concurrent subagents** (Anthropic-tested ceiling before coordination cost dominates); raise to **5 max** only for genuinely independent small tasks
+- **Continuous, not wave-barrier:** when a subagent returns, re-evaluate the ready set and dispatch immediately — do NOT wait for a whole batch to finish before dispatching again
+
+**File-conflict rules:**
+
+- Two tasks writing the same physical file cannot run concurrently, even on different logical sections
+- Append-only additions (new test files, new exports, new-timestamp migrations) MAY run concurrently — brief the subagents on the append-only contract explicitly in their prompts
+- Shared types/imports/schemas: if task B needs a type defined by task A, encode as an explicit `Depends on`. Do NOT rely on file-disjointness alone — semantic coupling is the real constraint
+
+**Sequential override:** if the plan is tightly coupled (most tasks share files or types, or the feature reads as one logical change), note `"sequential mode"` in the dispatch plan and dispatch one subagent at a time. This is Cognition's documented counter-position on multi-agent orchestration and a legitimate choice for high-coupling work — parallelism is not always a win.
+
+### 4.1 Execute via subagent-driven-development
+
+Use `superpowers:subagent-driven-development`. Per dispatch cycle:
+
+1. Pick next eligible task per 4.0 rules
+2. Dispatch fresh subagent with TDD discipline (Red-Green-Refactor)
+3. Review diff on return before marking the task done
+4. Re-evaluate ready set, dispatch next
 
 **If you encounter bugs during implementation:**
 
 ```
 /superpowers:systematic-debugging
 ```
+
+### 4.2 Headless / Walk-Away Mode (OPT-IN ESCAPE)
+
+If you'd rather execute the plan in a separate terminal without your supervision — useful for long plans (15+ tasks), walking away, or producing a fresh-context execution pass — say **"walk-away mode"** or **"headless"** and the workflow switches to `/superpowers:executing-plans` in that session. Headless loses the live parallelism of 4.1 but gains context independence. Default path is in-session subagent-driven; escape to headless only when the scenario fits.
 
 ---
 
