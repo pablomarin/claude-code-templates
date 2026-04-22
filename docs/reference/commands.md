@@ -29,13 +29,14 @@ All slash commands and subagents available after setup.
 
 ## Superpowers Commands (Design → Execute → Debug)
 
-| Command                                       | Purpose                             | Notes                        |
-| --------------------------------------------- | ----------------------------------- | ---------------------------- |
-| `/superpowers:brainstorming`                  | Interactive design refinement       | Uses PRD context             |
-| `/superpowers:writing-plans`                  | Create detailed implementation plan | TDD tasks                    |
-| `/superpowers:executing-plans`                | Execute plan with subagents         | TDD enforced                 |
-| `/superpowers:systematic-debugging`           | 4-phase root cause analysis         | Before ANY bug fix           |
-| `/superpowers:verification-before-completion` | Evidence-based completion check     | Catches "should work" claims |
+| Command                                       | Purpose                                                    | Notes                                    |
+| --------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------- |
+| `/superpowers:brainstorming`                  | Interactive design refinement                              | Uses PRD context                         |
+| `/superpowers:writing-plans`                  | Create detailed implementation plan                        | TDD tasks                                |
+| `/superpowers:subagent-driven-development`    | Execute plan via dispatched subagents (default in Phase 4) | TDD enforced, parallel via Dispatch Plan |
+| `/superpowers:executing-plans`                | Execute plan in a separate session                         | Headless / walk-away mode                |
+| `/superpowers:systematic-debugging`           | 4-phase root cause analysis                                | Before ANY bug fix                       |
+| `/superpowers:verification-before-completion` | Evidence-based completion check                            | Catches "should work" claims             |
 
 ## Quality Gates (Pre-PR — in this order)
 
@@ -79,9 +80,9 @@ For bug fixes, targeted research runs after root-cause isolation (Phase 2.5 of `
 
 Custom subagents available via the Task tool.
 
-| Agent             | Purpose                                                                                           | Invocation                                                      |
-| ----------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `verify-app`      | Unit tests + lint + type checks + migrations                                                      | "Use the verify-app agent"                                      |
-| `verify-e2e`      | User-journey E2E through API / UI / CLI; produces markdown report at `tests/e2e/reports/`         | "Use the verify-e2e agent"                                      |
-| `research-first`  | Pre-design library/API research via Context7 + official docs; writes `docs/research/<feature>.md` | Phase 2 of `/new-feature`, Phase 2.5 of `/fix-bug`              |
-| `council-advisor` | Engineering Council advisor (persona via prompt)                                                  | Dispatched by `/council` skill — not invoked directly           |
+| Agent             | Purpose                                                                                           | Invocation                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `verify-app`      | Unit tests + lint + type checks + migrations                                                      | "Use the verify-app agent"                            |
+| `verify-e2e`      | User-journey E2E through API / UI / CLI; produces markdown report at `tests/e2e/reports/`         | "Use the verify-e2e agent"                            |
+| `research-first`  | Pre-design library/API research via Context7 + official docs; writes `docs/research/<feature>.md` | Phase 2 of `/new-feature`, Phase 2.5 of `/fix-bug`    |
+| `council-advisor` | Engineering Council advisor (persona via prompt)                                                  | Dispatched by `/council` skill — not invoked directly |

@@ -58,9 +58,9 @@ How a feature goes from idea to merged PR.
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 5. EXECUTE (Superpowers Plugin)                             │
-│    /superpowers:executing-plans                             │
+│    /superpowers:subagent-driven-development                 │
 │    → TDD enforced (RED-GREEN-REFACTOR)                      │
-│    → Subagents handle individual tasks                      │
+│    → Dispatch Plan (DAG) controls parallelism               │
 │    → Auto-format on save (ruff/prettier)                    │
 └─────────────────────────────────────────────────────────────┘
                             │
@@ -166,9 +166,9 @@ Based on Boris Cherny's key insight:
 The harness operationalizes that insight across every phase:
 
 - **Research** gives Claude current docs (not stale training data)
-- **Plan review loop** gives Claude a second set of eyes *before* writing code
+- **Plan review loop** gives Claude a second set of eyes _before_ writing code
 - **TDD** gives Claude executable tests as its verification loop
-- **Code review loop** gives Claude parallel reviewers *after* writing code
+- **Code review loop** gives Claude parallel reviewers _after_ writing code
 - **Simplify + verify + E2E** give Claude three more verification passes before commit
-- **PR reviewers + `/review-pr-comments`** give Claude automated reviewers *after* the PR is open
+- **PR reviewers + `/review-pr-comments`** give Claude automated reviewers _after_ the PR is open
 - **`docs/solutions/` + auto-memory** give Claude learning feedback so the same bug is never debugged twice

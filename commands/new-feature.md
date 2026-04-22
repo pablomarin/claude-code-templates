@@ -7,10 +7,10 @@
 
 This workflow requires the following plugins to be **installed AND enabled**:
 
-| Plugin                                      | Skills/Commands Used                                                                                                            |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `superpowers@superpowers-marketplace`       | `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:executing-plans`, `/superpowers:systematic-debugging` |
-| `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent, `/pr-review-toolkit:review-pr`                                                  |
+| Plugin                                      | Skills/Commands Used                                                                                                                                                                                           |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `superpowers@superpowers-marketplace`       | `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:subagent-driven-development` (default executor), `/superpowers:executing-plans` (headless mode), `/superpowers:systematic-debugging` |
+| `pr-review-toolkit@claude-plugins-official` | `code-simplifier` agent, `code-reviewer` agent, `/pr-review-toolkit:review-pr`                                                                                                                                 |
 
 **To enable plugins**, add to `~/.claude/settings.json`:
 
@@ -427,18 +427,63 @@ Gather severity-tagged findings from all available reviewers. Use this rubric:
 ## Phase 4: Execute
 
 > **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `4 — Execute`, check off design items (brainstorming, plan, review).
+>
+> **Optional before starting:** Run `/compact` if the session is heavy with brainstorm + plan-review discussion. Consolidates prior phases into a structured summary and frees budget for execution. Reminder, not a gate.
 
-Implement using TDD (Red-Green-Refactor):
+### Trivial plans (≤3 tasks)
 
-```
-/superpowers:executing-plans
-```
+No dispatch plan needed. Use `superpowers:subagent-driven-development` and execute the plan's tasks sequentially in order. Proceed to Phase 5 when done.
+
+### Full plans (4+ tasks)
+
+#### 4.0 Dispatch Plan (MANDATORY before dispatching any subagent)
+
+Append a `## Dispatch Plan` heading to the plan file with one row per task:
+
+| Task ID | Depends on | Writes (concrete file paths)                           |
+| ------- | ---------- | ------------------------------------------------------ |
+| B1      | —          | `alembic/versions/2026_04_22_add_series.py`            |
+| B2      | B1         | `schemas/backtest.py`                                  |
+| B3      | —          | `analytics_math/deduplicate.py`, `tests/test_dedup.py` |
+
+**`Writes` must list concrete file paths** — not directories, not globs. New files use their final intended path. Conflict detection is per physical file.
+
+**Scheduling — serial is the default; parallel requires proven independence:**
+
+- **Ready set:** tasks whose `Depends on` entries are all completed
+- **Dispatch rule:** start any ready task whose `Writes` paths are disjoint from every currently-running task's `Writes`
+- **Concurrency cap:** default 3 concurrent subagents; raise to 5 only for small, genuinely independent tasks. (3 is practitioner guidance from Anthropic's [multi-agent research post](https://www.anthropic.com/engineering/multi-agent-research-system), not a hard protocol limit.)
+- **Continuous dispatch:** when a subagent returns, re-evaluate the ready set and dispatch immediately. Do not batch into waves.
+- **In doubt, serialize.** File-disjointness is necessary but not sufficient — if two tasks share types, schemas, or imports, encode as `Depends on` and serialize.
+
+**No append-only fast-path.** Tasks that both modify the same existing file — barrel exports (`index.ts`, `__init__.py`), migration manifests, shared schemas, `pyproject.toml`, etc. — **must be serialized via `Depends on`**. Same-second timestamp migrations collide on filename and on `alembic_version` head; do not parallelize migration generation. The only case where two tasks may concurrently "add" to a shared space is when each creates a **distinct new file at a different path**, in which case the `Writes` column already lists disjoint paths and the standard dispatch rule applies.
+
+**Sequential override:** if the plan is tightly coupled (most tasks share files or types, or the feature reads as one logical change), note `"sequential mode"` in the dispatch plan and dispatch one subagent at a time. This is Cognition's documented counter-position on multi-agent orchestration and a legitimate choice for high-coupling work — parallelism is not always a win.
+
+#### 4.1 Execute via subagent-driven-development
+
+Use `superpowers:subagent-driven-development`. Per dispatch cycle:
+
+1. Pick next eligible task per 4.0 rules
+2. Dispatch fresh subagent with TDD discipline (Red-Green-Refactor)
+3. Review diff on return before marking the task done
+4. Re-evaluate ready set, dispatch next
+
+**Handling failures:**
+
+- Subagent returns failure, OR diff-review rejects the result → mark the task failed in the dispatch plan, cancel any in-flight dependents, surface to the user before continuing
+- Rate limit or timeout → retry once with a fresh subagent; if it fails again, treat as a failure
+- After each task completes, verify in-flight dependents' assumptions still hold. If a completed task introduced a breaking change to shared code, cancel the dependent and re-dispatch with updated context
 
 **If you encounter bugs during implementation:**
 
 ```
 /superpowers:systematic-debugging
 ```
+
+#### 4.2 Headless / Walk-Away Mode (OPT-IN)
+
+Say **"walk-away mode"** or **"headless"** to switch to `/superpowers:executing-plans` in a separate session. Headless loses the live parallelism of 4.1 but gains context independence — useful for long plans (15+ tasks) or when you want to step away. Default is in-session subagent-driven.
 
 ---
 

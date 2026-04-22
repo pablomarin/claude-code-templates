@@ -2,6 +2,29 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.13 — 2026-04-21 · Phase 4 task-DAG dispatch with file-conflict constraints
+
+Replaces the previous Phase 4 one-liner (`/superpowers:executing-plans`) with a structured dispatch plan. Field evidence: user's msai-v2 run (19-task backtest feature) had the orchestrator hand-rolling a 16-wave table from scratch because the template gave no parallelism guidance. Research agent + Codex second-opinion both identified **DAG with continuous dispatch** as the correct primitive over static file-overlap waves; Anthropic's multi-agent research post cited for the `default 3 / max 5` concurrency ceiling.
+
+Council-reviewed (5 advisors, 2 `OBJECT`) and revised before merge. The initial draft shipped five spec-level bugs; all five fixed in the same branch.
+
+- **`commands/new-feature.md` Phase 4** — new structure: optional `/compact` banner, `Trivial plans (≤3 tasks)` carve-out (Pragmatist), mandatory `§4.0 Dispatch Plan` for 4+ tasks (task DAG appended to plan file under `## Dispatch Plan` heading), `§4.1 Execute via subagent-driven-development` with `Handling failures` bullets (Scalability Hawk), `§4.2 Headless / Walk-Away Mode` as opt-in phrase (not a menu item).
+- **`commands/fix-bug.md` Phase 4** — mirrored structure; simple fixes (1-2 files) keep single-threaded path; complex fixes (3+) reference `new-feature.md` in the same `.claude/commands/` directory (Maintainer: the initial draft said `commands/new-feature.md` literal, which fails post-install because `setup.sh` copies to `.claude/commands/`).
+- **Append-only exception deleted** — the initial draft allowed "new test files, new exports, new-timestamp migrations MAY run concurrently." Three advisors flagged this unsafe: two subagents appending to `__init__.py` or `index.ts` race under concurrent writers; same-second timestamp migrations collide on filename and `alembic_version` head. Same-file writes now always serialize via `Depends on`; the only "concurrent add" case is distinct new files at different paths, which are already disjoint under the standard `Writes` rule.
+- **`Writes` column requires concrete file paths** (Maintainer) — not directories, not globs. Example table updated from `alembic/versions/...` (directory-like, contradicted the "same physical file" conflict rule) to `alembic/versions/2026_04_22_add_series.py` (concrete).
+- **Scheduling principle now reads "serial is the default; parallel requires proven independence"** — Contrarian's reframe. File-disjointness is necessary but not sufficient; shared types/imports/schemas encode as `Depends on`, not parallel.
+- **Docs drift fixed** (Contrarian) — Required Plugins tables in both command files + `docs/reference/commands.md` + `docs/explanation/workflow.md` ASCII diagram now list `/superpowers:subagent-driven-development` as default Phase 4 executor with `/superpowers:executing-plans` demoted to headless mode.
+
+Explicitly NOT shipped (deferred per chairman synthesis):
+
+- **Status/Evidence columns + mid-plan context-budget checkpoint** (Scalability Hawk) — secondary. Would need hook enforcement (like the evidence-based E2E gate) to be load-bearing. Out of scope for this markdown-only revision; revisit if field evidence shows the DAG being ignored or silently failing mid-plan.
+- **Concurrency cap enforcement** — `default 3 / max 5` is prose. No hook prevents an over-eager orchestrator from dispatching 8. If this decays into a suggestion on week 3, add a `check-dispatch-plan.sh` gate patterned on `check-workflow-gates.sh`.
+- **Revert default to `/superpowers:executing-plans`** (Contrarian) — overruled. Executing-plans hid the same planning ambiguity with less control; subagent-driven-development is a first-class Superpowers skill.
+
+Suite: 233 assertions across 5 bash suites pass. 5 files changed across two commits on the branch (`4c37350` initial + `9d82af8` council revisions).
+
+**Remediation for existing installs:** `./setup.sh -f` to pick up the new Phase 4 content.
+
 ## 5.12 — 2026-04-21 · Template-drift notice on `setup.sh -f` / `--upgrade`
 
 Closes the downstream pain path the user surfaced directly: after bumping the harness repo, running `./setup.sh -f` in a pre-existing project didn't warn that `CLAUDE.template.md` had evolved since their `CLAUDE.md` was originally copied. The user only saw `Your CLAUDE.md and CONTINUITY.md were not modified` and had to manually ask Claude to reconcile the template against the local file.
