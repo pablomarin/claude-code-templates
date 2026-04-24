@@ -10,15 +10,7 @@ Generate a structured PRD from the refined understanding captured in `/prd:discu
 
 ## Instructions
 
-### Step 0: Research Current Best Practices
-
-Before generating the PRD:
-
-1. Use WebSearch to verify current best practices for the feature type
-2. Use WebFetch/Context7 to check current library documentation if specific tech is involved
-3. Ensure recommendations reflect up-to-date patterns, not outdated approaches
-
-> **Note:** This Step 0 is **discovery research** for the PRD. Implementation-specific research (library versions, breaking changes) happens later in Phase 2 of `/new-feature` via the `research-first` agent.
+> **Research note:** The PRD captures WHAT the user needs — goals, constraints, acceptance criteria. HOW to build it (libraries, patterns, data models, auth mechanisms) belongs in the design phase, informed by the `research-first` agent in `/new-feature` Phase 2. Do NOT run web research here; the PRD is not a technology decision document.
 
 ### Step 1: Load Context
 
@@ -27,8 +19,12 @@ Before generating the PRD:
    - Refined user stories
    - Personas identified
    - Non-goals agreed
-   - Key decisions made
-   - Technical constraints
+   - Key decisions made (scope decisions, not solution choices)
+   - Business / compliance constraints (regulatory, legal, SLA)
+   - Platform / operational constraints (browser/OS floors, accessibility targets, network conditions)
+   - Dependencies (features/systems that must exist first)
+   - Required integrations or capabilities (named external systems or named capabilities — e.g. "must sync with Salesforce", "must support SAML 2.0 SSO", "must export iCalendar")
+   - Security outcomes (who can access what, what must never leak, what must be auditable, regulatory outcomes)
    - Success metrics
 
 ### Step 2: Generate PRD
@@ -134,52 +130,45 @@ And {additional result}
 
 ---
 
-## 5. Technical Constraints
+## 5. Constraints & Policies
 
-### Known Limitations
+> Outcome-level only. Hard limits the product must respect. HOW we satisfy them is design.
 
-- {constraint 1}
-- {constraint 2}
+### Business / Compliance Constraints
 
-### Dependencies
+- {e.g. "Must comply with HIPAA — PHI cannot leave the VPC"}
+- {e.g. "Free tier limited to 100 requests/day per org"}
+
+### Platform / Operational Constraints
+
+- {e.g. "Must run on iOS 16+ — no newer API features"}
+- {e.g. "Must degrade gracefully on 3G networks"}
+
+### Dependencies & Required Integrations
+
+> Name WHAT external systems or capabilities the user requires us to work with. HOW we call them (API style, SDK, message format) is design.
 
 - **Requires:** {feature/system that must exist first}
 - **Blocked by:** {any blockers}
+- **Named integrations (scope, not mechanism):** {e.g. "Must sync with Salesforce Contacts", "Must support Okta SSO for enterprise tenants", "Must export to QuickBooks"}
 
-### Integration Points
+## 6. Security Outcomes Required
 
-- {External system 1}: {how we integrate}
-- {External system 2}: {how we integrate}
+> WHAT must be protected and against what. HOW (auth mechanisms, hashing algorithms, audit formats) is design.
 
-## 6. Data Requirements
+- **Who can access what:** {e.g. "Only org admins can delete projects"}
+- **What must never leak:** {e.g. "User passwords must never be retrievable in plaintext, by anyone, ever"}
+- **What must be auditable:** {e.g. "All mutations to billing records must be traceable to an actor"}
+- **What legal/regulatory outcomes apply:** {e.g. "GDPR right-to-erasure honored within 30 days"}
 
-### New Data Models
-
-- {Model name}: {brief description}
-
-### Data Validation Rules
-
-- {Field}: {validation rule}
-
-### Data Migration
-
-- {Any migration needed from existing data}
-
-## 7. Security Considerations
-
-- **Authentication:** {requirements}
-- **Authorization:** {who can do what}
-- **Data Protection:** {sensitive data handling}
-- **Audit:** {what needs to be logged}
-
-## 8. Open Questions
+## 7. Open Questions
 
 > Questions that need answers before or during implementation
 
 - [ ] {Question 1}
 - [ ] {Question 2}
 
-## 9. References
+## 8. References
 
 - **Discussion Log:** `docs/prds/{feature-name}-discussion.md`
 - **Related PRDs:** {links to related PRDs}
@@ -210,8 +199,11 @@ Before finalizing, verify PRD has:
 - [ ] Edge cases documented
 - [ ] Explicit non-goals
 - [ ] Success metrics with targets
-- [ ] Technical constraints listed
-- [ ] Security considerations addressed
+- [ ] Constraints & Policies stated at outcome level (no "use library X" / "implement with Y")
+- [ ] Required integrations are NAMED as scope (e.g. "must sync with Salesforce") — not HOW we call them (no SDK choice, API call shape, message broker pick)
+- [ ] Interoperability requirements ARE allowed as scope when they define the product surface (e.g. "accept SAML 2.0", "export iCalendar", "serve OpenAPI 3.1") — these are WHAT the product must interoperate with, not HOW it implements internally
+- [ ] Security outcomes stated (who accesses what, what must not leak, required auth capabilities like "SSO") — NOT internal security mechanism (hashing algorithm, token signing choice, session storage)
+- [ ] No internal implementation picks — no data model schemas, no internal algorithm choices, no internal SDK/library picks (those belong in design)
 - [ ] No TBD or placeholder text
 
 ## Output

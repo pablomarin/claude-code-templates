@@ -8,23 +8,9 @@ User stories are often incomplete. This command ensures we understand requiremen
 
 ## Instructions
 
-### Phase 0: Research
-
-**Before analyzing user stories, research the problem space:**
-
-1. Use WebSearch to find industry best practices for this type of feature
-2. Use WebFetch to read relevant documentation if specific technologies are mentioned
-3. Look for competitor implementations or established patterns
-
-This research informs better questions and identifies requirements the user may not have considered.
-
-> **Note:** This Phase 0 is **discovery research** — understanding the problem space, competitors, and industry patterns before writing requirements. It is separate from Phase 2 **implementation research** (in `/new-feature`), where the `research-first` agent checks current library versions, breaking changes, and API patterns. Both phases are necessary: discovery shapes WHAT to build; implementation research shapes HOW to build it with current tools.
-
-**Tools for discovery research:**
-
-- `WebSearch` — industry best practices, competitor analysis
-- `WebFetch` — specific product pages, documentation sites
-- `Context7` — framework/library-specific guidance (also useful during discovery)
+> **Research note:** This command is about refining WHAT the user needs — personas, goals, non-goals, acceptance. Solution research (libraries, protocols, data shapes, auth mechanisms) happens in the design phase via `/new-feature` Phase 2's `research-first` agent. Do not run solution research inside this command — staying at the requirements layer is what makes this phase valuable.
+>
+> **In-band discovery research IS allowed, when scoped to requirements.** If during the discussion you hit a question you genuinely cannot answer without competitor / industry-pattern context (e.g. "what does 'import progress' look like in products users expect?", "what accessibility floor do analogous products hit?"), you MAY pause the discussion, run targeted WebSearch / WebFetch / Context7 queries, and bring the findings back into the conversation. Keep the research focused on user expectations and product norms — NOT on implementation choices (libraries, protocols, code patterns). If the question you want to research is "which library should we use" or "which protocol is fastest," stop — that's design.
 
 ### Phase 1: Initial Analysis
 
@@ -51,7 +37,17 @@ This research informs better questions and identifies requirements the user may 
 
 ### Phase 2: Targeted Questioning
 
-Analyze the stories and ask **5-10 pointed questions** covering:
+Analyze the stories and ask **5-10 pointed questions** covering the areas below.
+
+> **Stay on the WHAT, not the HOW.** Don't ask about INTERNAL implementation choices — which library, which internal data shape, which internal auth/hashing mechanism — those are design decisions, asked during brainstorming. DO ask what the user expects to SEE and DO, and whether a specific **external protocol, standard, or format** is part of the required product surface (interoperability is scope, not implementation).
+>
+> Examples:
+>
+> - "Does the user need real-time visible progress, or is a final outcome enough?" — requirement question ✅
+> - "Must the product accept SAML 2.0 assertions from customer IdPs?" — scope question (interoperability) ✅
+> - "Must we export iCalendar format for user downloads?" — scope question (product surface) ✅
+> - "SSE vs polling for progress?" — internal mechanism, skip ❌
+> - "Which JWT algorithm for internal sessions?" — internal mechanism, skip ❌
 
 #### Personas & Access
 
@@ -161,34 +157,46 @@ Before we write a PRD, let me understand these better:
 
 **Personas:**
 1. Is "admin" the only role that can import? What about project owners
-   or super-admins?
+   or super-admins? Are there any read-only personas who need to see
+   imports happening?
 
-**Story 1 - Import from URL:**
-2. What URL formats should we support?
-   - GitHub raw URLs (raw.githubusercontent.com)
-   - npm package references (@org/package)
-   - Direct JSON/YAML config files
-   - OpenAPI/Swagger specs
+**Story 1 - Import from URL (scope & behavior):**
+2. What URL sources must we support? (public links, private repos requiring
+   auth, something else the user points us at) — scope question, not
+   protocol question.
 
-3. What happens if the URL is unreachable or returns 404?
+3. What happens if the URL is unreachable? Does the user see a
+   clear error, a retry, something else?
 
-4. What if the URL points to a valid file but invalid MCP config?
+4. What happens if the URL points to a valid file but the content is
+   not a valid MCP config? What does the user see?
 
-5. Should we support authenticated URLs (private GitHub repos)?
+5. Can the same URL be imported twice — replace, dedupe, or error?
 
-**Story 2 - Progress:**
-6. Real-time updates (SSE/WebSocket) or polling?
+**Story 2 - Import progress (user-visible behavior):**
+6. Is "progress" required to be real-time visible, or is an end-of-import
+   success/failure message sufficient? (Real-time = new requirement;
+   "end-of-import only" might be simpler and OK.)
 
-7. What stages should progress show? For example:
-   - Fetching → Parsing → Validating → Creating tools → Done
+7. If the user navigates away mid-import, what must they see when they
+   return? Is the import expected to continue running whether or not they
+   are watching? (User-visible behavior — the implementation choice of
+   foreground vs background job is design.)
 
-**Scope:**
-8. Single URL import only, or should we support bulk (multiple URLs)?
+**Scope & security outcomes:**
+8. Single URL at a time, or bulk import? (Scope decision.)
 
-9. Are we importing just the server definition, or also credentials/API keys?
+9. Does "import MCP servers" include credentials / API keys bundled
+   with the server definition, or only the definition? (This is a
+   security-outcome question — NOT "how do we encrypt them".)
 
-10. Should imported servers auto-start, or require manual activation?
+10. After import, do servers auto-start or require an explicit enable
+    action by the user?
 ```
+
+> Notice: none of the questions above ask which protocol, parser, data
+> model, or storage mechanism to use. Those are design questions, asked
+> after the PRD lands.
 
 ## Output
 
