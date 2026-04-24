@@ -142,7 +142,7 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [ ] Brainstorming complete
 - [ ] Approach comparison filled
 - [ ] Contrarian gate passed (skip | spike | council)
-- [ ] Council verdict (if triggered): [approach chosen]
+- [ ] Council verdict (if triggered) — verdict persisted in plan file, not here
 - [ ] Plan written
 - [ ] Plan review loop (0 iterations) — iterate until no P0/P1/P2
 - [ ] TDD execution complete
@@ -277,7 +277,9 @@ This loads the full design skill — creative direction, animation techniques, t
 
 ### 3.1b Approach Comparison (MANDATORY)
 
-After brainstorming produces 2+ approaches, fill the comparison table in CONTINUITY.md (under the `## Workflow` section). This runs BEFORE the plan file exists — the plan (Phase 3.2) will incorporate the chosen approach.
+After brainstorming produces 2+ approaches, produce the comparison table **in this conversation**, using the schema below. Do NOT write it to `CONTINUITY.md` — `CONTINUITY.md` is status-only (checklist + phase tracking); design content never goes there.
+
+Phase 3.1c will pass this exact table to the Contrarian gate (verbatim), and Phase 3.2 will persist it into the plan file header. The table lives in your active context between those two phases — keep it intact.
 
 ```markdown
 ## Approach Comparison
@@ -311,9 +313,47 @@ If brainstorming produced only one viable approach, still run the Contrarian gat
 
 The Contrarian/Codex validates the "default wins" claim. **Claude cannot self-certify the skip.**
 
+Immediately invoke `/council` in auto-trigger mode — ideally in the same turn as Phase 3.1b so the comparison table is still in active context. Build the `/council` argument from the EXACT `## Approach Comparison` block you just produced in Phase 3.1b and paste that block **VERBATIM** into the request — including `### Chosen Default`, `### Best Credible Alternative`, the full 5-axis scoring table, and `### Cheapest Falsifying Test`. Do NOT summarize, paraphrase, or re-score when you have the block in context.
+
+**Compaction recovery (rare).** If compaction or `/clear` has removed the exact 3.1b block before you reach this step, do NOT reconstruct it from a fragmentary recollection — that loses fidelity. Instead: re-run the 3.1b brainstorming step explicitly (or ask the user to restate the approach they chose), produce a fresh `## Approach Comparison`, then continue here. The durable home for this comparison is the plan file (persisted in Phase 3.2); the 3.1b → 3.1c → 3.2 window is the only fragile span, and it typically fits in one conversational turn. If that span repeatedly spans compactions in your project, consider filing an issue to revisit in-context handling vs a scratch file.
+
+Invocation template — begin the `/council` argument with the explicit gate directive below so the skill's auto-trigger detection fires (per `.claude/skills/council/SKILL.md` Step 0 + `references/peer-review-protocol.md` "Contrarian Gate" + "Auto-Trigger Integration"), NOT the standalone 5-advisor path. The skill runs its internal Contrarian-then-maybe-spike-then-maybe-council flow and returns the workflow's next action (VALIDATE, SPIKE, or COUNCIL):
+
 ```
-/council [pass the approach comparison as context — auto-trigger mode]
+/council Phase 3.1c Contrarian Gate — auto-trigger mode per references/peer-review-protocol.md "Auto-Trigger Integration" section. Run the Contrarian → optional-spike → optional-escalation flow and return the workflow's final decision: VALIDATE (proceed), SPIKE (run the test first), or COUNCIL (fire full council). Do NOT return a standalone 5-advisor chairman verdict unless the internal flow actually escalated to the full council. Approach comparison to evaluate (verbatim from Phase 3.1b):
+
+## Approach Comparison
+
+### Chosen Default
+[exact text from 3.1b]
+
+### Best Credible Alternative
+[exact text from 3.1b]
+
+### Scoring (fixed axes)
+| Axis                  | Default | Alternative |
+|-----------------------|---------|-------------|
+| Complexity            | L/M/H   | L/M/H       |
+| Blast Radius          | L/M/H   | L/M/H       |
+| Reversibility         | L/M/H   | L/M/H       |
+| Time to Validate      | L/M/H   | L/M/H       |
+| User/Correctness Risk | L/M/H   | L/M/H       |
+
+### Cheapest Falsifying Test
+[exact text from 3.1b]
 ```
+
+The council skill currently emits its decision as **prose**, not as a clean token. Translate its response into one of `{VALIDATE, SPIKE, COUNCIL}` using this mapping, then proceed per the outcome table below:
+
+| Skill response (prose)                                                                       | Workflow token                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Contrarian validated. Proceeding with default approach."                                    | VALIDATE                                                                                                                                                                                                                        |
+| "Proceed with default. Trade-off documented." (OBJECT + low-impact surface + expensive test) | VALIDATE (with the trade-off noted in Phase 3.2's Contrarian Verdict section)                                                                                                                                                   |
+| "Run spike first: [test description]"                                                        | SPIKE — run the test. Update the Approach Comparison with the spike's findings (may change `### Chosen Default` / `### Best Credible Alternative` / scoring) BEFORE re-invoking 3.1c. Do NOT re-send the stale pre-spike block. |
+| Full `## Council Verdict` block with 3–5 advisors and chairman synthesis                     | COUNCIL — the chairman's `### Recommendation` supersedes the 3.1b default; update the Approach Comparison accordingly in Phase 3.2                                                                                              |
+| Raw "INSUFFICIENT" (per `references/peer-review-protocol.md`)                                | COUNCIL — fire the full council; the protocol defines INSUFFICIENT as "ambiguity = risk, escalate"                                                                                                                              |
+| Raw "OBJECT" without spike-or-council decision                                               | COUNCIL — escalate per protocol (OBJECT + no cheap test ⇒ council)                                                                                                                                                              |
+| Anything else unrecognizable                                                                 | Escalate to the user: "/council returned X, should I treat as VALIDATE, SPIKE, or COUNCIL?"                                                                                                                                     |
 
 The council skill handles the gate:
 
@@ -323,9 +363,23 @@ The council skill handles the gate:
 
 If Codex unavailable: present the approach comparison to the user and ask them to validate.
 
-Check off in CONTINUITY.md: `- [x] Contrarian gate passed (skip | spike | council)`
+Check off in CONTINUITY.md: `- [x] Contrarian gate passed (skip | spike | council)` — this checkbox is status, which is fine. The verdict text itself stays in-context (and ultimately lands in the plan file per Phase 3.2).
 
 ### 3.2 Write the implementation plan
+
+Invoke `/superpowers:writing-plans` to create the plan file. **Respect `writing-plans`'s required header shape** — it produces the plan with an H1 banner plus the `**Goal:**`, `**Architecture:**`, `**Tech Stack:**` block at the top (see `writing-plans/SKILL.md`). Do NOT move or replace that header.
+
+After `writing-plans` produces the base plan, persist the **final** Approach Comparison into the plan file — "final" means the one that won Phase 3.1c:
+
+1. **Determine the final comparison:**
+   - If 3.1c returned **VALIDATE**: the Phase 3.1b table IS the final (unchanged).
+   - If 3.1c returned **SPIKE → re-evaluated**: the spike may have confirmed the default or swung the choice. Update the table's `### Chosen Default` / `### Best Credible Alternative` to reflect what actually won. Add a one-line spike-result note.
+   - If 3.1c returned **COUNCIL**: the council verdict's Recommendation becomes `### Chosen Default`. Swap the alternative to match. Do NOT preserve the pre-council table unchanged.
+2. **Insert** the final `## Approach Comparison` block into the plan file **immediately after** `writing-plans`'s Goal/Architecture/Tech Stack header, **before** any Files / Tasks / Implementation Notes sections. If `writing-plans` doesn't include it, Edit the file to insert it there.
+3. **Append** a `## Contrarian Verdict` subsection below the Approach Comparison recording the gate result (`VALIDATE` / `SPIKE` / `COUNCIL`) plus a one-sentence rationale from 3.1c.
+4. The `**Architecture:**` field that `writing-plans` produces in the required header (inline field — not a heading) should be a 2–3-sentence recap referencing the Approach Comparison — not a restatement.
+
+This is the single moment design content leaves your in-memory context and becomes durable. `CONTINUITY.md` still contains only the checkbox — the design rationale lives in the plan file from here on.
 
 ```
 /superpowers:writing-plans
