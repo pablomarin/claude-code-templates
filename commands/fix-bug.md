@@ -143,7 +143,7 @@ Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't 
 - [ ] Brainstorming complete (if complex)
 - [ ] Approach comparison filled (if complex)
 - [ ] Contrarian gate passed (skip | spike | council) (if complex)
-- [ ] Council verdict (if triggered): [approach chosen] (if complex)
+- [ ] Council verdict (if triggered, complex fixes only) — verdict persisted in plan file, not here
 - [ ] Plan written (if complex)
 - [ ] Plan review loop (0 iterations, if complex) — iterate until no P0/P1/P2
 - [ ] TDD fix execution complete
@@ -277,13 +277,29 @@ This ensures UI fixes maintain visual quality — don't regress the design while
 
 #### 3.1b Approach Comparison (MANDATORY)
 
-Same as `/new-feature` 3.1b — fill the approach comparison table in CONTINUITY.md (runs before the plan file exists). If only one viable fix, still run the Contrarian gate (validates no alternative was missed).
+Same as `/new-feature` 3.1b — produce the comparison table **in conversation context** (not in `CONTINUITY.md`; `CONTINUITY.md` is status-only). If only one viable fix, still run the Contrarian gate (validates no alternative was missed).
 
 #### 3.1c Contrarian Gate (MANDATORY)
 
-Same as `/new-feature` 3.1c — Codex validates the "default wins" claim via the council skill.
+Same as `/new-feature` 3.1c — invoke `/council` with the explicit `"Phase 3.1c Contrarian Gate — auto-trigger mode per references/peer-review-protocol.md 'Auto-Trigger Integration' section. Return VALIDATE / SPIKE / COUNCIL."` directive, followed by the Approach Comparison block pasted **VERBATIM**. Do not summarize, paraphrase, or reconstruct from memory; if the block is no longer in active context, regenerate it explicitly before invoking `/council`. Full invocation template in `/new-feature` 3.1c.
+
+The council skill currently emits its decision as **prose**, not a clean token. Translate its response into one of `{VALIDATE, SPIKE, COUNCIL}` using this mapping:
+
+| Skill response (prose)                                    | Workflow token                                                                                                                                                                                                               |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Contrarian validated. Proceeding with default approach." | VALIDATE                                                                                                                                                                                                                     |
+| "Proceed with default. Trade-off documented."             | VALIDATE (note the trade-off in 3.2's Contrarian Verdict section)                                                                                                                                                            |
+| "Run spike first: [test]"                                 | SPIKE — run the test, UPDATE the Approach Comparison with the spike's findings (may change `### Chosen Default` / `### Best Credible Alternative` / scoring), THEN re-invoke 3.1c. Do NOT re-send the stale pre-spike block. |
+| Full `## Council Verdict` block                           | COUNCIL — chairman's `### Recommendation` supersedes the 3.1b default; update in Phase 3.2                                                                                                                                   |
+| Raw "INSUFFICIENT"                                        | COUNCIL — protocol defines INSUFFICIENT as "ambiguity = risk, escalate"                                                                                                                                                      |
+| Raw "OBJECT" without a spike-or-council decision          | COUNCIL                                                                                                                                                                                                                      |
+| Unrecognizable                                            | Escalate to user: "/council returned X, should I treat as VALIDATE, SPIKE, or COUNCIL?"                                                                                                                                      |
+
+Outcome actions (same as `/new-feature` 3.1c): VALIDATE → proceed to 3.2; SPIKE → run the test, re-evaluate; COUNCIL → full council runs, verdict picks the approach, proceed to 3.2.
 
 #### 3.2 Write the fix plan
+
+Invoke `/superpowers:writing-plans`. Mirroring `/new-feature` 3.2 — respect `writing-plans`' required header (H1 banner + Goal/Architecture/Tech Stack). Insert the **final** Approach Comparison (reflecting whatever won 3.1c's VALIDATE / SPIKE / COUNCIL path) AFTER that required header, followed by a `## Contrarian Verdict` subsection. Do NOT copy a stale 3.1b table if the spike or council changed the choice. `CONTINUITY.md` keeps only the checkbox.
 
 ```
 /superpowers:writing-plans
