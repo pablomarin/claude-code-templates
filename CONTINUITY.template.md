@@ -79,8 +79,13 @@ Ready for first task
 2. Move top of Next → Now
 3. Add to CHANGELOG.md if significant
 
-**On new feature:**
-Clear Done section, start fresh
+**On new feature start (`/new-feature` or `/fix-bug` Pre-Flight step 3):**
+
+1. **REPLACE** the `## Workflow` section entirely — do not append, do not preserve old checklist items.
+2. **Delete any stale `## Approach Comparison` blocks** in the file — these are leftover from the pre-PR-#537 workflow (which used to write design content into CONTINUITY.md). The new workflow keeps the Approach Comparison in conversation context only, then persists it into the plan file at Phase 3.2; nothing should remain in CONTINUITY.md.
+3. **Delete orphaned `[x]` / `[ ]` checkbox lines** that drifted outside any user-authored section. Includes: lines floating between sections, AND lines inside stale `## Approach Comparison` blocks you just deleted. Do NOT touch checkbox items inside user sections like `## Blockers` / `## Open Questions` — those are user content.
+
+**On new feature:** Clear Done section, start fresh.
 
 **Where detailed progress lives:**
 

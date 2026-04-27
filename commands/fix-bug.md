@@ -120,7 +120,13 @@ cat CONTINUITY.md
 
 ### 3. Initialize Workflow Tracking
 
-Write the `## Workflow` section in CONTINUITY.md (create the file if it doesn't exist):
+Write the `## Workflow` section in CONTINUITY.md (or create the file if it doesn't exist). Three cleanup steps before writing the new section:
+
+1. **REPLACE** any existing `## Workflow` section entirely — do not append, do not preserve old checklist items.
+2. **Delete any stale `## Approach Comparison` blocks** in the file. These are leftover from the pre-PR-#537 workflow (which wrote design content into CONTINUITY.md). The new workflow keeps the Approach Comparison in conversation context only, then persists it into the plan file at Phase 3.2; nothing should remain in CONTINUITY.md.
+3. **Delete orphaned `[x]` / `[ ]` checkbox lines** that drifted outside any user-authored section — lines floating between sections, AND lines inside any stale `## Approach Comparison` blocks you just deleted. Do NOT touch checkbox items inside user sections like `## Blockers` / `## Open Questions` — those are user content.
+
+Then write the new `## Workflow` section:
 
 ```markdown
 ## Workflow
