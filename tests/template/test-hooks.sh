@@ -489,6 +489,14 @@ if echo "$out_hc" | grep -qF "state.md not found"; then
 else
     fail "hook did not emit 'state.md not found' breadcrumb (got: $out_hc)"
 fi
+# P2-5: breadcrumb must name the migration command. Without this, AC-4
+# byte-parity could break (one platform changes the wording, the other
+# doesn't) before AC-13 catches it.
+if echo "$out_hc" | grep -qF "setup --migrate"; then
+    pass "breadcrumb names migration command ('setup --migrate')"
+else
+    fail "breadcrumb does NOT name migration command (got: $out_hc)"
+fi
 assert_equals "$rc_hc" "0" "hook exits 0 (does NOT gate even with CONTINUITY.md present)"
 
 # ===========================================================================

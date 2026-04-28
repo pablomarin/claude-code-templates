@@ -1,6 +1,22 @@
 # .claude/hooks/check-state-updated.ps1
 # This hook runs when Claude is about to stop responding.
-# It checks if there are uncommitted changes and reminds Claude to update state.
+#
+# THREE CONCERNS -- only ONE blocks:
+#
+#   1. state.md missing breadcrumb (advisory, stderr only, exit 0).
+#      Fires only when legacy CONTINUITY.md is present (signals upgraded
+#      install that hasn't run -Migrate yet). Suppressed otherwise to
+#      avoid spamming every Stop event.
+#
+#   2. Workflow reminder (advisory, stderr only, exit 0).
+#      Reads .claude/local/state.md ## Workflow table; emits
+#      "WORKFLOW: <cmd> | Phase: <n> | Next: <step>" so the model always
+#      sees current phase even when no issues fire.
+#
+#   3. CHANGELOG threshold gate (BLOCKS via exit 2).
+#      If 4+ files changed on branch (committed + uncommitted) but
+#      docs/CHANGELOG.md was never modified, hook blocks the stop with
+#      a stderr message. This is the ONLY blocking concern.
 #
 # Uses exit code 2 + stderr to block (avoids JSON stdout parsing issues).
 #

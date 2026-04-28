@@ -520,6 +520,122 @@ else
 fi
 $all_ok && pass "state.template.md has all canonical schema headers (AC-2)"
 
+# P2-7: bash/PS migration-helper parity. Run both migrate-continuity scripts
+# on the same fixture, compare stdout + state.md + ADR file content. Skips
+# gracefully when no PowerShell runtime is installed.
+start_test "migration-parity-bash-vs-ps"
+ps_runner=$(detect_pwsh)
+if [ -z "$ps_runner" ]; then
+    pass "ℹ no PowerShell runtime found; skipping migration bash/PS parity test"
+else
+    # Build a shared fixture directory layout. Both runs need identical inputs.
+    make_fixture() {
+        local d="$1"
+        mkdir -p "$d/.claude/local"
+        cp "$REPO_ROOT/state.template.md" "$d/.claude/local/state.md"
+        cat > "$d/CONTINUITY.md" <<'EOF'
+# CONTINUITY
+
+## Goal
+
+Build a thing.
+
+## Architecture Decisions
+
+| Decision | Choice | Why |
+|----------|--------|-----|
+| DB | Postgres | ACID |
+
+## State
+
+### Done (recent 2-3 only)
+
+- 2026-04-01: shipped feature X
+- 2026-04-02: shipped feature Y
+- 2026-04-03: shipped feature Z
+
+### Now
+
+Working on the migration assistant.
+
+### Next
+
+- ship PR #2
+
+EOF
+        cat > "$d/CLAUDE.md" <<'EOF'
+# CLAUDE.md - Test Project
+
+## Project Overview
+
+A test project.
+EOF
+    }
+
+    sh_dir=$(mktemp -d)
+    ps_dir=$(mktemp -d)
+    make_fixture "$sh_dir"
+    make_fixture "$ps_dir"
+
+    sh_out=$(cd "$sh_dir" && bash "$REPO_ROOT/scripts/migrate-continuity.sh" 2>&1)
+    ps_out=$(cd "$ps_dir" && "$ps_runner" -NoProfile -File "$REPO_ROOT/scripts/migrate-continuity.ps1" 2>&1)
+
+    # Stdout: byte-equivalent.
+    if [ "$sh_out" = "$ps_out" ]; then
+        pass "bash and PS migrate-continuity emit byte-equivalent stdout"
+    else
+        fail "stdout differs between bash and PS migrate-continuity"
+        diff <(printf '%s' "$sh_out") <(printf '%s' "$ps_out") | head -20
+    fi
+
+    # state.md content: byte-equivalent.
+    if cmp -s "$sh_dir/.claude/local/state.md" "$ps_dir/.claude/local/state.md"; then
+        pass "state.md content byte-equivalent across bash and PS"
+    else
+        fail "state.md content differs between bash and PS migrate-continuity"
+        diff "$sh_dir/.claude/local/state.md" "$ps_dir/.claude/local/state.md" | head -20
+    fi
+
+    # Sentinel placement: line 1 of both state.md AND CLAUDE.md, in BOTH runs.
+    for d in "$sh_dir" "$ps_dir"; do
+        first_state=$(head -1 "$d/.claude/local/state.md")
+        first_claude=$(head -1 "$d/CLAUDE.md")
+        case "$first_state" in
+            "<!-- forge:migrated "*"-->") : ;;
+            *)  fail "sentinel NOT on line 1 of $d/.claude/local/state.md (got: $first_state)" ;;
+        esac
+        case "$first_claude" in
+            "<!-- forge:migrated "*"-->") : ;;
+            *)  fail "sentinel NOT on line 1 of $d/CLAUDE.md (got: $first_claude)" ;;
+        esac
+    done
+    pass "sentinel on line 1 of state.md AND CLAUDE.md in both bash and PS runs"
+
+    # ADR content: at least one ADR was created in both, and contents match.
+    sh_adr=$(find "$sh_dir/docs/adr" -name "*-db.md" -o -name "*-database.md" 2>/dev/null | head -1)
+    ps_adr=$(find "$ps_dir/docs/adr" -name "*-db.md" -o -name "*-database.md" 2>/dev/null | head -1)
+    if [ -n "$sh_adr" ] && [ -n "$ps_adr" ]; then
+        if cmp -s "$sh_adr" "$ps_adr"; then
+            pass "ADR file content byte-equivalent across bash and PS"
+        else
+            fail "ADR file content differs between bash and PS"
+            diff "$sh_adr" "$ps_adr" | head -20
+        fi
+    else
+        fail "ADR file missing in one or both runs (sh: '$sh_adr', ps: '$ps_adr')"
+    fi
+
+    # CLAUDE.md content: byte-equivalent (Goal injection should produce same output).
+    if cmp -s "$sh_dir/CLAUDE.md" "$ps_dir/CLAUDE.md"; then
+        pass "CLAUDE.md content byte-equivalent after migration (bash vs PS)"
+    else
+        fail "CLAUDE.md content differs between bash and PS migrate-continuity"
+        diff "$sh_dir/CLAUDE.md" "$ps_dir/CLAUDE.md" | head -20
+    fi
+
+    rm -rf "$sh_dir" "$ps_dir"
+fi
+
 # AC-2 byte-identical STATE-INIT contract: the bash block in commands/new-feature.md
 # and commands/fix-bug.md between # STATE-INIT-BEGIN and # STATE-INIT-END markers
 # must be byte-identical (mirrors the existing DRIFT-PREFLIGHT-NEW contract from PR #1).

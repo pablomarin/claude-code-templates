@@ -28,18 +28,18 @@ Forge ships volatile per-developer workflow state at `.claude/local/state.md`, g
 
 ## Consequences
 
-- ✅ Volatile state stays out of auto-loaded context. Token cost is paid on demand, not on every session-start. Secrets pasted into the file by mistake do not auto-transmit on every session.
-- ✅ Hook code is self-explanatory: `read .claude/local/state.md` clearly reads operational state, not preferences or instructions.
-- ✅ Cross-developer contamination is solved (gitignore boundary).
-- ⚠️ Forge introduces a repo-specific convention (`.claude/local/`) instead of using Anthropic's documented `CLAUDE.local.md`. The Simplifier's minority report flagged this as path-cost; weighed against the design correctness and overruled.
-- ⚠️ A future Anthropic feature could claim the `.claude/local/` directory namespace. Mitigation: a 2-byte path change in setup.sh + the workflow rule. Low probability, easy reversibility.
-- ⚠️ Discoverability is slightly worse than `CLAUDE.local.md` would be (nested vs root). Acceptable tax.
-- 🔮 If field testing produces evidence that auto-loading a structured state file does NOT cause measurable model bias or token amplification, Option B may be revisited via a new ADR superseding this one.
-- 🔮 If field testing produces evidence that the secret-leak risk is unfounded, that single Hawk objection weakens — but the Pragmatist's correctness argument (PR #1 root cause) and the Maintainer's data-vs-instructions argument both remain independent.
+- **Pro:** Volatile state stays out of auto-loaded context. Token cost is paid on demand, not on every session-start. Secrets pasted into the file by mistake do not auto-transmit on every session.
+- **Pro:** Hook code is self-explanatory: `read .claude/local/state.md` clearly reads operational state, not preferences or instructions.
+- **Pro:** Cross-developer contamination is solved (gitignore boundary).
+- **Trade-off:** Forge introduces a repo-specific convention (`.claude/local/`) instead of using Anthropic's documented `CLAUDE.local.md`. The Simplifier's minority report flagged this as path-cost; weighed against the design correctness and overruled.
+- **Trade-off:** A future Anthropic feature could claim the `.claude/local/` directory namespace. Mitigation: a 2-byte path change in setup.sh + the workflow rule. Low probability, easy reversibility.
+- **Trade-off:** Discoverability is slightly worse than `CLAUDE.local.md` would be (nested vs root). Acceptable tax.
+- **Future:** If field testing produces evidence that auto-loading a structured state file does NOT cause measurable model bias or token amplification, Option B may be revisited via a new ADR superseding this one.
+- **Future:** If field testing produces evidence that the secret-leak risk is unfounded, that single Hawk objection weakens — but the Pragmatist's correctness argument (PR #1 root cause) and the Maintainer's data-vs-instructions argument both remain independent.
 
 ## Council deliberation
 
-5 advisors (Simplifier-Claude, Pragmatist-Claude, Scalability-Hawk-Claude, Contrarian-Codex, Maintainer-Codex) + Codex chairman with xhigh reasoning. Phase 1 Contrarian Gate returned OBJECT (auto-load alone does not falsify CLAUDE.local.md; PR #1's bug was shared stale state, not auto-load semantics per se). Per protocol, escalated to full council on high-impact-surface ground.
+5 advisors (Simplifier-Claude, Pragmatist-Claude, Scalability-Hawk-Claude, Contrarian-Codex, Maintainer-Codex) + Codex chairman with high reasoning depth. Phase 1 Contrarian Gate returned OBJECT (auto-load alone does not falsify CLAUDE.local.md; PR #1's bug was shared stale state, not auto-load semantics per se). Per protocol, escalated to full council on high-impact-surface ground.
 
 Final tally: Pragmatist APPROVE A · Hawk APPROVE A (OBJECT to B) · Maintainer CONDITIONAL on A · Simplifier OBJECT to A (wants B) · Contrarian CONDITIONAL leaning B with schema discipline (also surfaced Option C).
 
