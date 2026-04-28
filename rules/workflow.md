@@ -17,9 +17,9 @@
 
 ## Workflow Tracking
 
-**When a workflow is active** (`## Workflow` in CONTINUITY.md has Command != `none`):
+**When a workflow is active** (`## Workflow` in .claude/local/state.md has Command != `none`):
 
-1. **Before each action**: Read `## Workflow` in CONTINUITY.md — check current Phase and Next step
+1. **Before each action**: Read `## Workflow` in .claude/local/state.md — check current Phase and Next step
 2. **Execute only** the `Next step` listed
 3. **After completing a step**: Check the box in the Checklist and advance `Next step` to the next unchecked item
 4. **On phase transition**: Update the `Phase` field
@@ -41,7 +41,7 @@ Two revision loops enforce quality as a discipline protocol. Both follow the sam
 
 1. Run all available reviewers in parallel
 2. Collect severity-tagged findings (P0/P1/P2/P3) using the rubric above
-3. If P0/P1/P2 found → fix, increment counter in CONTINUITY checklist, repeat
+3. If P0/P1/P2 found → fix, increment counter in the workflow checklist, repeat
 4. If only P3 or clean → check the box with final iteration count, proceed (P3s do not block)
 
 **Plan review loop** (Phase 3, when entered): Claude + Codex review the plan against actual code.
