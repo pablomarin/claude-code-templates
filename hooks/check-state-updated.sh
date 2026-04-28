@@ -29,8 +29,13 @@ UNCOMMITTED=$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d
 CONTINUITY_MODIFIED=$(git status --porcelain CONTINUITY.md 2>/dev/null | wc -l | tr -d ' ')
 CHANGELOG_MODIFIED=$(git status --porcelain docs/CHANGELOG.md 2>/dev/null | wc -l | tr -d ' ')
 
-# Total files changed on branch (committed + uncommitted) vs main
-BRANCH_BASE=$(git merge-base main HEAD 2>/dev/null || echo "HEAD~10")
+# Total files changed on branch (committed + uncommitted) vs default branch
+# Resolve the repo's default branch via the shared helper. The helper lives
+# alongside this hook at .claude/hooks/lib/default-branch.sh in installed
+# downstream repos, and at hooks/lib/default-branch.sh in this template.
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+DEFAULT_BRANCH=$(bash "$HOOK_DIR/lib/default-branch.sh" 2>/dev/null) || DEFAULT_BRANCH="main"
+BRANCH_BASE=$(git merge-base "$DEFAULT_BRANCH" HEAD 2>/dev/null || echo "HEAD~10")
 BRANCH_CHANGED=$(git diff --name-only "$BRANCH_BASE" HEAD 2>/dev/null | wc -l | tr -d ' ')
 UNCOMMITTED_FILES=$(git diff --name-only 2>/dev/null | wc -l | tr -d ' ')
 TOTAL_CHANGED=$((BRANCH_CHANGED + UNCOMMITTED_FILES))
