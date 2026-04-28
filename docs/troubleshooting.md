@@ -141,6 +141,71 @@ git fetch --prune
 
 This refreshes `refs/remotes/origin/HEAD` to the current upstream default and prunes the dead remote-tracking branch. After running, the helper returns the correct name on next invocation.
 
+## Migration and the volatile state file
+
+Issues specific to the 5.14 → 5.15 [CONTINUITY split](guides/upgrading.md#migrating-from-continuitymd-514--515) and the new `.claude/local/state.md`.
+
+### `ℹ check-state-updated: state.md not found` breadcrumb
+
+You ran a Claude Code turn or tried to `git commit` and saw a friendly stderr breadcrumb pointing at `setup.sh --migrate`. The PreToolUse and Stop hooks read **only** `.claude/local/state.md` — they never fall back to a legacy `CONTINUITY.md`. The breadcrumb fires when:
+
+1. The repo has a legacy `CONTINUITY.md` at the root **and** `.claude/local/state.md` is missing — the hooks suspect you upgraded to 5.15 but haven't migrated yet.
+2. `.claude/local/` was wiped (e.g., by an aggressive `git clean -fdx`, or because the `.gitignore` pattern wasn't picked up before a stash/restore).
+
+**Fix:**
+
+```bash
+# Option A — run the migration assistant (preferred if you have legacy content):
+~/claude-codex-forge/setup.sh --migrate
+
+# Option B — re-install the starter state file (if there's nothing to migrate):
+~/claude-codex-forge/setup.sh -f
+```
+
+Both options preserve any existing `.claude/local/state.md` content — they're idempotent.
+
+### Dangling `@CONTINUITY.md` import in `CLAUDE.md`
+
+If your `CLAUDE.md` still has a `@CONTINUITY.md` line at the top (the pre-5.15 default), Claude Code will silently fail to find the target — `@`-imports do not error on missing files. The migration assistant **detects but does not auto-edit** this; it prints a warning telling you the line is dangling.
+
+**Fix:** delete the line yourself.
+
+```diff
+-@CONTINUITY.md
+-
+ # CLAUDE.md - my-project
+```
+
+You don't need to replace it with anything — `.claude/local/state.md` is intentionally NOT imported, so hooks read it on demand instead of Claude auto-loading it. That's the design (see [`docs/adr/0001-volatile-state-not-auto-loaded.md`](adr/0001-volatile-state-not-auto-loaded.md)).
+
+### `setup.sh --migrate` says "nothing to migrate" but I have a `CONTINUITY.md`
+
+The migration assistant uses sentinel markers in each destination to detect already-migrated content, so re-runs are no-ops. If you've already run `--migrate` once, subsequent invocations will skip every section and report nothing to do — that's correct behavior, not a bug. Verify by reading the destinations:
+
+```bash
+grep -A1 "^### Goal" CLAUDE.md
+ls docs/adr/
+cat .claude/local/state.md
+```
+
+If those look right, the migration succeeded. Re-running is safe.
+
+### I want to start migration over
+
+The original `CONTINUITY.md` is preserved byte-for-byte and never modified by `--migrate`, so you can roll forward at any time. To re-do migration from a clean slate:
+
+```bash
+# Remove the migrated outputs (KEEP CONTINUITY.md — it's the source)
+rm -i .claude/local/state.md
+# Optionally remove auto-numbered ADRs added by the previous --migrate run
+# (review docs/adr/ first; seed ADRs 0001-0005 are NOT from --migrate)
+
+# Re-run
+~/claude-codex-forge/setup.sh --migrate
+```
+
+The Goal block in `CLAUDE.md` is overwritten only if you delete the `### Goal` subsection first; otherwise the assistant respects existing content.
+
 ## Permissions still prompting?
 
 1. **Verify settings.json syntax:**
