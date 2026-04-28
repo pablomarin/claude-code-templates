@@ -12,7 +12,35 @@ REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}"
 # shellcheck source=lib.sh
 source "$REPO_ROOT/tests/template/lib.sh"
 
+# Note: not sourcing test-fixtures.sh here — it runs its own tests at top
+# level. Helpers we need (make_state_md) are inlined locally where used.
 init_counters
+
+# Local helper (mirrors make_state_md from test-fixtures.sh; kept inline to
+# avoid sourcing test-fixtures.sh which would re-run its own test cases).
+_make_state_md() {
+    local scratch="$1"
+    local cmd="${2:-/new-feature foo}"
+    local phase="${3:-3 — Design}"
+    local next="${4:-Plan written}"
+    shift 4
+    mkdir -p "$scratch/.claude/local"
+    {
+        echo "## Workflow"
+        echo ""
+        echo "| Field     | Value |"
+        echo "| --------- | ----- |"
+        echo "| Command   | $cmd  |"
+        echo "| Phase     | $phase |"
+        echo "| Next step | $next |"
+        echo ""
+        echo "### Checklist"
+        echo ""
+        for item in "$@"; do
+            echo "- [ ] $item"
+        done
+    } > "$scratch/.claude/local/state.md"
+}
 
 HOOK_SH="$REPO_ROOT/hooks/check-workflow-gates.sh"
 HOOK_PS="$REPO_ROOT/hooks/check-workflow-gates.ps1"
@@ -30,9 +58,8 @@ HOOK_PS="$REPO_ROOT/hooks/check-workflow-gates.ps1"
 # ---------------------------------------------------------------------------
 run_hook_sh() {
     local scratch="$1" command="$2" checklist="$3"
-    cat > "$scratch/CONTINUITY.md" <<EOF
-# CONTINUITY
-
+    mkdir -p "$scratch/.claude/local"
+    cat > "$scratch/.claude/local/state.md" <<EOF
 ## Workflow
 
 | Field     | Value              |
@@ -54,7 +81,7 @@ $checklist
 ### Next
 EOF
     printf '{"tool_input":{"command":"%s"}}' "$(printf '%s' "$command" | awk 'BEGIN{ORS=""} {gsub(/\\/,"\\\\"); gsub(/"/,"\\\""); print}')" > "$scratch/.hook-input.json"
-    # Hook expects to run in the dir that has CONTINUITY.md
+    # Hook expects to run in the dir that has .claude/local/state.md
     (cd "$scratch" && bash "$HOOK_SH" < "$scratch/.hook-input.json") > "$scratch/.hook-stdout" 2> "$scratch/.hook-stderr"
     echo "$?"
 }
@@ -65,9 +92,8 @@ run_hook_ps() {
         echo "SKIP"
         return
     fi
-    cat > "$scratch/CONTINUITY.md" <<EOF
-# CONTINUITY
-
+    mkdir -p "$scratch/.claude/local"
+    cat > "$scratch/.claude/local/state.md" <<EOF
 ## Workflow
 
 | Field     | Value              |
@@ -179,9 +205,8 @@ assert_equals "$rc" "0" ".sh allows 'ls -la' even with gates unchecked"
 start_test "Command=none → hook passes even with unchecked gates"
 
 S6=$(scratch_dir hooks-noworkflow)
-cat > "$S6/CONTINUITY.md" <<EOF
-# CONTINUITY
-
+mkdir -p "$S6/.claude/local"
+cat > "$S6/.claude/local/state.md" <<EOF
 ## Workflow
 
 | Field     | Value |
@@ -411,9 +436,14 @@ S15=$(scratch_dir state-master-default)
     git -c user.email=test@test -c user.name=test commit -q -m "feature work: 4 files"
 )
 
-# Write a minimal CONTINUITY.md (no active workflow, no CHANGELOG entry).
-cat > "$S15/CONTINUITY.md" <<'CONT'
-# CONTINUITY
+# Write a minimal state.md (no active workflow, no CHANGELOG entry).
+mkdir -p "$S15/.claude/local"
+cat > "$S15/.claude/local/state.md" <<'CONT'
+## Workflow
+
+| Field     | Value |
+| --------- | ----- |
+| Command   | none  |
 
 ## State
 
@@ -433,6 +463,62 @@ rc15=$(printf '{"stop_hook_active":false}' | (cd "$S15" && bash "$HOOK_STATE") 2
 assert_equals "$rc15" "2" "CHANGELOG gate fires on master-default repo (exit 2)"
 assert_contains "$S15/.state-stderr" "CHANGELOG" \
     "stderr mentions CHANGELOG threshold"
+
+# ===========================================================================
+# Hard-cut test: state.md missing + legacy CONTINUITY.md present →
+# check-workflow-gates.sh must NOT fall back to CONTINUITY.md (post PR #2).
+# Hook should exit 0 (no gating without state.md) and emit a breadcrumb.
+# ===========================================================================
+start_test "hard-cut: state.md missing + CONTINUITY.md present → exit 0, no gating"
+
+S_HC=$(scratch_dir hard-cut-no-fallback)
+( cd "$S_HC" && git init -q && git checkout -q -b main )
+# User has CONTINUITY.md with unchecked gates BUT no state.md.
+cat > "$S_HC/CONTINUITY.md" <<'EOF'
+## Workflow
+| Field | Value |
+| Command | /new-feature foo |
+### Checklist
+- [ ] Code review loop
+EOF
+out_hc=$(cd "$S_HC" && echo '{"tool_input":{"command":"git commit -m foo"}}' | bash "$REPO_ROOT/hooks/check-workflow-gates.sh" 2>&1)
+rc_hc=$?
+
+if echo "$out_hc" | grep -qF "state.md not found"; then
+    pass "hook emits state.md missing breadcrumb"
+else
+    fail "hook did not emit 'state.md not found' breadcrumb (got: $out_hc)"
+fi
+assert_equals "$rc_hc" "0" "hook exits 0 (does NOT gate even with CONTINUITY.md present)"
+
+# ===========================================================================
+# Stop-hook advisory test: uncommitted changes + state.md unchanged should
+# emit advisory reminder but exit 0 (post PR #2 — no CONTINUITY-style block).
+# ===========================================================================
+start_test "Stop hook is advisory-only (state.md unchanged → exit 0)"
+
+S_AD=$(scratch_dir stop-advisory)
+(
+    cd "$S_AD" || exit 1
+    git init -q
+    git -c user.email=test@test -c user.name=test checkout -q -b main
+    touch a
+    git add a
+    git -c user.email=test@test -c user.name=test commit -q -m init
+)
+# Uncommitted changes + state.md unchanged should NOT block.
+( cd "$S_AD" && echo "uncommitted" > new.txt )
+_make_state_md "$S_AD"
+
+out_ad=$(cd "$S_AD" && bash "$REPO_ROOT/hooks/check-state-updated.sh" < /dev/null 2>&1)
+rc_ad=$?
+
+if echo "$out_ad" | grep -qE "WORKFLOW:.*Phase:.*Next:"; then
+    pass "advisory reminder on stderr (WORKFLOW: phase/next-step present)"
+else
+    fail "advisory reminder missing (got: $out_ad)"
+fi
+assert_equals "$rc_ad" "0" "Stop hook always exits 0 (advisory-only)"
 
 # ===========================================================================
 # Report
