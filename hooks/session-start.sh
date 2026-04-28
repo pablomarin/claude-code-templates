@@ -1,16 +1,55 @@
 #!/bin/bash
-# SessionStart hook: silently inject git branch into Claude's context
-# Uses hookSpecificOutput.additionalContext for clean, non-visible injection
+# SessionStart hook: silently inject git context into Claude.
+# Source-gated: git fetch + behind-check ONLY on startup|resume.
+# Drift surfaced via additionalContext (SessionStart cannot block — exit 2 is advisory).
+
+set -u
+
+# Read source from stdin JSON; degrade if jq missing or input malformed.
+INPUT=$(cat 2>/dev/null)
+if command -v jq &>/dev/null; then
+    SOURCE=$(printf '%s' "$INPUT" | jq -r '.source // ""' 2>/dev/null)
+else
+    SOURCE=$(printf '%s' "$INPUT" | grep -o '"source"[[:space:]]*:[[:space:]]*"[^"]*"' \
+        | head -1 | sed -E 's/.*:[[:space:]]*"([^"]*)"$/\1/')
+fi
 
 BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+CONTEXT="Current branch: $BRANCH"
 
-# JSON-escape the branch name (handle quotes, backslashes)
-if command -v jq &> /dev/null; then
-    jq -n --arg branch "$BRANCH" \
-      '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":("Current branch: " + $branch)}}'
+# Fetch + drift check ONLY on startup or resume (not clear/compact).
+if [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]; then
+    HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+    LIB="$HOOK_DIR/lib/default-branch.sh"
+    if [[ -f "$LIB" ]]; then
+        DEFAULT=$(bash "$LIB" 2>/dev/null) || DEFAULT=""
+    else
+        DEFAULT=""
+    fi
+
+    if [[ -n "$DEFAULT" ]]; then
+        # Pick a timeout binary if available (gtimeout for macOS+brew, timeout for Linux/CI).
+        # If neither exists, skip the cap — git's connect timeout (~75s) is the upper bound.
+        TIMEOUT_CMD=""
+        if command -v gtimeout &>/dev/null; then TIMEOUT_CMD="gtimeout 5"
+        elif command -v timeout &>/dev/null; then TIMEOUT_CMD="timeout 5"
+        fi
+
+        if $TIMEOUT_CMD git fetch origin --quiet 2>/dev/null; then
+            BEHIND=$(git rev-list --count "$DEFAULT..origin/$DEFAULT" 2>/dev/null) || BEHIND=""
+            if [[ -n "$BEHIND" && "$BEHIND" =~ ^[0-9]+$ && "$BEHIND" -gt 0 ]]; then
+                CONTEXT="$CONTEXT (default branch '$DEFAULT' is $BEHIND commits behind origin — pull before starting work)"
+            fi
+        fi
+    fi
+fi
+
+# Emit JSON
+if command -v jq &>/dev/null; then
+    jq -n --arg ctx "$CONTEXT" \
+      '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":$ctx}}'
 else
-    # Fallback: escape JSON-special characters
-    SAFE_BRANCH=$(printf '%s' "$BRANCH" | sed 's/\\/\\\\/g; s/"/\\"/g')
-    printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Current branch: %s"}}\n' "$SAFE_BRANCH"
+    SAFE_CTX=$(printf '%s' "$CONTEXT" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}\n' "$SAFE_CTX"
 fi
 exit 0
