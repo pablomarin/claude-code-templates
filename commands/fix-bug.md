@@ -198,16 +198,33 @@ done
 
 ### 2. Read project state
 
+`.claude/local/state.md` is per-developer and gitignored — it may not exist yet on a fresh checkout. Initialize it from the installed template if missing, then read it.
+
 ```bash
-cat CONTINUITY.md
+# STATE-INIT-BEGIN (byte-identical between commands/new-feature.md and commands/fix-bug.md - enforced by test-contracts.sh)
+# Initialize workflow tracking (PR #2: state lives in .claude/local/state.md, gitignored).
+ROOT="$(git rev-parse --show-toplevel)"
+TEMPLATE="$ROOT/.claude/state.template.md"
+[ ! -f "$TEMPLATE" ] && TEMPLATE="$ROOT/state.template.md"  # Forge-internal fallback
+if [ ! -f "$ROOT/.claude/local/state.md" ]; then
+    mkdir -p "$ROOT/.claude/local"
+    if [ -f "$TEMPLATE" ]; then
+        cp "$TEMPLATE" "$ROOT/.claude/local/state.md"
+    else
+        echo "  ⚠ state template not found at $TEMPLATE — workflow tracking may be incomplete." >&2
+    fi
+fi
+# STATE-INIT-END
+
+cat .claude/local/state.md
 ```
 
 ### 3. Initialize Workflow Tracking
 
-Write the `## Workflow` section in CONTINUITY.md (or create the file if it doesn't exist). Three cleanup steps before writing the new section:
+Write the `## Workflow` section in `.claude/local/state.md`. The file was just initialized in step 2 (from `.claude/state.template.md` on first invocation, or already present from a prior session). Apply these cleanup steps **only if applicable** — on a brand-new state.md they are no-ops:
 
-1. **REPLACE** any existing `## Workflow` section entirely — do not append, do not preserve old checklist items.
-2. **Delete any stale `## Approach Comparison` blocks** in the file. These are leftover from the pre-PR-#537 workflow (which wrote design content into CONTINUITY.md). The new workflow keeps the Approach Comparison in conversation context only, then persists it into the plan file at Phase 3.2; nothing should remain in CONTINUITY.md.
+1. **REPLACE** any existing `## Workflow` section entirely — do not append, do not preserve old checklist items from a previous workflow on this developer's machine.
+2. **Delete any stale `## Approach Comparison` blocks** if present. These can only appear on machines whose state.md was migrated from a pre-PR-#2 tracked state file. The current workflow keeps the Approach Comparison in conversation context only, then persists it into the plan file at Phase 3.2; nothing should remain in `.claude/local/state.md`.
 3. **Delete orphaned `[x]` / `[ ]` checkbox lines** that drifted outside any user-authored section — lines floating between sections, AND lines inside any stale `## Approach Comparison` blocks you just deleted. Do NOT touch checkbox items inside user sections like `## Blockers` / `## Open Questions` — those are user content.
 
 Then write the new `## Workflow` section:
@@ -265,7 +282,7 @@ Then write the new `## Workflow` section:
 - Tell user: "Required plugins not loaded. Please enable in ~/.claude/settings.json and restart Claude Code."
 - Do NOT proceed with workarounds or skip mandatory steps
 
-**Checkpoint:** Check off "Plugins verified" in CONTINUITY.md and set Next step to "Search existing solutions".
+**Checkpoint:** Check off "Plugins verified" in .claude/local/state.md and set Next step to "Search existing solutions".
 
 ### 5. Worktree Policy Reminder
 
@@ -275,7 +292,7 @@ Then write the new `## Workflow` section:
 
 ## Phase 1: Research Existing Solutions
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `1 — Research`, Next step: `Search existing solutions`.
+> **Checkpoint:** Update `## Workflow` in .claude/local/state.md — Phase: `1 — Research`, Next step: `Search existing solutions`.
 
 Before attempting ANY fix, check if this was solved before:
 
@@ -291,7 +308,7 @@ If found, review the solution and apply it.
 
 ## Phase 2: Systematic Debugging (MANDATORY)
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `2 — Debugging`, check off "Searched existing solutions".
+> **Checkpoint:** Update `## Workflow` in .claude/local/state.md — Phase: `2 — Debugging`, check off "Searched existing solutions".
 
 **DO NOT guess at fixes.** Run the 4-phase root cause analysis:
 
@@ -331,7 +348,7 @@ The agent writes to `docs/research/YYYY-MM-DD-<bug-name>.md` — a lighter brief
 
 ## Phase 3: Plan the Fix
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `3 — Plan`, check off "Systematic debugging complete" (and "Library research done" if Phase 2.5 was performed).
+> **Checkpoint:** Update `## Workflow` in .claude/local/state.md — Phase: `3 — Plan`, check off "Systematic debugging complete" (and "Library research done" if Phase 2.5 was performed).
 
 ### For simple fixes (1-2 files):
 
@@ -367,7 +384,7 @@ This ensures UI fixes maintain visual quality — don't regress the design while
 
 #### 3.1b Approach Comparison (MANDATORY)
 
-Same as `/new-feature` 3.1b — produce the comparison table **in conversation context** (not in `CONTINUITY.md`; `CONTINUITY.md` is status-only). If only one viable fix, still run the Contrarian gate (validates no alternative was missed).
+Same as `/new-feature` 3.1b — produce the comparison table **in conversation context** (not in `.claude/local/state.md`; `.claude/local/state.md` is status-only). If only one viable fix, still run the Contrarian gate (validates no alternative was missed).
 
 #### 3.1c Contrarian Gate (MANDATORY)
 
@@ -389,7 +406,7 @@ Outcome actions (same as `/new-feature` 3.1c): VALIDATE → proceed to 3.2; SPIK
 
 #### 3.2 Write the fix plan
 
-Invoke `/superpowers:writing-plans`. Mirroring `/new-feature` 3.2 — respect `writing-plans`' required header (H1 banner + Goal/Architecture/Tech Stack). Insert the **final** Approach Comparison (reflecting whatever won 3.1c's VALIDATE / SPIKE / COUNCIL path) AFTER that required header, followed by a `## Contrarian Verdict` subsection. Do NOT copy a stale 3.1b table if the spike or council changed the choice. `CONTINUITY.md` keeps only the checkbox.
+Invoke `/superpowers:writing-plans`. Mirroring `/new-feature` 3.2 — respect `writing-plans`' required header (H1 banner + Goal/Architecture/Tech Stack). Insert the **final** Approach Comparison (reflecting whatever won 3.1c's VALIDATE / SPIKE / COUNCIL path) AFTER that required header, followed by a `## Contrarian Verdict` subsection. Do NOT copy a stale 3.1b table if the spike or council changed the choice. The per-developer `.claude/local/state.md` keeps only the checkbox; the design rationale lives in the plan file from here on.
 
 ```
 /superpowers:writing-plans
@@ -474,8 +491,8 @@ Gather severity-tagged findings from all available reviewers. Use this rubric:
 
 **Step C — Exit criteria:**
 
-- **P0/P1/P2 found by any reviewer →** Fix the plan, increment iteration counter in CONTINUITY checklist (`Plan review loop (N iterations)`), go back to Step A.
-- **Only P3 or clean from all available reviewers on the same pass →** Check the box in CONTINUITY with final count: `- [x] Plan review loop (3 iterations) — PASS`. Proceed to Phase 4.
+- **P0/P1/P2 found by any reviewer →** Fix the plan, increment iteration counter in the state.md checklist (`Plan review loop (N iterations)`), go back to Step A.
+- **Only P3 or clean from all available reviewers on the same pass →** Check the box in state.md with final count: `- [x] Plan review loop (3 iterations) — PASS`. Proceed to Phase 4.
 
 **Rules:**
 
@@ -490,7 +507,7 @@ Gather severity-tagged findings from all available reviewers. Use this rubric:
 
 ## Phase 4: Execute the Fix
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `4 — Execute`, check off planning items.
+> **Checkpoint:** Update `## Workflow` in .claude/local/state.md — Phase: `4 — Execute`, check off planning items.
 
 ### Simple fixes (1-2 files, Phase 3 skipped)
 
@@ -535,7 +552,7 @@ Say **"walk-away mode"** or **"headless"** to switch to `/superpowers:executing-
 
 ## Phase 5: Quality Gates (ALL REQUIRED)
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `5 — Quality Gates`, check off "TDD fix execution complete".
+> **Checkpoint:** Update `## Workflow` in .claude/local/state.md — Phase: `5 — Quality Gates`, check off "TDD fix execution complete".
 > **Note:** The PreToolUse hook will block commit/push/PR until review, simplify, and verify are checked off.
 
 > **If any command below fails with "Unknown skill":**
@@ -589,8 +606,8 @@ Gather severity-tagged findings from all available reviewers. Use the same P0–
 
 **Step C — Exit criteria:**
 
-- **P0/P1/P2 found by any reviewer →** Fix the issues. If fixes are substantial (3+ files changed), re-run verify-app before next review iteration to catch regressions early. Increment counter in CONTINUITY checklist (`Code review loop (N iterations)`), go back to Step A.
-- **Only P3 or clean from all available reviewers on the same pass →** Check the box in CONTINUITY with final count: `- [x] Code review loop (3 iterations) — PASS`. Proceed to 5.2.
+- **P0/P1/P2 found by any reviewer →** Fix the issues. If fixes are substantial (3+ files changed), re-run verify-app before next review iteration to catch regressions early. Increment counter in the state.md checklist (`Code review loop (N iterations)`), go back to Step A.
+- **Only P3 or clean from all available reviewers on the same pass →** Check the box in state.md with final count: `- [x] Code review loop (3 iterations) — PASS`. Proceed to 5.2.
 
 **Rules:**
 
@@ -771,7 +788,7 @@ If no files (empty directory, or directory missing): check the box with `- [x] E
 
 ## Phase 6: Finish
 
-> **Checkpoint:** Update `## Workflow` in CONTINUITY.md — Phase: `6 — Finish`, check off quality gate items.
+> **Checkpoint:** Update `## Workflow` in .claude/local/state.md — Phase: `6 — Finish`, check off quality gate items.
 
 ### 6.1 Compound the learning (MANDATORY for bug fixes)
 
@@ -794,7 +811,7 @@ This creates a searchable solution so the same bug is never debugged twice.
 
 ### 6.2 Update state files
 
-1. **CONTINUITY.md**: Update Done (keep 2-3 recent), Now, Next
+1. **.claude/local/state.md**: Update Done (keep 2-3 recent), Now, Next
 2. **docs/CHANGELOG.md**: If 3+ files changed on branch
 
 ### 6.2b Graduate E2E Use Cases (MANDATORY if use cases were created)
@@ -846,7 +863,7 @@ If this project has opted into the Playwright framework (`playwright.config.ts` 
    - Do NOT inline auth — use the fixture pattern (see `tests/e2e/fixtures/auth.ts`)
    - Do NOT generate specs for UCs that were FAIL_BUG or FAIL_STALE — skip them
 
-4. **Skip UCs where the verify-e2e report flagged "Selector ambiguity":** Note this in CONTINUITY.md for follow-up; the user can add `data-testid` attributes and regenerate.
+4. **Skip UCs where the verify-e2e report flagged "Selector ambiguity":** Note this in .claude/local/state.md for follow-up; the user can add `data-testid` attributes and regenerate.
 
 5. **Run the spec once locally to verify it's green:**
 
@@ -932,6 +949,6 @@ The hooks exist to enforce quality. Bypassing them defeats their purpose.
 
 ## Checklist
 
-**The live checklist is in `## Workflow` in CONTINUITY.md** — initialized in Pre-Flight step 3.
+**The live checklist is in `## Workflow` in .claude/local/state.md** — initialized in Pre-Flight step 3.
 
 The Stop hook reminds you of the current phase on every response. The PreToolUse hook blocks commit/push/PR until review, simplify, and verify are checked off. Update the checklist after each step.
