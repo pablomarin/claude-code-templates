@@ -1,8 +1,10 @@
-@CONTINUITY.md
-
 # CLAUDE.md - [Project Name]
 
 ## Project Overview
+
+### Goal
+
+[One sentence describing what this project does and who benefits.]
 
 ### What Is This?
 
