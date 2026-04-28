@@ -42,8 +42,30 @@ fi
 
 **If ALREADY_IN_WORKTREE:**
 
-- You're already isolated - continue with current workspace
-- No action needed
+- You're already isolated — continue with current workspace
+- Surface drift on the parent default branch (advisory; no auto-FF from inside a worktree)
+
+```bash
+# DRIFT-PREFLIGHT-ALREADY-BEGIN (byte-identical with commands/fix-bug.md — enforced by test-contracts.sh)
+ROOT="$(git rev-parse --show-toplevel)"
+LIB="$ROOT/.claude/hooks/lib/default-branch.sh"
+[ ! -f "$LIB" ] && LIB="$ROOT/hooks/lib/default-branch.sh"
+DEFAULT_BRANCH=$(bash "$LIB" 2>/dev/null) \
+    || { DEFAULT_BRANCH="main"; echo "  ⚠ default-branch helper bailed; assuming 'main' (drift check may be wrong on non-main repos)" >&2; }
+ALREADY_FETCH_OK=true
+git fetch origin --quiet 2>/dev/null || ALREADY_FETCH_OK=false
+# Behind-check: only if FETCH succeeded AND both refs exist. Skipping on fetch failure
+# prevents reporting drift against a stale origin/* ref. Also guards rev-list exit-128.
+if [ "$ALREADY_FETCH_OK" = "true" ] \
+   && git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1 \
+   && git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
+  BEHIND=$(git rev-list --count "$DEFAULT_BRANCH..origin/$DEFAULT_BRANCH" 2>/dev/null || echo "")
+  if [[ "$BEHIND" =~ ^[0-9]+$ ]] && [ "$BEHIND" -gt 0 ]; then
+    echo "  ⚠ Parent '$DEFAULT_BRANCH' is $BEHIND commits behind origin (skipping auto-FF from worktree)"
+  fi
+fi
+# DRIFT-PREFLIGHT-ALREADY-END
+```
 
 **If NEEDS_WORKTREE → Create worktree and cd into it:**
 
@@ -57,15 +79,77 @@ WORKTREE_PATH=".worktrees/$FEATURE_NAME"
 mkdir -p .worktrees
 grep -qxF '.worktrees/' .gitignore 2>/dev/null || echo '.worktrees/' >> .gitignore
 
-# Create worktree (handle existing branch/worktree cases)
+# DRIFT-PREFLIGHT-NEW-BEGIN (byte-identical with commands/fix-bug.md — enforced by test-contracts.sh)
+# Resolve default branch, fetch origin (track success), and base the new worktree on
+# current origin/<default> when fetch succeeded — else local <default>. If local <default>
+# is behind origin AND we're on default with a clean tree, fast-forward; otherwise warn.
+ROOT="$(git rev-parse --show-toplevel)"
+LIB="$ROOT/.claude/hooks/lib/default-branch.sh"
+[ ! -f "$LIB" ] && LIB="$ROOT/hooks/lib/default-branch.sh"
+DEFAULT_BRANCH=$(bash "$LIB" 2>/dev/null) \
+    || { DEFAULT_BRANCH="main"; echo "  ⚠ default-branch helper bailed; assuming 'main' (worktree base may be wrong on non-main repos)" >&2; }
+
+FETCH_OK=true
+git fetch origin --quiet 2>/dev/null || { FETCH_OK=false; echo "  ⚠ git fetch failed — proceeding with local refs (origin may be stale)"; }
+
+# Behind-check: only if FETCH succeeded AND both local <default> and origin/<default>
+# refs exist. Skipping when fetch failed prevents (a) reporting drift against a stale
+# origin/* ref, and (b) `git pull` triggering a second network call after we said we'd
+# "proceed with local refs". Also guards rev-list exit-128 when local default is missing.
+if [ "$FETCH_OK" = "true" ] \
+   && git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1 \
+   && git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
+  BEHIND=$(git rev-list --count "$DEFAULT_BRANCH..origin/$DEFAULT_BRANCH" 2>/dev/null || echo "")
+  if [[ "$BEHIND" =~ ^[0-9]+$ ]] && [ "$BEHIND" -gt 0 ]; then
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+    if [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
+      # On default → eligible for FF, but FF is OPTIONAL polish. The worktree itself
+      # bases from origin/<default> (BASE below) which is independent of the caller's
+      # checkout state, so dirty-tree / diverged-history are warnings, not blockers —
+      # `git worktree add` does not modify the current checkout.
+      # Under user's `set -o pipefail`, grep -v on a clean tree (no input) exits 1
+      # and DIRTY becomes empty — symmetric with BEHIND, validate before integer compare.
+      DIRTY=$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d ' ' || echo 0)
+      [[ "$DIRTY" =~ ^[0-9]+$ ]] || DIRTY=0
+      if [ "$DIRTY" -gt 0 ]; then
+        echo "  ⚠ Local '$DEFAULT_BRANCH' is $BEHIND commits behind origin AND working tree is dirty — skipping auto-FF (your local default stays as-is; new worktree still bases from origin/$DEFAULT_BRANCH)"
+      elif git pull --ff-only origin "$DEFAULT_BRANCH"; then
+        echo "✓ Updated local '$DEFAULT_BRANCH' from origin (was $BEHIND commits behind)"
+      else
+        echo "  ⚠ git pull --ff-only failed (diverged?) — skipping auto-FF (new worktree still bases from origin/$DEFAULT_BRANCH)"
+      fi
+    else
+      # Not on default → no FF attempted. Dirty changes on a feature branch are fine
+      # (they stay in this checkout; the new worktree gets its own working tree).
+      echo "  ⚠ Local '$DEFAULT_BRANCH' is $BEHIND commits behind origin (you're on '$CURRENT_BRANCH', skipping auto-FF)"
+    fi
+  fi
+fi
+
+# Resolve worktree base. Prefer origin/<default> ONLY if fetch succeeded AND ref exists
+# locally. If fetch failed, prefer local <default> (don't trust the now-stale origin ref).
+if [ "$FETCH_OK" = "true" ] && git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
+  BASE="origin/$DEFAULT_BRANCH"
+elif git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1; then
+  BASE="$DEFAULT_BRANCH"
+else
+  # Last-resort: neither origin/<default> (fetch failed or ref absent) nor local <default>
+  # exists. Surface this — the worktree will be based on whatever is currently checked
+  # out, which may be a feature branch, a tag, or a detached HEAD. Reachable when the
+  # helper bailed AND the assumed fallback "main" doesn't exist locally either.
+  BASE="HEAD"
+  echo "  ⚠ Could not resolve any default-branch ref; basing worktree on HEAD ($(git rev-parse --short HEAD 2>/dev/null || echo '???')) — verify this is intentional" >&2
+fi
+# DRIFT-PREFLIGHT-NEW-END
+
 if [ -d "$WORKTREE_PATH" ]; then
   echo "✓ Worktree exists - reusing $WORKTREE_PATH"
 elif git show-ref --quiet "refs/heads/feat/$FEATURE_NAME" 2>/dev/null; then
   git worktree add "$WORKTREE_PATH" "feat/$FEATURE_NAME"
   echo "✓ Created worktree for existing branch at $WORKTREE_PATH"
 else
-  git worktree add "$WORKTREE_PATH" -b "feat/$FEATURE_NAME"
-  echo "✓ Created new worktree at $WORKTREE_PATH"
+  git worktree add "$WORKTREE_PATH" -b "feat/$FEATURE_NAME" "$BASE"
+  echo "✓ Created new worktree at $WORKTREE_PATH (based on $BASE)"
 fi
 
 # Symlink environment files (not copy) so rotated secrets propagate and .env can't be accidentally committed

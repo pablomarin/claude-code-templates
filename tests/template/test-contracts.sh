@@ -4,9 +4,9 @@
 # Catches stringly-typed contracts that span files: e.g., the verify-e2e
 # agent's response header defines VERDICT values, and the callers in
 # commands/new-feature.md and commands/fix-bug.md must branch on those
-# same values. Codex called deferring this "false economy" because the
-# bug is exactly the kind of regression that's easy to ship and costly
-# to catch.
+# same values. These are exactly the regressions that are easy to ship
+# and costly to catch in code review — a contract test makes the link
+# between cooperating files explicit and machine-verifiable.
 #
 # Run from repo root:  bash tests/template/test-contracts.sh
 
@@ -121,9 +121,9 @@ assert_contains "$FB" ".claude/playwright-dir" \
 # ---------------------------------------------------------------------------
 # Contract 6: E2E verified gate — canonical marker vocabulary
 #
-# The Council (minority report from Contrarian + Maintainer) flagged that
-# the "E2E verified" gate string is referenced in multiple places and will
-# drift if not contracted. This asserts all references use the same stem.
+# The "E2E verified" gate string is the single source of truth for the
+# workflow-gates hook regex. It's referenced in command checklists, rules
+# docs, and the hook itself — contract these together so they can't drift.
 # ---------------------------------------------------------------------------
 start_test "E2E verified gate — canonical marker across files"
 
@@ -151,17 +151,17 @@ assert_contains "$REPO_ROOT/commands/new-feature.md" "$CANONICAL_NA" \
 assert_contains "$REPO_ROOT/commands/fix-bug.md" "$CANONICAL_NA" \
     "fix-bug.md uses canonical N/A form"
 assert_contains "$REPO_ROOT/rules/testing.md" "$CANONICAL_NA" \
-    "rules/testing.md uses canonical N/A form (was 'E2E use cases tested' before canonicalization)"
+    "rules/testing.md uses canonical N/A form"
 
 # rules/testing.md must be the canonical documentation — hook stderr
 # points there, so the anchor must exist
 assert_contains "$REPO_ROOT/rules/testing.md" "Canonical E2E gate vocabulary" \
     "rules/testing.md has the Canonical E2E gate vocabulary section"
 
-# Regression: the old drifting string "E2E use cases tested" must NOT appear
-# anywhere as a marker (it's been replaced with "E2E verified")
+# Negative assertion: only "E2E verified" is a valid gate marker — no other
+# variant string should function as one anywhere in the project.
 assert_not_contains "$REPO_ROOT/rules/testing.md" 'E2E use cases tested — N/A' \
-    "rules/testing.md no longer uses the old 'E2E use cases tested' N/A form"
+    "rules/testing.md uses only the canonical 'E2E verified' marker"
 
 # ---------------------------------------------------------------------------
 # Contract 5: runtime preflight parity — both installers check the same files
@@ -248,6 +248,106 @@ assert_contains "$REPO_ROOT/setup.sh" "__PLAYWRIGHT_DIR__" \
     "setup.sh references placeholder"
 assert_contains "$REPO_ROOT/setup.ps1" "__PLAYWRIGHT_DIR__" \
     "setup.ps1 references placeholder"
+
+# ---------------------------------------------------------------------------
+# Contract: no migrated-pattern 'main' references in hooks/* outside the lib helper
+#
+# SCOPE: this catches ONLY the specific patterns drift-hygiene PR #1 migrated:
+#   - `git merge-base main HEAD` (the original hardcoded form in check-state-updated)
+#   - `origin/main` referenced as a literal default
+#
+# It intentionally does NOT catch every possible 'main' reference — e.g., the
+# `git merge-base HEAD main` ordering used elsewhere in hooks/* is OUT OF SCOPE
+# for PR #1 (different reverse-merge-base computation, different consumer). If a
+# future PR migrates more hooks to the helper, tighten this regex (or split into
+# per-pattern contracts) at that time.
+# ---------------------------------------------------------------------------
+start_test "no migrated-pattern 'main' references in hooks/* (outside hooks/lib/)"
+
+HARDCODED=$(grep -rE "merge-base[[:space:]]+main[[:space:]]+HEAD|origin/main[^A-Za-z_]" \
+    "$REPO_ROOT/hooks/" 2>/dev/null \
+    | grep -v "^$REPO_ROOT/hooks/lib/" || true)
+
+if [[ -z "$HARDCODED" ]]; then
+    pass "no migrated-pattern 'main' references in hooks/* (outside lib/)"
+else
+    while IFS= read -r line; do
+        fail "migrated-pattern 'main' detected (should use default-branch helper): $line"
+    done <<< "$HARDCODED"
+fi
+
+# ---------------------------------------------------------------------------
+# Contract: DRIFT-PREFLIGHT-NEW blocks in new-feature.md and fix-bug.md byte-identical
+# ---------------------------------------------------------------------------
+start_test "DRIFT-PREFLIGHT-NEW blocks byte-identical across new-feature.md and fix-bug.md"
+
+NF="$REPO_ROOT/commands/new-feature.md"
+FB="$REPO_ROOT/commands/fix-bug.md"
+
+for f in "$NF" "$FB"; do
+    [ -f "$f" ] || { fail "missing command file: $f"; }
+done
+
+NF_NEW=$(sed -n '/^# DRIFT-PREFLIGHT-NEW-BEGIN/,/^# DRIFT-PREFLIGHT-NEW-END/p' "$NF")
+FB_NEW=$(sed -n '/^# DRIFT-PREFLIGHT-NEW-BEGIN/,/^# DRIFT-PREFLIGHT-NEW-END/p' "$FB")
+
+if [[ -z "$NF_NEW" ]] || [[ -z "$FB_NEW" ]]; then
+    fail "DRIFT-PREFLIGHT-NEW markers missing from one or both command files"
+elif [[ "$NF_NEW" == "$FB_NEW" ]]; then
+    pass "DRIFT-PREFLIGHT-NEW blocks byte-identical"
+else
+    fail "DRIFT-PREFLIGHT-NEW blocks differ between new-feature.md and fix-bug.md"
+    diff <(printf '%s' "$NF_NEW") <(printf '%s' "$FB_NEW") | head -10
+fi
+
+# ---------------------------------------------------------------------------
+# Contract: DRIFT-PREFLIGHT-ALREADY blocks in new-feature.md and fix-bug.md byte-identical
+# ---------------------------------------------------------------------------
+start_test "DRIFT-PREFLIGHT-ALREADY blocks byte-identical across new-feature.md and fix-bug.md"
+
+NF_AL=$(sed -n '/^# DRIFT-PREFLIGHT-ALREADY-BEGIN/,/^# DRIFT-PREFLIGHT-ALREADY-END/p' "$NF")
+FB_AL=$(sed -n '/^# DRIFT-PREFLIGHT-ALREADY-BEGIN/,/^# DRIFT-PREFLIGHT-ALREADY-END/p' "$FB")
+
+if [[ -z "$NF_AL" ]] || [[ -z "$FB_AL" ]]; then
+    fail "DRIFT-PREFLIGHT-ALREADY markers missing from one or both command files"
+elif [[ "$NF_AL" == "$FB_AL" ]]; then
+    pass "DRIFT-PREFLIGHT-ALREADY blocks byte-identical"
+else
+    fail "DRIFT-PREFLIGHT-ALREADY blocks differ between new-feature.md and fix-bug.md"
+    diff <(printf '%s' "$NF_AL") <(printf '%s' "$FB_AL") | head -10
+fi
+
+# ---------------------------------------------------------------------------
+# Contract: session-start drift-warning string parity — .sh ↔ .ps1
+#
+# The drift warning injected into additionalContext is independently composed
+# in session-start.sh and session-start.ps1. If the canonical phrasing
+# diverges, Windows users see a different warning than macOS/Linux users —
+# a silent cross-platform inconsistency. This contract asserts both files
+# share the same canonical substrings so the user experience is identical.
+# ---------------------------------------------------------------------------
+start_test "session-start drift-warning string parity — .sh ↔ .ps1"
+
+SS_SH="$REPO_ROOT/hooks/session-start.sh"
+SS_PS1="$REPO_ROOT/hooks/session-start.ps1"
+
+for f in "$SS_SH" "$SS_PS1"; do
+    assert_file_exists "$f" "file exists: $f"
+done
+
+# Both files must contain the trailing structural phrase that ends the warning.
+PULL_PHRASE="pull before starting work"
+assert_contains "$SS_SH"  "$PULL_PHRASE" \
+    "session-start.sh contains '$PULL_PHRASE'"
+assert_contains "$SS_PS1" "$PULL_PHRASE" \
+    "session-start.ps1 contains '$PULL_PHRASE'"
+
+# Both files must contain the em-dash + structural phrase that precedes the count.
+BEHIND_PHRASE="commits behind origin —"
+assert_contains "$SS_SH"  "$BEHIND_PHRASE" \
+    "session-start.sh contains '$BEHIND_PHRASE'"
+assert_contains "$SS_PS1" "$BEHIND_PHRASE" \
+    "session-start.ps1 contains '$BEHIND_PHRASE'"
 
 # ---------------------------------------------------------------------------
 # Report

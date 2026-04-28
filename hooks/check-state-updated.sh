@@ -9,7 +9,12 @@
 # Requirements: git
 # Optional: jq (recommended for robust JSON parsing, falls back to grep)
 
-set -e
+# Note: NOT using `set -e` here. Arithmetic expansions like `$((0 + 0))` (which fire
+# whenever both BRANCH_CHANGED and UNCOMMITTED_FILES are 0 — i.e., a clean session)
+# return exit status 1, which would silently exit the entire hook with status 1
+# under set -e. Every external command below that can fail is already guarded with
+# `2>/dev/null` and an explicit `|| fallback`, so set -e was redundant defense
+# but produced a real silent-failure under normal clean-session conditions.
 INPUT=$(cat)
 
 # Parse stop_hook_active (jq preferred, grep fallback)
@@ -29,8 +34,27 @@ UNCOMMITTED=$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d
 CONTINUITY_MODIFIED=$(git status --porcelain CONTINUITY.md 2>/dev/null | wc -l | tr -d ' ')
 CHANGELOG_MODIFIED=$(git status --porcelain docs/CHANGELOG.md 2>/dev/null | wc -l | tr -d ' ')
 
-# Total files changed on branch (committed + uncommitted) vs main
-BRANCH_BASE=$(git merge-base main HEAD 2>/dev/null || echo "HEAD~10")
+# Total files changed on branch (committed + uncommitted) vs default branch
+# Resolve the repo's default branch via the shared helper. The helper lives
+# alongside this hook at .claude/hooks/lib/default-branch.sh in installed
+# downstream repos, and at hooks/lib/default-branch.sh in this template.
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+# Helper-bail breadcrumb (stderr): if the helper exits non-zero, surface that the
+# fallback fired so the user/log has at least one signal. Without this, a master-default
+# repo whose helper bailed would silently use "main" → wrong BRANCH_BASE → spurious
+# CHANGELOG/CONTINUITY threshold gating, with no clue why.
+DEFAULT_BRANCH=$(bash "$HOOK_DIR/lib/default-branch.sh" 2>/dev/null) \
+    || { DEFAULT_BRANCH="main"; echo "⚠ check-state-updated: default-branch helper bailed; assuming 'main'" >&2; }
+# Merge-base fallback chain: prefer local <default> if it exists; else use
+# origin/<default> (single-branch clones may have only the remote-tracking ref);
+# else degrade to HEAD~10 (last-resort window for branch-change counting).
+if git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1; then
+    BRANCH_BASE=$(git merge-base "$DEFAULT_BRANCH" HEAD 2>/dev/null || echo "HEAD~10")
+elif git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
+    BRANCH_BASE=$(git merge-base "origin/$DEFAULT_BRANCH" HEAD 2>/dev/null || echo "HEAD~10")
+else
+    BRANCH_BASE="HEAD~10"
+fi
 BRANCH_CHANGED=$(git diff --name-only "$BRANCH_BASE" HEAD 2>/dev/null | wc -l | tr -d ' ')
 UNCOMMITTED_FILES=$(git diff --name-only 2>/dev/null | wc -l | tr -d ' ')
 TOTAL_CHANGED=$((BRANCH_CHANGED + UNCOMMITTED_FILES))

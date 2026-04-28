@@ -28,7 +28,9 @@ your-project/
 ├── .claude/
 │   ├── settings.json                  # Permissions + Hooks (NOT MCP servers)
 │   ├── hooks/
-│   │   ├── session-start.sh           # SessionStart: silent context injection (.ps1 on Windows)
+│   │   ├── lib/
+│   │   │   └── default-branch.sh      # Shared helper: detect repo's default branch (.ps1 on Windows)
+│   │   ├── session-start.sh           # SessionStart: branch context + drift warning (.ps1 on Windows)
 │   │   ├── check-state-updated.sh     # Stop: enforce state updates (.ps1 on Windows)
 │   │   ├── check-bash-safety.sh       # PreToolUse: audit log + block dangerous patterns (.ps1 on Windows)
 │   │   ├── post-tool-format.sh        # PostToolUse: auto-format on save (.ps1 on Windows)

@@ -36,7 +36,41 @@ $changelogOutput = git status --porcelain docs/CHANGELOG.md 2>$null
 $changelogModified = if ($changelogOutput) { ($changelogOutput | Measure-Object -Line).Lines } else { 0 }
 
 # Get branch base for comparison
-$branchBase = git merge-base main HEAD 2>$null
+# Resolve repo default branch via the shared helper.
+# CRITICAL: dot-source (not subprocess) — Windows ships powershell.exe (5.1),
+# spawning pwsh (7+) would fail on stock Windows. Dot-source works in both.
+$hookDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$libPath = Join-Path $hookDir "lib\default-branch.ps1"
+$defaultBranch = "main"  # fallback if helper or git fails
+$helperBailed = $false
+if (Test-Path $libPath) {
+    . $libPath
+    $detected = Get-DefaultBranch
+    if ($detected) {
+        $defaultBranch = $detected
+    } else {
+        $helperBailed = $true
+    }
+} else {
+    $helperBailed = $true
+}
+# Helper-bail breadcrumb (stderr): mirrors the bash hook so silent fallback to "main"
+# is at least diagnosable on master-default Windows installs.
+if ($helperBailed) {
+    [Console]::Error.WriteLine("⚠ check-state-updated: default-branch helper bailed; assuming 'main'")
+}
+# Merge-base fallback chain: prefer local <default>; else origin/<default>
+# (single-branch clones may have only the remote-tracking ref); else HEAD~10.
+$branchBase = $null
+$null = git rev-parse --verify $defaultBranch 2>$null
+if ($LASTEXITCODE -eq 0) {
+    $branchBase = git merge-base $defaultBranch HEAD 2>$null
+} else {
+    $null = git rev-parse --verify "origin/$defaultBranch" 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $branchBase = git merge-base "origin/$defaultBranch" HEAD 2>$null
+    }
+}
 if (-not $branchBase) { $branchBase = "HEAD~10" }
 
 # Count files changed on branch

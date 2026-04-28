@@ -55,7 +55,9 @@ claude-codex-forge/
 │   └── skill-audit.md          # Third-party skill security checklist
 │
 ├── hooks/                      # Hook scripts (copied to .claude/hooks/)
-│   ├── session-start.sh/.ps1        # SessionStart: silent context injection (branch)
+│   ├── lib/                         # Shared helpers sourced/called by other hooks
+│   │   └── default-branch.sh/.ps1   # Detect repo's default branch (origin/HEAD → main → master)
+│   ├── session-start.sh/.ps1        # SessionStart: silent context injection (branch + drift warning)
 │   ├── check-state-updated.sh/.ps1  # Stop: enforce CONTINUITY.md updates + workflow reminder
 │   ├── check-bash-safety.sh/.ps1    # PreToolUse: audit log + block dangerous patterns
 │   ├── check-workflow-gates.sh/.ps1 # PreToolUse: block commit/push/PR if quality gates incomplete
@@ -145,6 +147,8 @@ Templates in the root are **source of truth**. `setup.sh` copies them to target 
 | `commands/*.md`                           | `.claude/commands/*.md` in target project                                                          |
 | `rules/*.md`                              | `.claude/rules/*.md` in target project                                                             |
 | `hooks/*`                                 | `.claude/hooks/*` in target project                                                                |
+| `hooks/lib/default-branch.sh`             | `.claude/hooks/lib/default-branch.sh` in target project                                            |
+| `hooks/lib/default-branch.ps1`            | `.claude/hooks/lib/default-branch.ps1` in target project                                           |
 | `skills/ui-design/SKILL.template.md`      | `.claude/skills/ui-design/SKILL.md` in target                                                      |
 | `skills/ui-design/references/*.md`        | `.claude/skills/ui-design/references/*.md`                                                         |
 | `skills/generate-image/SKILL.template.md` | `.claude/skills/generate-image/SKILL.md`                                                           |
@@ -171,7 +175,7 @@ Every hook has both `.sh` (Unix) and `.ps1` (Windows) versions. **Always update 
 
 ### Hook Design
 
-- **SessionStart hooks** (`session-start.sh`): Output JSON with `hookSpecificOutput.additionalContext` for silent context injection
+- **SessionStart hooks** (`session-start.sh`): Output JSON with `hookSpecificOutput.additionalContext` for silent context injection. Source-gated: drift-detection fetch fires only on `startup`/`resume` subtypes, not `clear`/`compact`. Cannot block (exit 2 is advisory) — drift surfaces as a warning string in additionalContext only.
 - **Stop hooks** (`check-state-updated.sh`): Use `exit 2` + stderr message to block
 - **PreToolUse hooks** (`check-bash-safety.sh`): Audit log + `exit 2` to block dangerous Bash patterns
 - **PostToolUse hooks**: Match file extensions, run formatters, `exit 0` always

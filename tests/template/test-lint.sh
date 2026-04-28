@@ -28,6 +28,7 @@ BASH_FILES=(
     "$REPO_ROOT/hooks/check-bash-safety.sh"
     "$REPO_ROOT/hooks/check-config-change.sh"
     "$REPO_ROOT/hooks/check-workflow-gates.sh"
+    "$REPO_ROOT/hooks/lib/default-branch.sh"
     "$REPO_ROOT/tests/template/lib.sh"
     "$REPO_ROOT/tests/template/test-setup.sh"
     "$REPO_ROOT/tests/template/test-fixtures.sh"
@@ -35,6 +36,8 @@ BASH_FILES=(
     "$REPO_ROOT/tests/template/test-hooks.sh"
     "$REPO_ROOT/tests/template/test-lint.sh"
     "$REPO_ROOT/tests/template/run-all.sh"
+    "$REPO_ROOT/tests/template/test-default-branch.sh"
+    "$REPO_ROOT/tests/template/test-session-start.sh"
 )
 
 for f in "${BASH_FILES[@]}"; do
@@ -69,6 +72,7 @@ if command -v pwsh >/dev/null 2>&1; then
         "$REPO_ROOT/hooks/check-bash-safety.ps1"
         "$REPO_ROOT/hooks/check-config-change.ps1"
         "$REPO_ROOT/hooks/check-workflow-gates.ps1"
+        "$REPO_ROOT/hooks/lib/default-branch.ps1"
     )
     for f in "${PS_FILES[@]}"; do
         if [[ ! -f "$f" ]]; then
