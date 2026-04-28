@@ -38,6 +38,7 @@ BASH_FILES=(
     "$REPO_ROOT/tests/template/run-all.sh"
     "$REPO_ROOT/tests/template/test-default-branch.sh"
     "$REPO_ROOT/tests/template/test-session-start.sh"
+    "$REPO_ROOT/tests/template/test-migrate.sh"
 )
 
 for f in "${BASH_FILES[@]}"; do
