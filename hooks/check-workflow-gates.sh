@@ -3,7 +3,7 @@
 # PreToolUse hook for Bash: blocks commit/push/PR if quality gates aren't complete.
 #
 # Fires BEFORE Bash commands. Only activates when:
-# 1. An active workflow exists in CONTINUITY.md (Command != none)
+# 1. An active workflow exists in .claude/local/state.md (Command != none)
 # 2. The command is git commit, git push, or gh pr create
 # 3. Always-required quality gate checklist items aren't checked off
 #
@@ -43,11 +43,19 @@ echo "$COMMAND" | grep -qE '^\s*gh\s+pr\s+create\b' && IS_SHIP=true
 # Not a ship action — allow immediately
 $IS_SHIP || exit 0
 
-# --- Check for active workflow ---
-[ ! -f "CONTINUITY.md" ] && exit 0
+# --- Check for active workflow (post PR #2: state file is .claude/local/state.md) ---
+STATE_FILE=".claude/local/state.md"
+
+if [ ! -f "$STATE_FILE" ]; then
+    # Hard-cut: do NOT fall back to CONTINUITY.md.
+    # Emit friendly breadcrumb on stderr, exit 0 (don't gate — nothing to enforce).
+    echo "ℹ check-workflow-gates: $STATE_FILE not found." >&2
+    echo "  If you have a legacy CONTINUITY.md and just upgraded, run setup --migrate" >&2
+    exit 0
+fi
 
 # Use flexible whitespace matching — formatters may pad table cells
-WORKFLOW_CMD=$(grep -iE '\|\s*Command\s*\|' CONTINUITY.md 2>/dev/null | head -1 | awk -F'|' '{print $3}' | xargs)
+WORKFLOW_CMD=$(grep -iE '\|\s*Command\s*\|' "$STATE_FILE" 2>/dev/null | head -1 | awk -F'|' '{print $3}' | xargs)
 # No active workflow — allow
 [ -z "$WORKFLOW_CMD" ] && exit 0
 [ "$WORKFLOW_CMD" = "none" ] && exit 0
@@ -56,7 +64,7 @@ WORKFLOW_CMD=$(grep -iE '\|\s*Command\s*\|' CONTINUITY.md 2>/dev/null | head -1 
 
 # --- Active workflow: check always-required quality gates ---
 # Extract the Checklist section (between ### Checklist and next ## heading)
-CHECKLIST=$(sed -n '/^### Checklist/,/^## /p' CONTINUITY.md 2>/dev/null)
+CHECKLIST=$(sed -n '/^### Checklist/,/^## /p' "$STATE_FILE" 2>/dev/null)
 
 # Only gate on the 4 pre-ship quality gates:
 #   "Code review loop" — code review must pass before shipping
