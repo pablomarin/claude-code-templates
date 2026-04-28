@@ -125,7 +125,7 @@ How a feature goes from idea to merged PR.
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 11. COMMIT & CREATE PR                                      │
-│    → Update CONTINUITY.md (Done/Now/Next)                   │
+│    → Update .claude/local/state.md (Done/Now/Next)          │
 │    → Update docs/CHANGELOG.md (if 3+ files changed)         │
 │    → git add, commit, push to origin                        │
 │    → gh pr create                                           │
