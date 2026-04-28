@@ -42,8 +42,22 @@ fi
 
 **If ALREADY_IN_WORKTREE:**
 
-- You're already isolated - continue with current workspace
-- No action needed
+- You're already isolated — continue with current workspace
+- Surface drift on the parent default branch (advisory; no auto-FF from inside a worktree)
+
+```bash
+# DRIFT-PREFLIGHT-ALREADY-BEGIN (kept byte-identical with commands/fix-bug.md via test-contracts.sh)
+ROOT="$(git rev-parse --show-toplevel)"
+LIB="$ROOT/.claude/hooks/lib/default-branch.sh"
+[ ! -f "$LIB" ] && LIB="$ROOT/hooks/lib/default-branch.sh"
+DEFAULT_BRANCH=$(bash "$LIB" 2>/dev/null) || DEFAULT_BRANCH="main"
+git fetch origin --quiet 2>/dev/null || true
+if git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
+  BEHIND=$(git rev-list --count "$DEFAULT_BRANCH..origin/$DEFAULT_BRANCH" 2>/dev/null || echo 0)
+  [ "$BEHIND" -gt 0 ] && echo "  ⚠ Parent '$DEFAULT_BRANCH' is $BEHIND commits behind origin (skipping auto-FF from worktree)"
+fi
+# DRIFT-PREFLIGHT-ALREADY-END
+```
 
 **If NEEDS_WORKTREE → Create worktree and cd into it:**
 
@@ -57,15 +71,48 @@ WORKTREE_PATH=".worktrees/$FIX_NAME"
 mkdir -p .worktrees
 grep -qxF '.worktrees/' .gitignore 2>/dev/null || echo '.worktrees/' >> .gitignore
 
-# Create worktree (handle existing branch/worktree cases)
+# DRIFT-PREFLIGHT-NEW-BEGIN (kept byte-identical with commands/fix-bug.md via test-contracts.sh)
+# Resolve default branch + fetch origin so the new worktree bases from current origin/<default>,
+# never a stale local default. If local <default> is behind origin AND clean, fast-forward.
+# If dirty, STOP — don't auto-stash or merge.
+ROOT="$(git rev-parse --show-toplevel)"
+LIB="$ROOT/.claude/hooks/lib/default-branch.sh"
+[ ! -f "$LIB" ] && LIB="$ROOT/hooks/lib/default-branch.sh"
+DEFAULT_BRANCH=$(bash "$LIB" 2>/dev/null) || DEFAULT_BRANCH="main"
+
+git fetch origin --quiet 2>/dev/null || echo "  ⚠ git fetch failed — proceeding with local refs"
+
+if git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
+  BEHIND=$(git rev-list --count "$DEFAULT_BRANCH..origin/$DEFAULT_BRANCH" 2>/dev/null || echo 0)
+  if [ "$BEHIND" -gt 0 ]; then
+    DIRTY=$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d ' ')
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+    if [ "$DIRTY" -gt 0 ]; then
+      echo "✗ Local '$DEFAULT_BRANCH' is $BEHIND commits behind origin, but working tree is dirty."
+      echo "  Commit or stash your changes, then re-run."
+      exit 1
+    elif [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
+      git pull --ff-only origin "$DEFAULT_BRANCH" || { echo "✗ git pull --ff-only failed (diverged?)"; exit 1; }
+      echo "✓ Updated local '$DEFAULT_BRANCH' from origin (was $BEHIND commits behind)"
+    else
+      echo "  ⚠ Local '$DEFAULT_BRANCH' is $BEHIND commits behind origin (you're on '$CURRENT_BRANCH', skipping auto-FF)"
+    fi
+  fi
+fi
+
+# Resolve worktree base. Prefer origin/<default>; fall back to local <default> if origin ref missing.
+BASE="origin/$DEFAULT_BRANCH"
+git rev-parse --verify "$BASE" >/dev/null 2>&1 || BASE="$DEFAULT_BRANCH"
+# DRIFT-PREFLIGHT-NEW-END
+
 if [ -d "$WORKTREE_PATH" ]; then
   echo "✓ Worktree exists - reusing $WORKTREE_PATH"
 elif git show-ref --quiet "refs/heads/fix/$FIX_NAME" 2>/dev/null; then
   git worktree add "$WORKTREE_PATH" "fix/$FIX_NAME"
   echo "✓ Created worktree for existing branch at $WORKTREE_PATH"
 else
-  git worktree add "$WORKTREE_PATH" -b "fix/$FIX_NAME"
-  echo "✓ Created new worktree at $WORKTREE_PATH"
+  git worktree add "$WORKTREE_PATH" -b "fix/$FIX_NAME" "$BASE"
+  echo "✓ Created new worktree at $WORKTREE_PATH (based on $BASE)"
 fi
 
 # Symlink environment files (not copy) so rotated secrets propagate and .env can't be accidentally committed
