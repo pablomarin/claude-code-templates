@@ -565,6 +565,11 @@ Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-config-change
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-bash-safety.ps1") ".claude\hooks\check-bash-safety.ps1" ".claude\hooks\check-bash-safety.ps1"
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-workflow-gates.ps1") ".claude\hooks\check-workflow-gates.ps1" ".claude\hooks\check-workflow-gates.ps1"
 
+# Hook lib helpers
+$libDir = ".claude\hooks\lib"
+if (-not (Test-Path $libDir)) { New-Item -ItemType Directory -Path $libDir -Force | Out-Null }
+Copy-TemplateFile (Join-Path (Join-Path (Join-Path $ScriptDir "hooks") "lib") "default-branch.ps1") "$libDir\default-branch.ps1" "$libDir\default-branch.ps1 (default-branch detection helper)"
+
 # Agents
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-app.md") ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-e2e.md") ".claude\agents\verify-e2e.md" ".claude\agents\verify-e2e.md"
