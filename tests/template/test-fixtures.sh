@@ -154,3 +154,87 @@ fi
 # Report
 # ---------------------------------------------------------------------------
 report "test-fixtures.sh"
+
+# ---------------------------------------------------------------------------
+# Shared fixture helpers (sourced by other test-*.sh)
+#
+# These helpers are appended after `report` so they don't run as test cases
+# in this file but ARE defined in the shell scope when other test files
+# `source "$REPO_ROOT/tests/template/test-fixtures.sh"`.
+# ---------------------------------------------------------------------------
+
+# make_state_md <scratch-dir> <command> [phase] [next] [unchecked-gates...]
+# Writes a minimal .claude/local/state.md with the given Workflow fields.
+# Default: command=/new-feature foo, no unchecked gates (empty checklist).
+make_state_md() {
+    local scratch="$1"
+    local cmd="${2:-/new-feature foo}"
+    local phase="${3:-3 — Design}"
+    local next="${4:-Plan written}"
+    shift 4
+    mkdir -p "$scratch/.claude/local"
+    {
+        echo "## Workflow"
+        echo ""
+        echo "| Field     | Value |"
+        echo "| --------- | ----- |"
+        echo "| Command   | $cmd  |"
+        echo "| Phase     | $phase |"
+        echo "| Next step | $next |"
+        echo ""
+        echo "### Checklist"
+        echo ""
+        for item in "$@"; do
+            echo "- [ ] $item"
+        done
+    } > "$scratch/.claude/local/state.md"
+}
+
+# make_legacy_continuity_for_migration <scratch-dir>
+# Writes a canonical pre-migration CONTINUITY.md for testing --migrate.
+make_legacy_continuity_for_migration() {
+    local scratch="$1"
+    cat > "$scratch/CONTINUITY.md" <<'EOF'
+# CONTINUITY
+
+## Goal
+
+Build a thing that does the thing.
+
+## Architecture Decisions
+
+| Decision | Choice | Why |
+|----------|--------|-----|
+| Database | PostgreSQL | ACID; pgvector |
+| Auth     | OAuth2 + JWT | Industry standard |
+
+## State
+
+### Done (recent 2-3 only)
+
+- 2026-04-01: shipped feature X
+- 2026-04-02: shipped feature Y
+- 2026-04-03: shipped feature Z (older entry — should be trimmed by --migrate)
+- 2026-04-04: ancient entry (also trimmed)
+
+### Now
+
+Working on the migration assistant.
+
+### Next
+
+- ship PR #2
+- write CHANGELOG entry
+
+EOF
+    # Also drop a CLAUDE.md with the dangling @-import.
+    cat > "$scratch/CLAUDE.md" <<'EOF'
+@CONTINUITY.md
+
+# CLAUDE.md - Test Project
+
+## Project Overview
+
+A test project.
+EOF
+}
