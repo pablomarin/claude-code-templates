@@ -18,7 +18,8 @@ Claude Code has **two layers of memory** that this template configures. Together
 │                PROJECT-LEVEL (per project)                       │
 │  CLAUDE.md                    ← Project description (slim, yours)│
 │  .claude/rules/               ← Coding standards + workflow rules│
-│  CONTINUITY.md                ← Task state (Done/Now/Next)       │
+│  .claude/local/state.md       ← Task state (gitignored)          │
+│  docs/adr/NNNN-*.md           ← Architecture decisions           │
 │  .claude/settings.json        ← Project hooks + permissions      │
 │  .mcp.json                    ← MCP servers (Playwright, Context7)│
 │  docs/solutions/              ← Compounded knowledge base        │
@@ -35,16 +36,27 @@ Claude Code has **two layers of memory** that this template configures. Together
 └──────────────────────────────────────────────────────────────────┘
 ```
 
+### The three-artifact model for project state
+
+Project state spans three genres of content with different ownership and lifecycle. The harness keeps them in separate artifacts:
+
+- **Durable team-shared facts** (project goal, tech stack, key commands) live in `CLAUDE.md`. Tracked in git, reviewed in PRs, auto-loaded into every session.
+- **Architecture decisions** live in `docs/adr/NNNN-*.md` — one file per decision, append-only history. Tracked in git, but not auto-loaded; Claude reads them on demand.
+- **Volatile per-developer state** (Workflow checklist, Done/Now/Next, Blockers, Open Questions) lives in `.claude/local/state.md`. Gitignored, NOT auto-loaded. Hooks read it on demand via shell.
+
+Keeping volatile state out of the auto-loaded path is the design point: stale per-developer status from yesterday's session never silently re-enters today's context. Hooks (`check-state-updated.sh`, `check-workflow-gates.sh`) parse `.claude/local/state.md` directly when they need the current Workflow row.
+
 ## What Each Layer Does
 
-| Layer                 | Who writes it | What it contains                                 | When it loads                                 |
-| --------------------- | ------------- | ------------------------------------------------ | --------------------------------------------- |
-| **Global CLAUDE.md**  | You (once)    | Memory instructions, personal preferences        | Every session, all projects                   |
-| **Project CLAUDE.md** | You           | Project description, tech stack, commands (slim) | Every session, this project                   |
-| **`.claude/rules/`**  | Template      | Workflow, principles, coding standards           | Every session, this project                   |
-| **CONTINUITY.md**     | Claude        | Task state: Done/Now/Next/Blockers               | Auto-loaded via `@CONTINUITY.md` in CLAUDE.md |
-| **Auto Memory**       | Claude        | Learned patterns, solutions, preferences         | MEMORY.md first 200 lines auto-loaded         |
-| **docs/solutions/**   | Claude        | Bug fixes, error solutions, patterns             | On-demand when relevant                       |
+| Layer                        | Who writes it | What it contains                                 | When it loads                         |
+| ---------------------------- | ------------- | ------------------------------------------------ | ------------------------------------- |
+| **Global CLAUDE.md**         | You (once)    | Memory instructions, personal preferences        | Every session, all projects           |
+| **Project CLAUDE.md**        | You           | Project description, tech stack, commands (slim) | Every session, this project           |
+| **`.claude/rules/`**         | Template      | Workflow, principles, coding standards           | Every session, this project           |
+| **`.claude/local/state.md`** | Claude        | Task state: Workflow/Done/Now/Next/Blockers      | NOT auto-loaded; hooks read on demand |
+| **`docs/adr/`**              | You + Claude  | Architecture decisions, append-only              | Not auto-loaded; read on demand       |
+| **Auto Memory**              | Claude        | Learned patterns, solutions, preferences         | MEMORY.md first 200 lines auto-loaded |
+| **docs/solutions/**          | Claude        | Bug fixes, error solutions, patterns             | On-demand when relevant               |
 
 ## How Memory Persists
 
