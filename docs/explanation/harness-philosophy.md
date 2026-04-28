@@ -19,10 +19,10 @@ This is not "more review is better." It's **two separately-trained models with d
 You can skip good practice when it feels optional. The harness makes it structural:
 
 - `/new-feature` and `/fix-bug` commands bake in TDD, research-before-design, approach comparison, and a contrarian gate — you follow them or you don't ship
-- `check-workflow-gates.sh` literally blocks `git commit`, `git push`, and `gh pr create` until CONTINUITY.md shows `Code review loop`, `Simplified`, and `Verified` markers
+- `check-workflow-gates.sh` literally blocks `git commit`, `git push`, and `gh pr create` until `.claude/local/state.md` shows `Code review loop`, `Simplified`, and `Verified` markers
 - `check-bash-safety.sh` blocks dangerous Bash patterns before they run (pipe-to-shell, reverse shells, credential exfiltration)
 - `ConfigChange` hook logs every modification to `.claude/settings.json` so permission escalation is auditable
-- Every Stop turn reminds Claude to update state; `check-state-updated.sh` blocks if the reminder is ignored
+- Every Stop turn reminds Claude to update state; `check-state-updated.sh` is advisory (gating moved to PreToolUse) but still nags if state goes stale and gates `docs/CHANGELOG.md` updates when 4+ files have changed
 
 Discipline is guided by commands and **guarded by hooks**. You can still override (it's your machine) but every override is explicit.
 
@@ -30,12 +30,13 @@ Discipline is guided by commands and **guarded by hooks**. You can still overrid
 
 Sessions end. State doesn't.
 
-- **Auto-memory** persists locally across sessions and context compaction (the `PreCompact` hook rescues learnings *before* compression, so nothing gets dropped silently)
-- **`CONTINUITY.md`** — Done / Now / Next, updated every turn, reloaded every session, travels with the repo
+- **Auto-memory** persists locally across sessions and context compaction (the `PreCompact` hook rescues learnings _before_ compression, so nothing gets dropped silently)
+- **`.claude/local/state.md`** — Done / Now / Next, updated every turn, gitignored per-developer state (hooks read on demand)
+- **`docs/adr/`** — architecture decisions, append-only, travels with the repo
 - **`docs/CHANGELOG.md`** — historical record, travels with the repo
 - **`docs/solutions/`** — bug root causes + patterns, indexed by problem type, travels with the repo via git
 
-Three of those travel with the repo. Auto-memory is local/per-worktree (it doesn't sync across teammates), but the git-tracked files mean every root cause, decision, and pattern compounds across weeks and teammates. The same bug never needs to be debugged twice.
+Three of those travel with the repo. Auto-memory and `.claude/local/state.md` stay local/per-worktree (they don't sync across teammates), but the git-tracked files mean every root cause, decision, and pattern compounds across weeks and teammates. The same bug never needs to be debugged twice.
 
 ## Team-scale by default
 
