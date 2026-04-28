@@ -513,6 +513,106 @@ assert_hash_equals "$S11/.claude/hooks/lib/default-branch.sh" "$SRC_HASH" \
 # is covered by test-contracts.sh (Contract: hooks/lib parity setup.sh ↔ setup.ps1).
 
 # ===========================================================================
+# Test 12: state.md, ADR, gitignore install assertions (PR #2 — continuity-split)
+# ===========================================================================
+start_test "Test 12: continuity-split install assertions"
+
+# Verify state.template.md installs to .claude/local/state.md (fresh install).
+test_state_md_installs() {
+    local scratch; scratch=$(scratch_dir state-md-install)
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    if [ -f "$scratch/.claude/local/state.md" ]; then
+        pass ".claude/local/state.md installed on fresh setup"
+    else
+        fail ".claude/local/state.md NOT installed on fresh setup"
+    fi
+    # The harness-side state.template.md (from T12 Step 3 amendment) is also installed.
+    if [ -f "$scratch/.claude/state.template.md" ]; then
+        pass ".claude/state.template.md installed (T12 Step 3 amendment)"
+    else
+        fail ".claude/state.template.md NOT installed (T12 Step 3 amendment expected)"
+    fi
+    # state.template.md (root) ships in the harness source tree.
+    if [ -f "$REPO_ROOT/state.template.md" ]; then
+        pass "state.template.md ships in repo root (source of truth)"
+    else
+        fail "state.template.md MISSING from repo root"
+    fi
+}
+
+# Verify .gitignore is mutated to include .claude/local/.
+test_gitignore_has_claude_local() {
+    local scratch; scratch=$(scratch_dir gitignore-claude-local)
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    if [ -f "$scratch/.gitignore" ] && grep -qxF ".claude/local/" "$scratch/.gitignore"; then
+        pass ".claude/local/ present in .gitignore"
+    else
+        fail ".claude/local/ NOT in .gitignore (or .gitignore missing)"
+    fi
+}
+
+# Verify gitignore mutation is idempotent (second setup -f does not duplicate).
+test_gitignore_idempotent() {
+    local scratch; scratch=$(scratch_dir gitignore-idempotent)
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -f -p TestProj -t fullstack >/dev/null 2>&1 )
+    local count
+    count=$(grep -cxF ".claude/local/" "$scratch/.gitignore" 2>/dev/null || echo 0)
+    assert_equals "$count" "1" ".claude/local/ entry is idempotent (one occurrence after -f rerun)"
+}
+
+# Verify ADRs install.
+test_adrs_install() {
+    local scratch; scratch=$(scratch_dir adrs-install)
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    local all_ok=true
+    for adr in template README 0001-volatile-state-not-auto-loaded 0002-bash-and-powershell-dual-platform 0003-template-distributed-no-build-step 0004-diataxis-docs-structure 0005-hard-platform-parity-rule; do
+        if [ ! -f "$scratch/docs/adr/${adr}.md" ]; then
+            fail "docs/adr/${adr}.md not installed"
+            all_ok=false
+        fi
+    done
+    $all_ok && pass "all ADR files installed (template, README, 0001-0005)"
+}
+
+# Verify CONTINUITY.template.md is NOT installed (legacy file should not be generated
+# in a fresh install — though the source CONTINUITY.template.md may still ship in the
+# harness during the hard-cut transition; this check covers the *target* project).
+test_no_continuity_installed() {
+    local scratch; scratch=$(scratch_dir no-continuity-installed)
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    # Allow CONTINUITY.md to exist if setup still seeds it during transition; the
+    # critical check is that it is NOT auto-imported by CLAUDE.md after PR #2.
+    # Conservative assertion: no CONTINUITY.md in the freshly-set-up project after PR #2.
+    if [ ! -f "$scratch/CONTINUITY.md" ]; then
+        pass "CONTINUITY.md not installed in fresh project (post PR #2)"
+    else
+        fail "CONTINUITY.md unexpectedly installed in fresh project (post PR #2 expects none)"
+    fi
+}
+
+# Verify -f preserves an existing CONTINUITY.md byte-for-byte.
+test_f_preserves_existing_continuity() {
+    local scratch; scratch=$(scratch_dir f-preserves-continuity)
+    echo "user content" > "$scratch/CONTINUITY.md"
+    local before; before=$(hash_file "$scratch/CONTINUITY.md")
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -f -p TestProj -t fullstack >/dev/null 2>&1 )
+    if [ -f "$scratch/CONTINUITY.md" ]; then
+        local after; after=$(hash_file "$scratch/CONTINUITY.md")
+        assert_equals "$before" "$after" "existing CONTINUITY.md byte-preserved through -f"
+    else
+        fail "CONTINUITY.md was deleted by -f (should be preserved)"
+    fi
+}
+
+test_state_md_installs
+test_gitignore_has_claude_local
+test_gitignore_idempotent
+test_adrs_install
+test_no_continuity_installed
+test_f_preserves_existing_continuity
+
+# ===========================================================================
 # Report
 # ===========================================================================
 report "test-setup.sh"
