@@ -36,7 +36,18 @@ $changelogOutput = git status --porcelain docs/CHANGELOG.md 2>$null
 $changelogModified = if ($changelogOutput) { ($changelogOutput | Measure-Object -Line).Lines } else { 0 }
 
 # Get branch base for comparison
-$branchBase = git merge-base main HEAD 2>$null
+# Resolve repo default branch via the shared helper.
+# CRITICAL: dot-source (not subprocess) — Windows ships powershell.exe (5.1),
+# spawning pwsh (7+) would fail on stock Windows. Dot-source works in both.
+$hookDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$libPath = Join-Path $hookDir "lib\default-branch.ps1"
+$defaultBranch = "main"  # fallback if helper or git fails
+if (Test-Path $libPath) {
+    . $libPath
+    $detected = Get-DefaultBranch
+    if ($detected) { $defaultBranch = $detected }
+}
+$branchBase = git merge-base $defaultBranch HEAD 2>$null
 if (-not $branchBase) { $branchBase = "HEAD~10" }
 
 # Count files changed on branch
