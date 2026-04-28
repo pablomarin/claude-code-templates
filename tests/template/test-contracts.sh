@@ -250,6 +250,64 @@ assert_contains "$REPO_ROOT/setup.ps1" "__PLAYWRIGHT_DIR__" \
     "setup.ps1 references placeholder"
 
 # ---------------------------------------------------------------------------
+# Contract: no hardcoded "main" in hooks/* outside the lib helper
+# ---------------------------------------------------------------------------
+start_test "no hardcoded 'main' in hooks/* (outside hooks/lib/)"
+
+HARDCODED=$(grep -rE "merge-base[[:space:]]+main[[:space:]]+HEAD|origin/main[^A-Za-z_]" \
+    "$REPO_ROOT/hooks/" 2>/dev/null \
+    | grep -v "^$REPO_ROOT/hooks/lib/" || true)
+
+if [[ -z "$HARDCODED" ]]; then
+    pass "no hardcoded 'main' references in hooks/* (outside lib/)"
+else
+    while IFS= read -r line; do
+        fail "hardcoded 'main' detected: $line"
+    done <<< "$HARDCODED"
+fi
+
+# ---------------------------------------------------------------------------
+# Contract: DRIFT-PREFLIGHT-NEW blocks in new-feature.md and fix-bug.md byte-identical
+# ---------------------------------------------------------------------------
+start_test "DRIFT-PREFLIGHT-NEW blocks byte-identical across new-feature.md and fix-bug.md"
+
+NF="$REPO_ROOT/commands/new-feature.md"
+FB="$REPO_ROOT/commands/fix-bug.md"
+
+for f in "$NF" "$FB"; do
+    [ -f "$f" ] || { fail "missing command file: $f"; }
+done
+
+NF_NEW=$(sed -n '/^# DRIFT-PREFLIGHT-NEW-BEGIN/,/^# DRIFT-PREFLIGHT-NEW-END/p' "$NF")
+FB_NEW=$(sed -n '/^# DRIFT-PREFLIGHT-NEW-BEGIN/,/^# DRIFT-PREFLIGHT-NEW-END/p' "$FB")
+
+if [[ -z "$NF_NEW" ]] || [[ -z "$FB_NEW" ]]; then
+    fail "DRIFT-PREFLIGHT-NEW markers missing from one or both command files"
+elif [[ "$NF_NEW" == "$FB_NEW" ]]; then
+    pass "DRIFT-PREFLIGHT-NEW blocks byte-identical"
+else
+    fail "DRIFT-PREFLIGHT-NEW blocks differ between new-feature.md and fix-bug.md"
+    diff <(printf '%s' "$NF_NEW") <(printf '%s' "$FB_NEW") | head -10
+fi
+
+# ---------------------------------------------------------------------------
+# Contract: DRIFT-PREFLIGHT-ALREADY blocks in new-feature.md and fix-bug.md byte-identical
+# ---------------------------------------------------------------------------
+start_test "DRIFT-PREFLIGHT-ALREADY blocks byte-identical across new-feature.md and fix-bug.md"
+
+NF_AL=$(sed -n '/^# DRIFT-PREFLIGHT-ALREADY-BEGIN/,/^# DRIFT-PREFLIGHT-ALREADY-END/p' "$NF")
+FB_AL=$(sed -n '/^# DRIFT-PREFLIGHT-ALREADY-BEGIN/,/^# DRIFT-PREFLIGHT-ALREADY-END/p' "$FB")
+
+if [[ -z "$NF_AL" ]] || [[ -z "$FB_AL" ]]; then
+    fail "DRIFT-PREFLIGHT-ALREADY markers missing from one or both command files"
+elif [[ "$NF_AL" == "$FB_AL" ]]; then
+    pass "DRIFT-PREFLIGHT-ALREADY blocks byte-identical"
+else
+    fail "DRIFT-PREFLIGHT-ALREADY blocks differ between new-feature.md and fix-bug.md"
+    diff <(printf '%s' "$NF_AL") <(printf '%s' "$FB_AL") | head -10
+fi
+
+# ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
 report "test-contracts.sh"
