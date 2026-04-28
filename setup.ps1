@@ -990,25 +990,10 @@ if ($Upgrade) {
     Write-Host "   git commit -m `"chore: upgrade Claude Code automation templates`""
     Write-Host "   git push"
     Write-Host ""
-    # Consolidated drift reminder — surface once at the end. Only mention files
-    # that were actually preserved (boolean-gated, no false claims).
-    if ($hadClaude -or $hadContinuity) {
-        Write-Color "! Template may have drifted since your last upgrade." "Yellow"
-        Write-Host "  Review and merge any new sections manually:"
-        # Single-quoted paths + Get-Location-absolutized local side so the
-        # command survives copy-paste regardless of shell metachars or cwd.
-        $cwd = (Get-Location).Path
-        if ($hadClaude) {
-            $templatePath = Join-Path $ScriptDir "CLAUDE.template.md"
-            $localAbs = Join-Path $cwd "CLAUDE.md"
-            Write-Host "    git diff --no-index -- '$templatePath' '$localAbs'"
-        }
-        if ($hadContinuity) {
-            Write-Host "    (Legacy CONTINUITY.md detected -- see migration prompt below.)"
-        }
-        Write-Host "  (Or ask Claude to reconcile - point it at the diff output.)"
-        Write-Host ""
-    }
+    # 5.16: dropped the "Template may have drifted" cry-wolf preamble that
+    # fired on every --upgrade regardless of actual drift. The migration
+    # script's Variant B "ask Claude to reconcile" message handles drift
+    # reconciliation when it actually matters (during --migrate).
     # PR #2 (continuity-split): legacy CONTINUITY.md migration prompt.
     if ($hadContinuity) {
         Write-Color "! Legacy CONTINUITY.md detected." "Yellow"

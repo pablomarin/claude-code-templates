@@ -12,6 +12,11 @@ set -u  # fail on unset vars; do NOT set -e (we handle errors explicitly)
 # matches scripts/migrate-continuity.ps1 byte-for-byte under the test contract.
 # If interactive callers want color, setup.sh / setup.ps1 can wrap the dispatch.
 
+# Resolve this script's Forge-clone root so the dangling-import reconcile
+# message can name the canonical CLAUDE.template.md path. Forward slash kept
+# in the emitted text for cross-platform display + bash/PS parity.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 # Sentinel marker for idempotency -- embedded in migrated content.
 SENTINEL_PREFIX="<!-- forge:migrated"
 SENTINEL_TODAY="<!-- forge:migrated $(date +%Y-%m-%d) -->"
@@ -276,8 +281,22 @@ for section in Now Next; do
 done
 
 # --- (d) Flag dangling @CONTINUITY.md import in CLAUDE.md ---
+# Variant B reconcile-prompt: one consolidated "ask Claude" instruction that
+# (a) reconciles CLAUDE.md against the latest template AND (b) removes the
+# dangling @-import in a single operation. The literal "@CONTINUITY.md" and
+# "dangling" tokens are preserved for the existing fixture asserts in
+# tests/template/test-migrate.sh and for keyword-grep discoverability.
 if [ -f "CLAUDE.md" ] && grep -qE '^@CONTINUITY\.md\b' CLAUDE.md; then
-    warnings+=("CLAUDE.md still contains a '@CONTINUITY.md' dangling import - Claude Code silently ignores missing imports, but you may want to remove the line manually for cleanliness.")
+    warnings+=("CLAUDE.md still contains an '@CONTINUITY.md' dangling import.
+    Open Claude Code in this project and paste this prompt:
+
+      Reconcile my CLAUDE.md against $SCRIPT_DIR/CLAUDE.template.md.
+      Port any new template sections I'm missing, preserving my
+      project-specific content. If you see an @CONTINUITY.md line
+      on top, remove it -- it's a dangling import from before the
+      5.15 migration.
+
+    (Not in Claude Code? See docs/guides/upgrading.md \"Manual fallback\".)")
 fi
 
 # --- (e) Print summary (ASCII-safe characters for AC-4 byte-equivalence with PS) ---
