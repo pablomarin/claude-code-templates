@@ -38,7 +38,7 @@ Claude Codex Forge combines **Claude Code** and **OpenAI's Codex** into a single
 
 - **Dual-agent review** — `/codex review` (independent second opinion) + `/council` (5-advisor panel with Codex chairman) catch issues one agent alone would miss. Two separately-trained models flag different concerns — disagreement is the signal.
 - **Discipline by construction** — workflow commands bake in TDD, research-before-design, and E2E testing. Hooks block dangerous Bash, enforce state updates, and gate commit/push/PR on explicit quality markers.
-- **Continuous memory** — auto-memory persists locally across sessions and compaction (rescued by the `PreCompact` hook); `CONTINUITY.md`, `CHANGELOG.md`, and `docs/solutions/` travel with the repo so every root cause, decision, and pattern compounds across weeks and teammates via git.
+- **Continuous memory** — auto-memory persists locally across sessions and compaction (rescued by the `PreCompact` hook); `docs/adr/`, `docs/CHANGELOG.md`, and `docs/solutions/` travel with the repo so every architecture decision, root cause, and pattern compounds across weeks and teammates via git. Per-developer Workflow / Done / Now / Next state lives in gitignored `.claude/local/state.md` — read by hooks on demand, kept out of Claude's auto-loaded context.
 - **Team-scale by default** — one GitHub repo becomes the hub. Multiple developers run parallel Claude sessions via auto-created git worktrees, each isolated but with full project context.
 
 ## Quick start
@@ -84,7 +84,7 @@ Windows users: [PowerShell instructions](docs/getting-started.md#windows).
 | `setup.sh --upgrade`            | **Routine template updates** on an existing project. Refreshes hooks, commands, rules, and agents. **Merges** `.claude/settings.json` and `.mcp.json` so your customizations (permissions, plugins, extra MCP servers) are preserved. Creates a timestamped `.bak` before merging. |
 | `setup.sh -f`                   | **Reset to template verbatim.** Overwrites `.claude/settings.json` and `.mcp.json` — wipes your customizations. No backup. Use only if your setup is corrupted or you've never customized anything.                                                                                |
 
-`CLAUDE.md`, `CONTINUITY.md`, and `docs/CHANGELOG.md` are always preserved — the template initializes them on first install and never touches them afterward, regardless of flags.
+`CLAUDE.md`, `.claude/local/state.md`, and `docs/CHANGELOG.md` are always preserved — the template initializes them on first install and never touches them afterward, regardless of flags. If you upgrade from a pre-5.15 install, your legacy state file is preserved too; run `setup.sh --migrate` when ready to split it into the three new artifacts.
 
 Full flag reference: **[Upgrading guide →](docs/guides/upgrading.md)**
 
@@ -100,24 +100,24 @@ See **[the full workflow diagram](docs/explanation/workflow.md)** for the comple
 
 ## Documentation
 
-| Topic                                                              | What's inside                                                    |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| **[Getting Started](docs/getting-started.md)**                     | Prerequisites, 6-step install, verify setup                      |
-| **[Setup Scenarios](docs/guides/setup-scenarios.md)**              | New project · existing project · upgrade                         |
-| **[Customize Your Project](docs/guides/customize-project.md)**     | CLAUDE.md · CONTINUITY.md · optional MCPs · automated PR reviews |
-| **[Upgrading](docs/guides/upgrading.md)**                          | `--upgrade` mode, merge behavior, fresh-install alternative      |
-| **[Parallel Development](docs/guides/parallel-sessions.md)**       | Multiple sessions via git worktrees                              |
-| **[Playwright CI Bridge](docs/guides/playwright-ci-bridge.md)**    | `--with-playwright` scaffold for deterministic E2E in CI         |
-| **[Commands Reference](docs/reference/commands.md)**               | All slash commands and subagents                                 |
-| **[Hooks Reference](docs/reference/hooks.md)**                     | Seven hook events + how they interact                            |
-| **[Permissions & Security](docs/reference/permissions.md)**        | Deny / ask / skip rules                                          |
-| **[File Structure](docs/reference/file-structure.md)**             | What setup creates and where                                     |
-| **[Creating Skills](docs/reference/creating-skills.md)**           | Author your own slash commands                                   |
-| **[Cheatsheet](docs/reference/cheatsheet.md)**                     | Copy-paste daily-workflow card                                   |
-| **[Workflow (full)](docs/explanation/workflow.md)**                | 14-phase diagram with rationale                                  |
-| **[Harness Philosophy](docs/explanation/harness-philosophy.md)**   | Why dual-agent, why discipline, why continuous memory            |
-| **[Memory Architecture](docs/explanation/memory-architecture.md)** | Global + project + auto-memory layers                            |
-| **[Troubleshooting](docs/troubleshooting.md)**                     | Memory · hooks · permissions · MCP · plugins · Codex             |
+| Topic                                                              | What's inside                                                               |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| **[Getting Started](docs/getting-started.md)**                     | Prerequisites, 6-step install, verify setup                                 |
+| **[Setup Scenarios](docs/guides/setup-scenarios.md)**              | New project · existing project · upgrade                                    |
+| **[Customize Your Project](docs/guides/customize-project.md)**     | CLAUDE.md · `.claude/local/state.md` · optional MCPs · automated PR reviews |
+| **[Upgrading](docs/guides/upgrading.md)**                          | `--upgrade` mode, merge behavior, fresh-install alternative                 |
+| **[Parallel Development](docs/guides/parallel-sessions.md)**       | Multiple sessions via git worktrees                                         |
+| **[Playwright CI Bridge](docs/guides/playwright-ci-bridge.md)**    | `--with-playwright` scaffold for deterministic E2E in CI                    |
+| **[Commands Reference](docs/reference/commands.md)**               | All slash commands and subagents                                            |
+| **[Hooks Reference](docs/reference/hooks.md)**                     | Seven hook events + how they interact                                       |
+| **[Permissions & Security](docs/reference/permissions.md)**        | Deny / ask / skip rules                                                     |
+| **[File Structure](docs/reference/file-structure.md)**             | What setup creates and where                                                |
+| **[Creating Skills](docs/reference/creating-skills.md)**           | Author your own slash commands                                              |
+| **[Cheatsheet](docs/reference/cheatsheet.md)**                     | Copy-paste daily-workflow card                                              |
+| **[Workflow (full)](docs/explanation/workflow.md)**                | 14-phase diagram with rationale                                             |
+| **[Harness Philosophy](docs/explanation/harness-philosophy.md)**   | Why dual-agent, why discipline, why continuous memory                       |
+| **[Memory Architecture](docs/explanation/memory-architecture.md)** | Global + project + auto-memory layers                                       |
+| **[Troubleshooting](docs/troubleshooting.md)**                     | Memory · hooks · permissions · MCP · plugins · Codex                        |
 
 ## Concrete guarantees
 
