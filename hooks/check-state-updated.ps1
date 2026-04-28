@@ -27,10 +27,6 @@ if ($data.stop_hook_active -eq $true) {
 $uncommittedOutput = git status --porcelain 2>$null | Where-Object { $_ -notmatch '^\?\?' }
 $uncommitted = if ($uncommittedOutput) { @($uncommittedOutput).Count } else { 0 }
 
-# Check if CONTINUITY.md was modified
-$continuityOutput = git status --porcelain CONTINUITY.md 2>$null
-$continuityModified = if ($continuityOutput) { ($continuityOutput | Measure-Object -Line).Lines } else { 0 }
-
 # Check if CHANGELOG was modified
 $changelogOutput = git status --porcelain docs/CHANGELOG.md 2>$null
 $changelogModified = if ($changelogOutput) { ($changelogOutput | Measure-Object -Line).Lines } else { 0 }
@@ -89,30 +85,35 @@ if ($branchChangedOutput) {
 }
 
 # --- Workflow state tracking ---
-# If CONTINUITY.md has an active workflow, extract phase/next-step for advisory reminder
+# State file is gitignored. Emit breadcrumb only when legacy CONTINUITY.md is also present
+# (signals user upgraded but hasn't migrated) — avoid spamming every Stop event.
+if (-not (Test-Path ".claude/local/state.md") -and (Test-Path "CONTINUITY.md")) {
+    [Console]::Error.WriteLine("ℹ check-state-updated: .claude/local/state.md not found, but CONTINUITY.md exists.")
+    [Console]::Error.WriteLine("  Run setup --migrate to move your content to the new structure.")
+    # Continue to CHANGELOG check — gates are independent.
+}
+
+# Workflow reminder — read .claude/local/state.md (gitignored), single-line format.
 $workflowReminder = ""
-if (Test-Path "CONTINUITY.md") {
-    $continuityContent = Get-Content "CONTINUITY.md" -Raw 2>$null
-    $cmdLine = ($continuityContent -split "`n" | Select-String '\|\s*Command\s*\|' | Select-Object -First 1)
-    if ($cmdLine) {
-        $cmd = ($cmdLine -split '\|')[2].Trim()
-        if ($cmd -and $cmd -ne "none" -and $cmd -ne ([char]0x2014).ToString() -and $cmd -ne "-") {
-            $phaseLine = ($continuityContent -split "`n" | Select-String '\|\s*Phase\s*\|' | Select-Object -First 1)
-            $nextLine = ($continuityContent -split "`n" | Select-String '\|\s*Next step\s*\|' | Select-Object -First 1)
-            $phase = if ($phaseLine) { ($phaseLine -split '\|')[2].Trim() } else { "" }
-            $next = if ($nextLine) { ($nextLine -split '\|')[2].Trim() } else { "" }
-            $workflowReminder = "WORKFLOW: $cmd | Phase: $phase | Next: $next"
+if (Test-Path ".claude/local/state.md") {
+    $stateContent = Get-Content ".claude/local/state.md" -Raw -ErrorAction SilentlyContinue
+    if (-not [string]::IsNullOrEmpty($stateContent)) {
+        $cmdLine = ($stateContent -split "`n" | Select-String '\|\s*Command\s*\|' | Select-Object -First 1)
+        if ($cmdLine) {
+            $cmd = ($cmdLine -split '\|')[2].Trim()
+            if ($cmd -and $cmd -ne "none" -and $cmd -ne ([char]0x2014).ToString() -and $cmd -ne "-") {
+                $phaseLine = ($stateContent -split "`n" | Select-String '\|\s*Phase\s*\|' | Select-Object -First 1)
+                $nextLine = ($stateContent -split "`n" | Select-String '\|\s*Next step\s*\|' | Select-Object -First 1)
+                $phase = if ($phaseLine) { ($phaseLine -split '\|')[2].Trim() } else { "" }
+                $next = if ($nextLine) { ($nextLine -split '\|')[2].Trim() } else { "" }
+                $workflowReminder = "WORKFLOW: $cmd | Phase: $phase | Next: $next"
+            }
         }
     }
 }
 
 # Build response
 $issues = ""
-
-# Block: uncommitted changes but CONTINUITY.md not updated
-if ($uncommitted -gt 0 -and $continuityModified -eq 0) {
-    $issues = "Update CONTINUITY.md Done/Now/Next sections."
-}
 
 # Block: 3+ files changed on branch but CHANGELOG.md never updated
 if ($totalChanged -gt 3 -and $changelogInBranch -eq 0 -and $changelogModified -eq 0) {
