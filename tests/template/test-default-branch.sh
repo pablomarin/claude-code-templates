@@ -137,6 +137,18 @@ assert_equals "$EXIT" "0" "exit code 0"
 assert_equals "$(cat "$S7/.out")" "main" "stdout = 'main'"
 
 # ---------------------------------------------------------------------------
+# Fixture 8: both main and master exist locally, origin/HEAD unset → returns "main"
+# PRD US-003 edge case: Method 2 (local main check) fires before Method 3
+# (local master check), so "main" wins when both branches are present.
+# ---------------------------------------------------------------------------
+start_test "origin/HEAD unset + both main and master local → returns main (Method 2 before Method 3)"
+S8=$(scratch_dir)
+build_fixture "$S8" "main master" "yes" "" "no"
+EXIT=$(run_helper_sh "$S8")
+assert_equals "$EXIT" "0" "exit code 0"
+assert_equals "$(cat "$S8/.out")" "main" "stdout = 'main' (main preferred over master)"
+
+# ---------------------------------------------------------------------------
 # PowerShell parity (skipped if pwsh unavailable)
 # ---------------------------------------------------------------------------
 if command -v pwsh >/dev/null 2>&1; then

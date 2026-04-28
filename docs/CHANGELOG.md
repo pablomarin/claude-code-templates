@@ -6,7 +6,7 @@ All notable changes to claude-codex-forge.
 
 Closes the multi-developer staleness failure mode: local `main` silently 97 commits behind origin while Claude reads `CONTINUITY.md` as authoritative state and confidently cites already-merged PRs as "open." Worse, `/new-feature` and `/fix-bug` were creating worktrees from local `HEAD`, so feature branches got built on stale baselines. PR #1 of a multi-PR initiative; PR #2 (CONTINUITY.md split + per-developer state migration) is non-goals here.
 
-Council fired on the inline-vs-factored fork (5 advisors + chairman). Verdict: narrow Option C — factor only `hooks/lib/default-branch.{sh,ps1}` (the one piece with proven drift history), keep Pre-Flight inline in `commands/*.md`, simple-detect `gtimeout || timeout || skip` for macOS. Plan went through 4 review iterations (10 → 3 → 1 → 0 findings). Code review loop ran 2 iterations (4 P1 + 5 P2 → 1 P2 → CLEAN).
+Council fired on the inline-vs-factored fork (5 advisors + chairman). Verdict: narrow Option C — factor only `hooks/lib/default-branch.{sh,ps1}` (the one piece with proven drift history), keep Pre-Flight inline in `commands/*.md`, simple-detect `gtimeout || timeout || skip` for macOS. Plan went through 4 review iterations (10 → 3 → 1 → 0 findings). Code review loop ran **7 iterations** to genuine convergence (4 P1 + 5 P2 → 1 P2 → 1 P2 → 1 P2 → 1 P2 + 1 P3 → 1 P1 + 1 P2 → CLEAN). Per `rules/critical-rules.md` "NO BUGS LEFT BEHIND" — all reviewer findings fixed in-branch, no follow-up deferrals.
 
 - **`hooks/lib/default-branch.{sh,ps1}` (NEW)** — first-ever `hooks/lib/` directory. Detection chain: `git symbolic-ref refs/remotes/origin/HEAD` → local `main` → local `master` → bail (exit 1). Strict contract: branch name on stdout only, silent stderr, exit 0/1. Dual-mode (script-callable + sourceable) so consumer hooks can dot-source on Windows (avoids spawning `pwsh` from `powershell.exe` 5.1).
 - **`hooks/session-start.sh` + `.ps1`** — read `source` from stdin JSON; gate `git fetch origin` on `startup`/`resume` only (not `clear`/`compact`). Compute behind count vs `origin/<default>` after verifying BOTH refs exist (guards rev-list exit-128). Append a one-line drift warning to `additionalContext` when behind. SessionStart cannot block (exit 2 is advisory only — surfaces as warning string). PowerShell variant uses `Start-Job -ArgumentList $cwd -ScriptBlock { Set-Location -LiteralPath $dir; ... }` for PS 5.1 + emits `$LASTEXITCODE` on success stream so parent gates on actual fetch result, not just `Wait-Job` completion.
@@ -19,14 +19,24 @@ Council fired on the inline-vs-factored fork (5 advisors + chairman). Verdict: n
 - **`tests/template/run-all.sh` + `test-lint.sh`** — register the new fixtures + lib files so the canonical drivers actually invoke and parse-check them.
 - **`CLAUDE.md`** — File Structure now shows `hooks/lib/`; Template→Generated mapping has 2 new rows; SessionStart hook description calls out source-gating + the cannot-block constraint.
 
-Explicitly deferred (out of scope; reviewer-blessed):
+Reviewer findings fixed in-branch (per "NO BUGS LEFT BEHIND"):
 
-- **CONTINUITY.md split** — separating durable project facts from per-developer volatile state. PR #2 of this initiative.
-- **Master-default fixture for `check-state-updated.sh` migration** — real test gap, follow-up issue.
-- **Setup install-presence assertion** — real test gap, follow-up issue.
-- **Pre-existing `set -e + $((0+0))` exit-1 bug in `check-state-updated.sh`** — not introduced by this PR; flagged for separate `/fix-bug`.
-- **Audit-log breadcrumb on fetch failure** — chairman-deferred per council; PR #1 doesn't invent a logging side-channel.
+- **`set -e + $((0+0))` exit-1 bug** in `check-state-updated.sh` — pre-existing latent bug; removed `set -e` (every external call already has explicit `2>/dev/null` + `|| fallback`).
+- **Helper-bail silent fallback** at 6 sites — added breadcrumbs: stderr in `check-state-updated.{sh,ps1}` + `commands/*.md` Pre-Flight; appended to `additionalContext` in SessionStart hooks (the only path that reaches Claude on SessionStart since stderr-on-exit-0 goes to debug log only).
+- **`BASE="HEAD"` last-resort warning** in DRIFT-PREFLIGHT-NEW — explicit echo with short HEAD identifier asking user to verify intent.
+- **Dirty/diverged tree no longer blocks worktree creation** — `git worktree add` is independent of caller's checkout state, so dirty-tree + diverged-FF are warn-and-proceed (the worktree still bases from `origin/<default>` cleanly).
+- **Behind-check + auto-FF gated on `FETCH_OK`** in both NEW and ALREADY blocks — prevents reporting drift against stale `origin/*` refs after fetch failure, and prevents a second network call via `git pull`.
+- **`origin/HEAD` stale-rename caveat documented** in `hooks/lib/default-branch.sh` — Method 1 verifies the candidate has a corresponding `refs/remotes/origin/<name>` ref before returning, but a fully stale rename (where the retired remote-tracking ref also survives) requires user-side `git remote set-head origin --auto && git fetch --prune` to refresh the cache. Documented as a known limitation; no network-free heuristic has acceptable false-positive rates.
+- **Merge-base fallback chain** in `check-state-updated.{sh,ps1}` — prefer local `<default>` if it exists, else `origin/<default>` (handles single-branch clones), else `HEAD~10`.
+- **DIRTY pipefail asymmetry** — added regex guard symmetric with BEHIND; `[[ "$DIRTY" =~ ^[0-9]+$ ]] || DIRTY=0` plus trailing `|| echo 0` for users with `set -o pipefail`.
+- **Test gap fixtures added (8 new):** master-default fixture for `check-state-updated.sh` migration; both-`main`-and-`master` local fixture; install-presence assertion; cross-platform drift-warning string parity contract; `TIMEOUT_CMD` empty-path coverage; empty/unknown `source` value fixtures.
+- **Comment trims** — removed 3 ephemeral history references in `test-contracts.sh` (Codex anecdote, Council attribution, regression-string history) per comment-analyzer review.
+
+Explicitly out of scope (PR #2 / future work):
+
+- **CONTINUITY.md split** — separating durable project facts from per-developer volatile state.
 - **macOS without `gtimeout`/`timeout`** — accepts ~75s degraded-network stall (council-accepted; Maintainer dissent recorded).
+- **Audit-log breadcrumb infrastructure** — chairman-deferred per council; PR #1's stderr/additionalContext breadcrumbs satisfy the "non-silent failure" requirement without inventing a logging side-channel.
 
 Suite: 256/256 assertions across 7 bash suites pass (lint 20, fixtures 23, contracts 64, hooks 22, default-branch 16, session-start 11, setup 100). PowerShell parity tests skip on dev hosts without `pwsh`; CI must have it installed.
 

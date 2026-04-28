@@ -205,6 +205,92 @@ else
 fi
 
 # ===========================================================================
+# Test 8: TIMEOUT_CMD selection — no timeout binary available → hook still
+# exits 0 and emits valid JSON.
+#
+# Isolation: $scratch/empty-bin is an empty directory (no executables). We
+# prepend it to PATH, then append enough of the real PATH to keep git
+# reachable (so fetch runs), but exclude any directory that provides
+# `gtimeout` or `timeout`. This exercises the empty-TIMEOUT_CMD branch:
+#   `$TIMEOUT_CMD git fetch …` with TIMEOUT_CMD="" expands to just
+#   `git fetch …` — the hook's intended no-timeout fallback.
+# ===========================================================================
+start_test "no timeout binary available → exits 0, valid JSON (empty-TIMEOUT_CMD path)"
+S8=$(scratch_dir)
+make_behind_repo "$S8" 2
+prepare_hook_repo "$S8/repo"
+
+# Build a PATH that contains git but NOT gtimeout or timeout.
+# Strategy: iterate real PATH segments; skip any segment that houses a
+# `timeout` or `gtimeout` binary. Always add $S8/empty-bin first so any
+# stub we might want later lives at front, but we leave it empty here.
+mkdir -p "$S8/empty-bin"
+FILTERED_PATH="$S8/empty-bin"
+IFS=':' read -ra _PATH_SEGS <<< "$PATH"
+for _seg in "${_PATH_SEGS[@]}"; do
+    # Skip segments that host timeout or gtimeout (the binaries we're hiding).
+    if [[ -x "$_seg/timeout" ]] || [[ -x "$_seg/gtimeout" ]]; then
+        continue
+    fi
+    FILTERED_PATH="$FILTERED_PATH:$_seg"
+done
+
+# Run the hook with the filtered PATH, capturing stdout and exit code.
+S8_OUT="$S8/repo/.session-out"
+(
+    cd "$S8/repo"
+    printf '{"source":"startup","session_id":"test","cwd":"%s"}' "$S8/repo" \
+        | PATH="$FILTERED_PATH" bash ./.hooks/session-start.sh
+) >"$S8_OUT" 2>"$S8/repo/.session-err"
+S8_RC=$?
+
+if [[ $S8_RC -eq 0 ]]; then
+    pass "hook exits 0 when no timeout binary is available"
+else
+    fail "hook exited $S8_RC (expected 0)"
+fi
+assert_contains "$S8_OUT" "Current branch:" "branch context emitted without timeout binary"
+# Verify the JSON shape is valid (hook should not crash on empty TIMEOUT_CMD).
+if command -v jq &>/dev/null; then
+    if jq -e '.hookSpecificOutput.hookEventName == "SessionStart"' < "$S8_OUT" >/dev/null 2>&1; then
+        pass "valid JSON output even without timeout binary"
+    else
+        fail "JSON invalid or hookEventName mismatch when no timeout binary"
+    fi
+fi
+
+# ===========================================================================
+# Test 9: source="" (empty) → no fetch, branch context still emitted
+#
+# The gate is: [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]
+# An empty SOURCE must NOT trigger fetch, but the hook must still emit
+# the branch context and exit 0 (fail-closed gate).
+# ===========================================================================
+start_test "source='' (empty) → no fetch, branch context emitted"
+S9=$(scratch_dir)
+make_behind_repo "$S9" 3
+prepare_hook_repo "$S9/repo"
+# Use run_session_start_sh with empty string as source value.
+OUTFILE=$(run_session_start_sh "$S9/repo" "")
+assert_contains "$OUTFILE" "Current branch:" "branch context present for empty source"
+assert_not_contains "$OUTFILE" "behind origin" "no behind warning for empty source (gate skips fetch)"
+
+# ===========================================================================
+# Test 10: source="unknown_future_value" → no fetch, branch context emitted
+#
+# Forward-compatibility: any value other than startup/resume must not trigger
+# fetch. This prevents a new source subtype from accidentally revealing stale
+# drift warnings before the user has initiated a real session start.
+# ===========================================================================
+start_test "source='unknown_future_value' → no fetch, branch context emitted"
+S10=$(scratch_dir)
+make_behind_repo "$S10" 3
+prepare_hook_repo "$S10/repo"
+OUTFILE=$(run_session_start_sh "$S10/repo" "unknown_future_value")
+assert_contains "$OUTFILE" "Current branch:" "branch context present for unknown source"
+assert_not_contains "$OUTFILE" "behind origin" "no behind warning for unknown source (gate fail-closed)"
+
+# ===========================================================================
 # PowerShell parity (skipped if pwsh unavailable; uses pwsh for cross-platform
 # fixture testing — the SHIPPED hook runs under powershell.exe on Windows via
 # settings-windows.template.json, but pwsh is the cross-host way to test the

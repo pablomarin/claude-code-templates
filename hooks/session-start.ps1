@@ -32,6 +32,12 @@ if ($source -eq "startup" -or $source -eq "resume") {
         if ($detected) { $default = $detected }
     }
 
+    # Helper-bail breadcrumb (mirrors session-start.sh): when default is empty,
+    # append to additionalContext so Claude sees that drift detection skipped.
+    if (-not $default) {
+        $context = "$context (drift check skipped — default-branch helper bailed)"
+    }
+
     if ($default) {
         # Run fetch with a 5s job timeout (PowerShell-native, no coreutils dependency).
         # CRITICAL: Start-Job's child runspace defaults its location to the user's

@@ -20,10 +20,19 @@
 function Get-DefaultBranch {
     $ErrorActionPreference = 'SilentlyContinue'
 
-    # Method 1: origin/HEAD symbolic ref
+    # Method 1: origin/HEAD symbolic ref.
+    # Same stale-rename caveat as the bash version: verify origin/<candidate>
+    # actually exists before trusting Method 1's output.
     $ref = git symbolic-ref --short -q refs/remotes/origin/HEAD 2>$null
     if ($LASTEXITCODE -eq 0 -and $ref) {
-        return ($ref -replace '^origin/', '')
+        $candidate = $ref -replace '^origin/', ''
+        if ($candidate) {
+            $null = git show-ref --verify --quiet "refs/remotes/origin/$candidate" 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                return $candidate
+            }
+            # Fall through: stale rename — origin/HEAD points at a retired branch.
+        }
     }
     # Method 2: local main exists
     $null = git show-ref --verify --quiet refs/heads/main 2>$null

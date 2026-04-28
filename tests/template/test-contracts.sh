@@ -4,9 +4,9 @@
 # Catches stringly-typed contracts that span files: e.g., the verify-e2e
 # agent's response header defines VERDICT values, and the callers in
 # commands/new-feature.md and commands/fix-bug.md must branch on those
-# same values. Codex called deferring this "false economy" because the
-# bug is exactly the kind of regression that's easy to ship and costly
-# to catch.
+# same values. These are exactly the regressions that are easy to ship
+# and costly to catch in code review — a contract test makes the link
+# between cooperating files explicit and machine-verifiable.
 #
 # Run from repo root:  bash tests/template/test-contracts.sh
 
@@ -121,9 +121,9 @@ assert_contains "$FB" ".claude/playwright-dir" \
 # ---------------------------------------------------------------------------
 # Contract 6: E2E verified gate — canonical marker vocabulary
 #
-# The Council (minority report from Contrarian + Maintainer) flagged that
-# the "E2E verified" gate string is referenced in multiple places and will
-# drift if not contracted. This asserts all references use the same stem.
+# The "E2E verified" gate string is the single source of truth for the
+# workflow-gates hook regex. It's referenced in command checklists, rules
+# docs, and the hook itself — contract these together so they can't drift.
 # ---------------------------------------------------------------------------
 start_test "E2E verified gate — canonical marker across files"
 
@@ -151,17 +151,17 @@ assert_contains "$REPO_ROOT/commands/new-feature.md" "$CANONICAL_NA" \
 assert_contains "$REPO_ROOT/commands/fix-bug.md" "$CANONICAL_NA" \
     "fix-bug.md uses canonical N/A form"
 assert_contains "$REPO_ROOT/rules/testing.md" "$CANONICAL_NA" \
-    "rules/testing.md uses canonical N/A form (was 'E2E use cases tested' before canonicalization)"
+    "rules/testing.md uses canonical N/A form"
 
 # rules/testing.md must be the canonical documentation — hook stderr
 # points there, so the anchor must exist
 assert_contains "$REPO_ROOT/rules/testing.md" "Canonical E2E gate vocabulary" \
     "rules/testing.md has the Canonical E2E gate vocabulary section"
 
-# Regression: the old drifting string "E2E use cases tested" must NOT appear
-# anywhere as a marker (it's been replaced with "E2E verified")
+# Negative assertion: only "E2E verified" is a valid gate marker — no other
+# variant string should function as one anywhere in the project.
 assert_not_contains "$REPO_ROOT/rules/testing.md" 'E2E use cases tested — N/A' \
-    "rules/testing.md no longer uses the old 'E2E use cases tested' N/A form"
+    "rules/testing.md uses only the canonical 'E2E verified' marker"
 
 # ---------------------------------------------------------------------------
 # Contract 5: runtime preflight parity — both installers check the same files
@@ -316,6 +316,38 @@ else
     fail "DRIFT-PREFLIGHT-ALREADY blocks differ between new-feature.md and fix-bug.md"
     diff <(printf '%s' "$NF_AL") <(printf '%s' "$FB_AL") | head -10
 fi
+
+# ---------------------------------------------------------------------------
+# Contract: session-start drift-warning string parity — .sh ↔ .ps1
+#
+# The drift warning injected into additionalContext is independently composed
+# in session-start.sh and session-start.ps1. If the canonical phrasing
+# diverges, Windows users see a different warning than macOS/Linux users —
+# a silent cross-platform inconsistency. This contract asserts both files
+# share the same canonical substrings so the user experience is identical.
+# ---------------------------------------------------------------------------
+start_test "session-start drift-warning string parity — .sh ↔ .ps1"
+
+SS_SH="$REPO_ROOT/hooks/session-start.sh"
+SS_PS1="$REPO_ROOT/hooks/session-start.ps1"
+
+for f in "$SS_SH" "$SS_PS1"; do
+    assert_file_exists "$f" "file exists: $f"
+done
+
+# Both files must contain the trailing structural phrase that ends the warning.
+PULL_PHRASE="pull before starting work"
+assert_contains "$SS_SH"  "$PULL_PHRASE" \
+    "session-start.sh contains '$PULL_PHRASE'"
+assert_contains "$SS_PS1" "$PULL_PHRASE" \
+    "session-start.ps1 contains '$PULL_PHRASE'"
+
+# Both files must contain the em-dash + structural phrase that precedes the count.
+BEHIND_PHRASE="commits behind origin —"
+assert_contains "$SS_SH"  "$BEHIND_PHRASE" \
+    "session-start.sh contains '$BEHIND_PHRASE'"
+assert_contains "$SS_PS1" "$BEHIND_PHRASE" \
+    "session-start.ps1 contains '$BEHIND_PHRASE'"
 
 # ---------------------------------------------------------------------------
 # Report

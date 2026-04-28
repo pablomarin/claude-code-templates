@@ -479,6 +479,40 @@ assert_contains "$S10c/.upgrade.log" "Upgrade done!" \
     "Scenario C: bare 'Upgrade done!' variant present"
 
 # ===========================================================================
+# Test 11: hooks/lib helper installed + executable + hash-identical to source
+# P1 gap from drift-hygiene PR #1 review: setup.sh copies the lib helper, but
+# no test asserted its presence, mode, or integrity in the scratch install.
+# ===========================================================================
+start_test "Test 11: hooks/lib/default-branch.sh installed by setup.sh"
+
+S11=$(scratch_dir hooks-lib)
+make_project "$S11" flat
+LOG11="$S11/.setup.log"
+
+run_setup "$S11" "$LOG11" -p "HooksLibTest" -t fullstack
+assert_equals "$?" "0" "setup exits 0"
+
+# File must exist in the installed tree
+assert_file_exists "$S11/.claude/hooks/lib/default-branch.sh" \
+    ".claude/hooks/lib/default-branch.sh installed"
+
+# Must be executable (chmod +x applied by setup.sh)
+if [[ -x "$S11/.claude/hooks/lib/default-branch.sh" ]]; then
+    pass ".claude/hooks/lib/default-branch.sh is executable"
+else
+    fail ".claude/hooks/lib/default-branch.sh is NOT executable"
+fi
+
+# Content must be hash-identical to the source in the repo
+SRC_HASH=$(hash_file "$REPO_ROOT/hooks/lib/default-branch.sh")
+assert_hash_equals "$S11/.claude/hooks/lib/default-branch.sh" "$SRC_HASH" \
+    "installed default-branch.sh matches source (hash-identical)"
+
+# Note: setup.ps1 (Windows installer) installs default-branch.ps1; setup.sh
+# (Unix installer) installs only default-branch.sh. The cross-installer parity
+# is covered by test-contracts.sh (Contract: hooks/lib parity setup.sh ↔ setup.ps1).
+
+# ===========================================================================
 # Report
 # ===========================================================================
 report "test-setup.sh"

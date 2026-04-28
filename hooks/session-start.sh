@@ -27,6 +27,13 @@ if [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]; then
         DEFAULT=""
     fi
 
+    # Helper-bail breadcrumb: append to additionalContext so Claude sees that drift
+    # detection skipped due to helper failure (the only signal path on SessionStart —
+    # stderr at exit 0 goes to debug log only, not to user or Claude).
+    if [[ -z "$DEFAULT" ]]; then
+        CONTEXT="$CONTEXT (drift check skipped — default-branch helper bailed)"
+    fi
+
     if [[ -n "$DEFAULT" ]]; then
         # Pick a timeout binary if available (gtimeout for macOS+brew, timeout for Linux/CI).
         # If neither exists, skip the cap — git's connect timeout (~75s) is the upper bound.

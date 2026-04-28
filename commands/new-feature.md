@@ -50,12 +50,14 @@ fi
 ROOT="$(git rev-parse --show-toplevel)"
 LIB="$ROOT/.claude/hooks/lib/default-branch.sh"
 [ ! -f "$LIB" ] && LIB="$ROOT/hooks/lib/default-branch.sh"
-DEFAULT_BRANCH=$(bash "$LIB" 2>/dev/null) || DEFAULT_BRANCH="main"
-git fetch origin --quiet 2>/dev/null || true
-# Verify BOTH refs exist before rev-list — guards against exit-128 silently returning 0
-# when local <default> is missing (e.g., shallow/single-branch clone where origin/HEAD
-# was set to main but local main was never created).
-if git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1 \
+DEFAULT_BRANCH=$(bash "$LIB" 2>/dev/null) \
+    || { DEFAULT_BRANCH="main"; echo "  ⚠ default-branch helper bailed; assuming 'main' (drift check may be wrong on non-main repos)" >&2; }
+ALREADY_FETCH_OK=true
+git fetch origin --quiet 2>/dev/null || ALREADY_FETCH_OK=false
+# Behind-check: only if FETCH succeeded AND both refs exist. Skipping on fetch failure
+# prevents reporting drift against a stale origin/* ref. Also guards rev-list exit-128.
+if [ "$ALREADY_FETCH_OK" = "true" ] \
+   && git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1 \
    && git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
   BEHIND=$(git rev-list --count "$DEFAULT_BRANCH..origin/$DEFAULT_BRANCH" 2>/dev/null || echo "")
   if [[ "$BEHIND" =~ ^[0-9]+$ ]] && [ "$BEHIND" -gt 0 ]; then
@@ -84,32 +86,38 @@ grep -qxF '.worktrees/' .gitignore 2>/dev/null || echo '.worktrees/' >> .gitigno
 ROOT="$(git rev-parse --show-toplevel)"
 LIB="$ROOT/.claude/hooks/lib/default-branch.sh"
 [ ! -f "$LIB" ] && LIB="$ROOT/hooks/lib/default-branch.sh"
-DEFAULT_BRANCH=$(bash "$LIB" 2>/dev/null) || DEFAULT_BRANCH="main"
+DEFAULT_BRANCH=$(bash "$LIB" 2>/dev/null) \
+    || { DEFAULT_BRANCH="main"; echo "  ⚠ default-branch helper bailed; assuming 'main' (worktree base may be wrong on non-main repos)" >&2; }
 
 FETCH_OK=true
 git fetch origin --quiet 2>/dev/null || { FETCH_OK=false; echo "  ⚠ git fetch failed — proceeding with local refs (origin may be stale)"; }
 
-# Behind-check: only if BOTH local <default> and origin/<default> refs exist locally,
-# so git rev-list can't exit 128 and we can't silently report "0 behind" when the
-# local default branch doesn't exist (which would mask a real configuration problem).
-if git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1 \
+# Behind-check: only if FETCH succeeded AND both local <default> and origin/<default>
+# refs exist. Skipping when fetch failed prevents (a) reporting drift against a stale
+# origin/* ref, and (b) `git pull` triggering a second network call after we said we'd
+# "proceed with local refs". Also guards rev-list exit-128 when local default is missing.
+if [ "$FETCH_OK" = "true" ] \
+   && git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1 \
    && git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
   BEHIND=$(git rev-list --count "$DEFAULT_BRANCH..origin/$DEFAULT_BRANCH" 2>/dev/null || echo "")
   if [[ "$BEHIND" =~ ^[0-9]+$ ]] && [ "$BEHIND" -gt 0 ]; then
     CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
     if [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
-      # Only on default → eligible for FF. Dirty tree blocks (would lose changes).
+      # On default → eligible for FF, but FF is OPTIONAL polish. The worktree itself
+      # bases from origin/<default> (BASE below) which is independent of the caller's
+      # checkout state, so dirty-tree / diverged-history are warnings, not blockers —
+      # `git worktree add` does not modify the current checkout.
       # Under user's `set -o pipefail`, grep -v on a clean tree (no input) exits 1
       # and DIRTY becomes empty — symmetric with BEHIND, validate before integer compare.
       DIRTY=$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d ' ' || echo 0)
       [[ "$DIRTY" =~ ^[0-9]+$ ]] || DIRTY=0
       if [ "$DIRTY" -gt 0 ]; then
-        echo "✗ Local '$DEFAULT_BRANCH' is $BEHIND commits behind origin, but working tree is dirty."
-        echo "  Commit or stash your changes, then re-run."
-        exit 1
+        echo "  ⚠ Local '$DEFAULT_BRANCH' is $BEHIND commits behind origin AND working tree is dirty — skipping auto-FF (your local default stays as-is; new worktree still bases from origin/$DEFAULT_BRANCH)"
+      elif git pull --ff-only origin "$DEFAULT_BRANCH"; then
+        echo "✓ Updated local '$DEFAULT_BRANCH' from origin (was $BEHIND commits behind)"
+      else
+        echo "  ⚠ git pull --ff-only failed (diverged?) — skipping auto-FF (new worktree still bases from origin/$DEFAULT_BRANCH)"
       fi
-      git pull --ff-only origin "$DEFAULT_BRANCH" || { echo "✗ git pull --ff-only failed — see git error above"; exit 1; }
-      echo "✓ Updated local '$DEFAULT_BRANCH' from origin (was $BEHIND commits behind)"
     else
       # Not on default → no FF attempted. Dirty changes on a feature branch are fine
       # (they stay in this checkout; the new worktree gets its own working tree).
@@ -125,7 +133,12 @@ if [ "$FETCH_OK" = "true" ] && git rev-parse --verify "origin/$DEFAULT_BRANCH" >
 elif git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1; then
   BASE="$DEFAULT_BRANCH"
 else
-  BASE="HEAD"  # last-resort fallback — shouldn't happen; helper should have bailed
+  # Last-resort: neither origin/<default> (fetch failed or ref absent) nor local <default>
+  # exists. Surface this — the worktree will be based on whatever is currently checked
+  # out, which may be a feature branch, a tag, or a detached HEAD. Reachable when the
+  # helper bailed AND the assumed fallback "main" doesn't exist locally either.
+  BASE="HEAD"
+  echo "  ⚠ Could not resolve any default-branch ref; basing worktree on HEAD ($(git rev-parse --short HEAD 2>/dev/null || echo '???')) — verify this is intentional" >&2
 fi
 # DRIFT-PREFLIGHT-NEW-END
 

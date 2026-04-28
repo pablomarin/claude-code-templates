@@ -376,6 +376,65 @@ rc=$(run_hook_sh "$S14" 'git commit -m x' "$CHECKLIST_E2E_CHECKED_NO_NA")
 assert_equals "$rc" "0" "on main directly → evidence check skipped (trunk-based workflow supported)"
 
 # ===========================================================================
+# Test 15: check-state-updated.sh master-default repo — CHANGELOG gate fires
+# correctly when default branch is "master" (not "main").
+#
+# Regression guard for the pre-migration hook (hardcoded `main`):
+#   - Pre-migration: `git merge-base main HEAD` → empty (no main branch)
+#     → BRANCH_BASE falls back to HEAD~10 → wrong baseline → count wrong
+#   - Post-migration: default-branch.sh detects "master" → correct
+#     merge-base → BRANCH_CHANGED >= 4 → CHANGELOG gate fires (exit 2)
+# ===========================================================================
+start_test "check-state-updated.sh: master-default repo → CHANGELOG gate fires (exit 2)"
+
+HOOK_STATE="$REPO_ROOT/hooks/check-state-updated.sh"
+
+# Build a scratch repo with master as the default branch, no main branch.
+# Feature branch has 4 committed files in subdirs → BRANCH_CHANGED = 4 > 3.
+# No CHANGELOG entry anywhere → gate fires.
+S15=$(scratch_dir state-master-default)
+(
+    cd "$S15" || exit 1
+    git init -q
+    git -c user.email=test@test -c user.name=test checkout -q -b master
+    git -c user.email=test@test -c user.name=test commit -q --allow-empty -m "initial on master"
+    git -c user.email=test@test -c user.name=test checkout -q -b feature/x
+    # Add 4 files in subdirs (not gitignored) as tracked+committed on the feature branch.
+    # git status --porcelain on these committed files shows nothing (already clean),
+    # but git diff --name-only master..HEAD counts all 4 for BRANCH_CHANGED.
+    mkdir -p src/a src/b
+    printf 'x' > src/a/file1.txt
+    printf 'x' > src/a/file2.txt
+    printf 'x' > src/b/file3.txt
+    printf 'x' > src/b/file4.txt
+    git add src/
+    git -c user.email=test@test -c user.name=test commit -q -m "feature work: 4 files"
+)
+
+# Write a minimal CONTINUITY.md (no active workflow, no CHANGELOG entry).
+cat > "$S15/CONTINUITY.md" <<'CONT'
+# CONTINUITY
+
+## State
+
+### Done
+- Some work done
+
+### Now
+Working on feature/x
+
+### Next
+Nothing
+CONT
+
+# Run check-state-updated.sh from the scratch repo.
+# stdin: '{"stop_hook_active":false}' (mirrors real Stop hook input).
+rc15=$(printf '{"stop_hook_active":false}' | (cd "$S15" && bash "$HOOK_STATE") 2>"$S15/.state-stderr"; echo "$?")
+assert_equals "$rc15" "2" "CHANGELOG gate fires on master-default repo (exit 2)"
+assert_contains "$S15/.state-stderr" "CHANGELOG" \
+    "stderr mentions CHANGELOG threshold"
+
+# ===========================================================================
 # Report
 # ===========================================================================
 report "test-hooks.sh"
