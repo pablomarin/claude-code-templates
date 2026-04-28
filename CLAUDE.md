@@ -1,4 +1,4 @@
-@CONTINUITY.md
+<!-- forge:migrated 2026-04-28 -->
 
 # CLAUDE.md - claude-codex-forge
 
