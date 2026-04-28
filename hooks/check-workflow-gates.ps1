@@ -2,7 +2,7 @@
 # PreToolUse hook for Bash: blocks commit/push/PR if quality gates aren't complete.
 #
 # Fires BEFORE Bash commands. Only activates when:
-# 1. An active workflow exists in CONTINUITY.md (Command != none)
+# 1. An active workflow exists in .claude/local/state.md (Command != none)
 # 2. The command is git commit, git push, or gh pr create
 # 3. Always-required quality gate checklist items aren't checked off
 #
@@ -40,10 +40,18 @@ if ($command -match '^\s*gh\s+pr\s+create\b') { $isShip = $true }
 
 if (-not $isShip) { exit 0 }
 
-# --- Check for active workflow ---
-if (-not (Test-Path "CONTINUITY.md")) { exit 0 }
+# --- Check for active workflow (post PR #2: state file is .claude/local/state.md) ---
+$stateFile = ".claude/local/state.md"
 
-$content = Get-Content "CONTINUITY.md" -Raw 2>$null
+if (-not (Test-Path $stateFile)) {
+    # Hard-cut: do NOT fall back to CONTINUITY.md.
+    # Breadcrumb wording byte-equivalent to bash variant for AC-4 parity.
+    [Console]::Error.WriteLine("ℹ check-workflow-gates: $stateFile not found.")
+    [Console]::Error.WriteLine("  If you have a legacy CONTINUITY.md and just upgraded, run setup --migrate")
+    exit 0
+}
+
+$content = Get-Content $stateFile -Raw -ErrorAction SilentlyContinue
 $cmdLine = ($content -split "`n" | Select-String '\|\s*Command\s*\|' | Select-Object -First 1)
 if (-not $cmdLine) { exit 0 }
 
