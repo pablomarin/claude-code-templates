@@ -1,0 +1,229 @@
+#!/usr/bin/env bash
+# tests/template/test-session-start.sh — fixture tests for SessionStart drift detection.
+#
+# Verifies:
+#   - source=clear|compact → NO fetch attempted, branch-only context
+#   - source=startup → fetch attempted, behind-warning when applicable
+#   - fetch failure (bad remote) → silent degrade to branch-only context
+#   - additionalContext stays under 2KB
+#   - JSON output is valid (parseable by jq)
+#
+# Run from repo root: bash tests/template/test-session-start.sh
+
+REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}"
+# shellcheck source=lib.sh
+source "$REPO_ROOT/tests/template/lib.sh"
+
+init_counters
+
+HOOK_SH="$REPO_ROOT/hooks/session-start.sh"
+HOOK_PS="$REPO_ROOT/hooks/session-start.ps1"
+LIB_SH="$REPO_ROOT/hooks/lib/default-branch.sh"
+LIB_PS="$REPO_ROOT/hooks/lib/default-branch.ps1"
+
+# ---------------------------------------------------------------------------
+# Fixture builder: minimal git repo with `main` checked out + bare remote
+# whose HEAD points at main + remote ahead by `behind_count` commits so the
+# local repo is "behind by N" after a successful fetch.
+#
+# Critical: we MUST `git symbolic-ref HEAD refs/heads/main` on the bare repo
+# before cloning, otherwise the bare's default HEAD points at the nonexistent
+# `master` and the clone leaves no branch checked out (commit loop fails).
+# ---------------------------------------------------------------------------
+make_behind_repo() {
+    local scratch="$1" behind_count="${2:-3}"
+    mkdir -p "$scratch/repo" "$scratch/remote.git"
+    git init -q --bare "$scratch/remote.git"
+    # Set bare HEAD to main BEFORE the first clone — this is the portability fix.
+    git -C "$scratch/remote.git" symbolic-ref HEAD refs/heads/main
+
+    (
+        cd "$scratch/repo" || exit 1
+        git init -q
+        git config user.email t@t && git config user.name t
+        git checkout -q -b main
+        git commit --allow-empty -q -m "c1"
+        git remote add origin "$scratch/remote.git"
+        git push -q -u origin main
+        # Set local origin/HEAD so the helper can detect "main" via Method 1.
+        git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main 2>/dev/null
+
+        if [ "$behind_count" -gt 0 ]; then
+            local tmp="$scratch/tmp-clone"
+            git clone -q -b main "$scratch/remote.git" "$tmp"
+            (
+                cd "$tmp" || exit 1
+                git config user.email t@t && git config user.name t
+                local i
+                for ((i=2; i<=behind_count+1; i++)); do
+                    git commit --allow-empty -q -m "remote-c$i"
+                done
+                git push -q origin main
+            )
+            rm -rf "$tmp"
+        fi
+    )
+}
+
+# Copy the hook + lib into a hooks-relative layout so BASH_SOURCE resolution
+# finds the lib. Mirror the layout downstream installs use.
+prepare_hook_repo() {
+    local repo="$1"
+    mkdir -p "$repo/.hooks/lib"
+    cp "$HOOK_SH" "$repo/.hooks/session-start.sh"
+    cp "$LIB_SH" "$repo/.hooks/lib/default-branch.sh"
+    chmod +x "$repo/.hooks/session-start.sh" "$repo/.hooks/lib/default-branch.sh"
+}
+
+prepare_hook_repo_ps() {
+    local repo="$1"
+    mkdir -p "$repo/.hooks/lib"
+    cp "$HOOK_PS" "$repo/.hooks/session-start.ps1"
+    cp "$LIB_PS" "$repo/.hooks/lib/default-branch.ps1"
+}
+
+# Run the bash hook with a synthetic stdin payload, write stdout to a file
+# so we can use lib.sh's file-path-taking assertions (assert_contains etc.).
+# Echoes the OUTPUT FILE PATH on stdout so callers can pass it to assertions.
+run_session_start_sh() {
+    local repo="$1" source_val="$2"
+    local out="$repo/.session-out"
+    (cd "$repo" && printf '{"source":"%s","session_id":"test","cwd":"%s"}' \
+        "$source_val" "$repo" | bash ./.hooks/session-start.sh) > "$out" 2>"$repo/.session-err"
+    echo "$out"
+}
+
+run_session_start_ps() {
+    local repo="$1" source_val="$2"
+    local out="$repo/.session-out"
+    if ! command -v pwsh >/dev/null 2>&1; then
+        echo ""  # signal "skip"
+        return
+    fi
+    (cd "$repo" && printf '{"source":"%s","session_id":"test","cwd":"%s"}' \
+        "$source_val" "$repo" | pwsh -NoProfile -File ./.hooks/session-start.ps1) > "$out" 2>"$repo/.session-err"
+    echo "$out"
+}
+
+# ===========================================================================
+# Test 1: source=clear → no fetch, branch-only context
+# ===========================================================================
+start_test "source=clear → branch only, no fetch attempted"
+S1=$(scratch_dir)
+make_behind_repo "$S1" 3
+prepare_hook_repo "$S1/repo"
+OUTFILE=$(run_session_start_sh "$S1/repo" "clear")
+assert_contains "$OUTFILE" "Current branch:" "context starts with branch"
+assert_not_contains "$OUTFILE" "behind origin" "no behind warning on /clear"
+
+# ===========================================================================
+# Test 2: source=compact → no fetch, branch-only context
+# ===========================================================================
+start_test "source=compact → branch only, no fetch attempted"
+S2=$(scratch_dir)
+make_behind_repo "$S2" 3
+prepare_hook_repo "$S2/repo"
+OUTFILE=$(run_session_start_sh "$S2/repo" "compact")
+assert_not_contains "$OUTFILE" "behind origin" "no behind warning on /compact"
+
+# ===========================================================================
+# Test 3: source=startup + behind=3 → behind warning in context
+# ===========================================================================
+start_test "source=startup + behind by 3 → warning included"
+S3=$(scratch_dir)
+make_behind_repo "$S3" 3
+prepare_hook_repo "$S3/repo"
+OUTFILE=$(run_session_start_sh "$S3/repo" "startup")
+assert_contains "$OUTFILE" "behind origin" "behind warning present"
+assert_contains "$OUTFILE" "3 commits" "behind count = 3"
+
+# ===========================================================================
+# Test 4: source=resume + behind=0 → no warning, branch only
+# ===========================================================================
+start_test "source=resume + up-to-date → no warning"
+S4=$(scratch_dir)
+make_behind_repo "$S4" 0
+prepare_hook_repo "$S4/repo"
+OUTFILE=$(run_session_start_sh "$S4/repo" "resume")
+assert_contains "$OUTFILE" "Current branch:" "branch present"
+assert_not_contains "$OUTFILE" "behind origin" "no warning when up-to-date"
+
+# ===========================================================================
+# Test 5: bad remote (fetch fails) + source=startup → silent degrade
+# Uses a NONEXISTENT LOCAL path (not a bad URL) so the fetch fails immediately
+# without DNS lookup. This keeps the test deterministic on hosts without
+# `gtimeout`/`timeout` (the council-accepted macOS degraded case) — the bash
+# hook would otherwise stall up to ~75s on a network-targeted bad URL.
+# ===========================================================================
+start_test "fetch fails → silent degrade to branch-only"
+S5=$(scratch_dir)
+mkdir -p "$S5/repo"
+(
+    cd "$S5/repo" || exit 1
+    git init -q
+    git config user.email t@t && git config user.name t
+    git checkout -q -b main
+    git commit --allow-empty -q -m "c1"
+    git remote add origin "$S5/nonexistent-remote.git"  # local path, never created
+)
+prepare_hook_repo "$S5/repo"
+OUTFILE=$(run_session_start_sh "$S5/repo" "startup")
+assert_contains "$OUTFILE" "Current branch:" "branch context emitted"
+assert_not_contains "$OUTFILE" "behind origin" "no false warning when fetch failed"
+
+# ===========================================================================
+# Test 6: additionalContext stays under 2KB on the worst realistic case
+# ===========================================================================
+start_test "additionalContext < 2KB"
+S6=$(scratch_dir)
+make_behind_repo "$S6" 999  # large but realistic; well under 99999
+prepare_hook_repo "$S6/repo"
+OUTFILE=$(run_session_start_sh "$S6/repo" "startup")
+LEN=$(wc -c < "$OUTFILE" | tr -d ' ')
+if [ "$LEN" -lt 2048 ]; then
+    pass "additionalContext output is $LEN bytes (< 2048)"
+else
+    fail "additionalContext output is $LEN bytes (>= 2048 — way too large)"
+fi
+
+# ===========================================================================
+# Test 7: JSON output is parseable
+# ===========================================================================
+start_test "output is valid JSON (parseable by jq)"
+S7=$(scratch_dir)
+make_behind_repo "$S7" 1
+prepare_hook_repo "$S7/repo"
+OUTFILE=$(run_session_start_sh "$S7/repo" "startup")
+if command -v jq &>/dev/null; then
+    if jq -e '.hookSpecificOutput.hookEventName == "SessionStart"' < "$OUTFILE" >/dev/null; then
+        pass "valid JSON, hookEventName == SessionStart"
+    else
+        fail "JSON parse failed or hookEventName mismatch"
+    fi
+else
+    printf "  %s·%s skipped: jq not available\n" "$C_DIM" "$C_RESET"
+fi
+
+# ===========================================================================
+# PowerShell parity (skipped if pwsh unavailable; uses pwsh for cross-platform
+# fixture testing — the SHIPPED hook runs under powershell.exe on Windows via
+# settings-windows.template.json, but pwsh is the cross-host way to test the
+# .ps1 file from bash on macOS/Linux/CI)
+# ===========================================================================
+if command -v pwsh >/dev/null 2>&1; then
+    start_test "pwsh: source=clear → branch only"
+    S8=$(scratch_dir)
+    make_behind_repo "$S8" 2
+    prepare_hook_repo_ps "$S8/repo"
+    OUTFILE=$(run_session_start_ps "$S8/repo" "clear")
+    assert_not_contains "$OUTFILE" "behind origin" "pwsh: no warning on clear"
+
+    start_test "pwsh: source=startup + behind by 2 → warning"
+    S9=$(scratch_dir)
+    make_behind_repo "$S9" 2
+    prepare_hook_repo_ps "$S9/repo"
+    OUTFILE=$(run_session_start_ps "$S9/repo" "startup")
+    assert_contains "$OUTFILE" "behind origin" "pwsh: warning present"
+fi
+
+report "test-session-start.sh"
