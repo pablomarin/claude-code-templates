@@ -616,12 +616,65 @@ test_f_preserves_existing_continuity() {
     fi
 }
 
+# P2-3 regression guard: -f must NEVER overwrite an existing populated
+# .claude/local/state.md. The if-guard at setup.sh:533 protects this today, but
+# a future refactor could replace it with copy_file (which overwrites under -f).
+test_f_preserves_existing_state_md() {
+    local scratch; scratch=$(scratch_dir f-preserves-state-md)
+    # Initial install creates state.md.
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    # Simulate a developer populating state.md with real workflow content.
+    echo "## USER WORKFLOW STATE SENTINEL" >> "$scratch/.claude/local/state.md"
+    local before; before=$(hash_file "$scratch/.claude/local/state.md")
+    # Re-run with -f. state.md must NOT be overwritten.
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -f -p TestProj -t fullstack >/dev/null 2>&1 )
+    if [ -f "$scratch/.claude/local/state.md" ]; then
+        local after; after=$(hash_file "$scratch/.claude/local/state.md")
+        assert_equals "$before" "$after" "existing .claude/local/state.md byte-preserved through -f"
+    else
+        fail ".claude/local/state.md was deleted by -f (should be preserved)"
+    fi
+}
+
+# P2-2 regression guard: fresh-install banner must NOT mention CONTINUITY.md
+# (post PR #2, no CONTINUITY.md is created — pointing users at it is misleading).
+# It SHOULD mention the new artifacts (.claude/local/state.md and docs/adr/).
+test_fresh_install_banner_no_continuity_ref() {
+    local scratch; scratch=$(scratch_dir fresh-banner-no-continuity)
+    local log="$scratch/.setup.log"
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack > "$log" 2>&1 )
+    # Extract the "What was created" block: from header until the next "Plugins"
+    # header (the "What was created" block has interior blank lines, so a single
+    # blank-line terminator is wrong). ANSI color codes and the trailing blank
+    # are tolerated.
+    local block
+    block=$(awk '/What was created:/{flag=1;next} flag && /Plugins pre-enabled/{flag=0} flag' "$log")
+    if echo "$block" | grep -qE "^[[:space:]]*CONTINUITY\.md"; then
+        fail "fresh-install banner still mentions CONTINUITY.md (post PR #2 it shouldn't)"
+    else
+        pass "fresh-install banner does not mention CONTINUITY.md"
+    fi
+    # Positive: mentions state.md and docs/adr/ (the new artifacts).
+    if echo "$block" | grep -qF ".claude/local/state.md"; then
+        pass "banner mentions .claude/local/state.md (new artifact)"
+    else
+        fail "banner does not mention .claude/local/state.md (got: $block)"
+    fi
+    if echo "$block" | grep -qF "docs/adr/"; then
+        pass "banner mentions docs/adr/ (new artifact)"
+    else
+        fail "banner does not mention docs/adr/"
+    fi
+}
+
 test_state_md_installs
 test_gitignore_has_claude_local
 test_gitignore_idempotent
 test_adrs_install
 test_no_continuity_installed
 test_f_preserves_existing_continuity
+test_f_preserves_existing_state_md
+test_fresh_install_banner_no_continuity_ref
 
 # ===========================================================================
 # Report

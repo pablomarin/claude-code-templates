@@ -24,7 +24,7 @@ claude-codex-forge/
 ├── README.md                   # Documentation for the community
 │
 ├── CLAUDE.template.md          # Template → project CLAUDE.md
-├── CONTINUITY.template.md      # Template → project CONTINUITY.md
+├── state.template.md           # Template → .claude/state.template.md (always-refresh) and .claude/local/state.md (gitignored, never overwritten)
 ├── GLOBAL-CLAUDE.template.md   # Template → ~/.claude/CLAUDE.md
 ├── mcp.template.json           # Template → project .mcp.json
 │
@@ -58,7 +58,7 @@ claude-codex-forge/
 │   ├── lib/                         # Shared helpers sourced/called by other hooks
 │   │   └── default-branch.sh/.ps1   # Detect repo's default branch (origin/HEAD → main → master)
 │   ├── session-start.sh/.ps1        # SessionStart: silent context injection (branch + drift warning)
-│   ├── check-state-updated.sh/.ps1  # Stop: enforce CONTINUITY.md updates + workflow reminder
+│   ├── check-state-updated.sh/.ps1  # Stop: advisory state reminder + CHANGELOG threshold gate
 │   ├── check-bash-safety.sh/.ps1    # PreToolUse: audit log + block dangerous patterns
 │   ├── check-workflow-gates.sh/.ps1 # PreToolUse: block commit/push/PR if quality gates incomplete
 │   ├── post-tool-format.sh/.ps1     # PostToolUse: auto-format on save
@@ -102,6 +102,19 @@ claude-codex-forge/
 │   ├── global-settings.template.json   # Global-level (hooks only, merged)
 │   └── settings-windows.template.json  # Windows variant
 │
+├── docs/adr/                   # Architecture Decision Records (seed set ships with harness)
+│   ├── template.md                     # Canonical 5-section ADR template
+│   ├── README.md                       # Index + authoring conventions
+│   ├── 0001-volatile-state-not-auto-loaded.md
+│   ├── 0002-bash-and-powershell-dual-platform.md
+│   ├── 0003-template-distributed-no-build-step.md
+│   ├── 0004-diataxis-docs-structure.md
+│   └── 0005-hard-platform-parity-rule.md
+│
+├── scripts/                    # Forge-internal helpers (NOT shipped to downstream installs)
+│   ├── migrate-continuity.sh           # `setup.sh --migrate` — legacy CONTINUITY.md → state.md + ADRs
+│   └── migrate-continuity.ps1          # PowerShell mirror
+│
 └── templates/
     ├── playwright/
     │   ├── playwright.config.template.ts    # Playwright framework config
@@ -137,30 +150,30 @@ claude-codex-forge/
 
 Templates in the root are **source of truth**. `setup.sh` copies them to target projects:
 
-| Template (edit this)                      | Generated file (never edit directly)                                                               |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `CLAUDE.template.md`                      | `CLAUDE.md` in target project                                                                      |
-| `CONTINUITY.template.md`                  | `CONTINUITY.md` in target project                                                                  |
-| `GLOBAL-CLAUDE.template.md`               | `~/.claude/CLAUDE.md`                                                                              |
-| `mcp.template.json`                       | `.mcp.json` in target project                                                                      |
-| `settings/settings.template.json`         | `.claude/settings.json` in target project                                                          |
-| `commands/*.md`                           | `.claude/commands/*.md` in target project                                                          |
-| `rules/*.md`                              | `.claude/rules/*.md` in target project                                                             |
-| `hooks/*`                                 | `.claude/hooks/*` in target project                                                                |
-| `hooks/lib/default-branch.sh`             | `.claude/hooks/lib/default-branch.sh` in target project                                            |
-| `hooks/lib/default-branch.ps1`            | `.claude/hooks/lib/default-branch.ps1` in target project                                           |
-| `skills/ui-design/SKILL.template.md`      | `.claude/skills/ui-design/SKILL.md` in target                                                      |
-| `skills/ui-design/references/*.md`        | `.claude/skills/ui-design/references/*.md`                                                         |
-| `skills/generate-image/SKILL.template.md` | `.claude/skills/generate-image/SKILL.md`                                                           |
-| `skills/release/SKILL.template.md`        | `.claude/skills/release/SKILL.md` in target                                                        |
-| `skills/council/SKILL.template.md`        | `.claude/skills/council/SKILL.md` in target                                                        |
-| `skills/council/references/*.md`          | `.claude/skills/council/references/*.md`                                                           |
-| `agents/verify-app.md`                    | `.claude/agents/verify-app.md` in target project                                                   |
-| `agents/verify-e2e.md`                    | `.claude/agents/verify-e2e.md` in target project                                                   |
-| `agents/research-first.md`                | `.claude/agents/research-first.md` in target project                                               |
-| `agents/council-advisor.md`               | `.claude/agents/council-advisor.md` in target                                                      |
-| `templates/playwright/*.ts`               | `playwright.config.ts`, `tests/e2e/fixtures/auth.ts` (only with `--with-playwright`)               |
-| `templates/ci-workflows/*`                | `docs/ci-templates/*` (only with `--with-playwright` — NOT auto-activated to `.github/workflows/`) |
+| Template (edit this)                      | Generated file (never edit directly)                                                                                        |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `CLAUDE.template.md`                      | `CLAUDE.md` in target project                                                                                               |
+| `state.template.md`                       | `.claude/state.template.md` in target project (always-refresh) AND `.claude/local/state.md` (gitignored, never overwritten) |
+| `GLOBAL-CLAUDE.template.md`               | `~/.claude/CLAUDE.md`                                                                                                       |
+| `mcp.template.json`                       | `.mcp.json` in target project                                                                                               |
+| `settings/settings.template.json`         | `.claude/settings.json` in target project                                                                                   |
+| `commands/*.md`                           | `.claude/commands/*.md` in target project                                                                                   |
+| `rules/*.md`                              | `.claude/rules/*.md` in target project                                                                                      |
+| `hooks/*`                                 | `.claude/hooks/*` in target project                                                                                         |
+| `hooks/lib/default-branch.sh`             | `.claude/hooks/lib/default-branch.sh` in target project                                                                     |
+| `hooks/lib/default-branch.ps1`            | `.claude/hooks/lib/default-branch.ps1` in target project                                                                    |
+| `skills/ui-design/SKILL.template.md`      | `.claude/skills/ui-design/SKILL.md` in target                                                                               |
+| `skills/ui-design/references/*.md`        | `.claude/skills/ui-design/references/*.md`                                                                                  |
+| `skills/generate-image/SKILL.template.md` | `.claude/skills/generate-image/SKILL.md`                                                                                    |
+| `skills/release/SKILL.template.md`        | `.claude/skills/release/SKILL.md` in target                                                                                 |
+| `skills/council/SKILL.template.md`        | `.claude/skills/council/SKILL.md` in target                                                                                 |
+| `skills/council/references/*.md`          | `.claude/skills/council/references/*.md`                                                                                    |
+| `agents/verify-app.md`                    | `.claude/agents/verify-app.md` in target project                                                                            |
+| `agents/verify-e2e.md`                    | `.claude/agents/verify-e2e.md` in target project                                                                            |
+| `agents/research-first.md`                | `.claude/agents/research-first.md` in target project                                                                        |
+| `agents/council-advisor.md`               | `.claude/agents/council-advisor.md` in target                                                                               |
+| `templates/playwright/*.ts`               | `playwright.config.ts`, `tests/e2e/fixtures/auth.ts` (only with `--with-playwright`)                                        |
+| `templates/ci-workflows/*`                | `docs/ci-templates/*` (only with `--with-playwright` — NOT auto-activated to `.github/workflows/`)                          |
 
 ### Platform Parity
 
@@ -169,7 +182,9 @@ Every hook has both `.sh` (Unix) and `.ps1` (Windows) versions. **Always update 
 ### setup.sh Behavior
 
 - `copy_file()` skips existing files unless `-f` (force) is passed
-- CLAUDE.md and CONTINUITY.md are **never overwritten** even with `-f` (user content)
+- `CLAUDE.md` and `.claude/local/state.md` (gitignored) are **never overwritten** even with `-f` — they're user content
+- A legacy `CONTINUITY.md` (from pre-PR-#2 installs) is also never overwritten; setup prompts the user to run `--migrate` to move its content into `CLAUDE.md` (durable) + `docs/adr/` (decisions) + `.claude/local/state.md` (volatile)
+- `.claude/state.template.md` is **always refreshed** (it's the canonical template, not user content)
 - Rules, commands, hooks, and settings CAN be safely refreshed with `-f`
 - `-t python|typescript|fullstack` controls which language-specific rules are copied
 
