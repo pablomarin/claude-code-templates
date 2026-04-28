@@ -107,6 +107,40 @@ This is expected if you already have Claude Code set up. See [Upgrading](guides/
 
 5. **Restart Claude Code** — Hooks snapshot at session start
 
+## Drift detection messages — what they mean
+
+The SessionStart hook and `/new-feature` / `/fix-bug` Pre-Flight surface a few advisory messages tied to default-branch detection. None of them block (with one exception noted below); they're diagnostic hints.
+
+### `default-branch helper bailed; assuming 'main'`
+
+The helper at `.claude/hooks/lib/default-branch.{sh,ps1}` couldn't detect the default branch from cached refs. This is a fallback to `main` — wrong on `master`-default repos. Causes:
+
+- The repo has no `origin` remote AND neither `main` nor `master` exists locally.
+- The repo was cloned with `--no-checkout` and no branches have been created yet.
+
+**Fix:** ensure your repo has a real default branch checked out. If you just cloned, run `git checkout main` (or `master`).
+
+### `Parent '<branch>' is N commits behind origin`
+
+Drift warning — your local default branch is behind the remote. Run `git pull` to update it. New worktrees are still based from `origin/<default>` automatically; this warning just nudges you to catch up your main checkout when you next switch back.
+
+### `Could not resolve any default-branch ref; basing worktree on HEAD`
+
+Last-resort fallback inside `/new-feature` / `/fix-bug`. The new worktree was based on whatever you currently have checked out — possibly a feature branch, a tag, or a detached HEAD. Verify this is what you wanted; if not, delete the worktree (`git worktree remove .worktrees/<name>`) and re-run with the right base checked out.
+
+### Drift warnings show the wrong default branch (e.g., `master` after a remote rename)
+
+Detection uses the locally cached `origin/HEAD` symbolic ref, which is set at clone time and **not refreshed by `git fetch`** even after the upstream renames its default branch. Symptom: helper returns `master` after the remote was renamed `master → main`, and drift checks compare against the retired branch.
+
+**Fix:**
+
+```bash
+git remote set-head origin --auto
+git fetch --prune
+```
+
+This refreshes `refs/remotes/origin/HEAD` to the current upstream default and prunes the dead remote-tracking branch. After running, the helper returns the correct name on next invocation.
+
 ## Permissions still prompting?
 
 1. **Verify settings.json syntax:**
