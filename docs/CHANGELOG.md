@@ -2,6 +2,36 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.14 — 2026-04-27 · Drift hygiene — SessionStart `git fetch` + worktree from `origin/<default>`
+
+Closes the multi-developer staleness failure mode: local `main` silently 97 commits behind origin while Claude reads `CONTINUITY.md` as authoritative state and confidently cites already-merged PRs as "open." Worse, `/new-feature` and `/fix-bug` were creating worktrees from local `HEAD`, so feature branches got built on stale baselines. PR #1 of a multi-PR initiative; PR #2 (CONTINUITY.md split + per-developer state migration) is non-goals here.
+
+Council fired on the inline-vs-factored fork (5 advisors + chairman). Verdict: narrow Option C — factor only `hooks/lib/default-branch.{sh,ps1}` (the one piece with proven drift history), keep Pre-Flight inline in `commands/*.md`, simple-detect `gtimeout || timeout || skip` for macOS. Plan went through 4 review iterations (10 → 3 → 1 → 0 findings). Code review loop ran 2 iterations (4 P1 + 5 P2 → 1 P2 → CLEAN).
+
+- **`hooks/lib/default-branch.{sh,ps1}` (NEW)** — first-ever `hooks/lib/` directory. Detection chain: `git symbolic-ref refs/remotes/origin/HEAD` → local `main` → local `master` → bail (exit 1). Strict contract: branch name on stdout only, silent stderr, exit 0/1. Dual-mode (script-callable + sourceable) so consumer hooks can dot-source on Windows (avoids spawning `pwsh` from `powershell.exe` 5.1).
+- **`hooks/session-start.sh` + `.ps1`** — read `source` from stdin JSON; gate `git fetch origin` on `startup`/`resume` only (not `clear`/`compact`). Compute behind count vs `origin/<default>` after verifying BOTH refs exist (guards rev-list exit-128). Append a one-line drift warning to `additionalContext` when behind. SessionStart cannot block (exit 2 is advisory only — surfaces as warning string). PowerShell variant uses `Start-Job -ArgumentList $cwd -ScriptBlock { Set-Location -LiteralPath $dir; ... }` for PS 5.1 + emits `$LASTEXITCODE` on success stream so parent gates on actual fetch result, not just `Wait-Job` completion.
+- **`commands/new-feature.md` + `commands/fix-bug.md` Pre-Flight** — `# DRIFT-PREFLIGHT-{NEW,ALREADY}-{BEGIN,END}` marker pairs (bash comments inside fenced blocks; byte-identical contract enforced by `test-contracts.sh`). NEW block: track `FETCH_OK`, fetch + behind-check, fast-forward only when on default with clean tree, base worktree from `origin/<default>` (or local `<default>` if fetch failed, or last-resort `HEAD`). ALREADY block: smaller advisory warning when parent default is behind (no auto-FF from inside a worktree).
+- **`hooks/check-state-updated.sh:33` + `.ps1:39`** — replaced hardcoded `git merge-base main HEAD` with the lib helper. Bash uses `bash "$LIB"`; PowerShell dot-sources via `. $libPath`.
+- **`setup.sh` + `setup.ps1`** — install `hooks/lib/default-branch.{sh,ps1}` to `.claude/hooks/lib/` in downstream repos. Windows installs get BOTH the `.sh` and `.ps1` helpers because the `commands/*.md` Pre-Flight bash blocks invoke `bash "$LIB"` under Git Bash on Windows.
+- **`tests/template/test-default-branch.sh` (NEW, 16 assertions)** — 7 bash fixtures + 2 pwsh fixtures cover origin/HEAD set/unset, main/master fallback, no remote, neither-branch bail, detached HEAD.
+- **`tests/template/test-session-start.sh` (NEW, 11 assertions)** — source-gating (clear/compact skip fetch), behind detection, fetch-failure silent degrade (uses nonexistent local path so failure is immediate — no DNS stall on hosts without `gtimeout`/`timeout`), `additionalContext` < 2KB, valid JSON output.
+- **`tests/template/test-contracts.sh` (3 new contracts)** — no migrated-pattern `main` references in `hooks/*` outside `hooks/lib/` (scope-honest title); DRIFT-PREFLIGHT-NEW + ALREADY blocks byte-identical across `new-feature.md` and `fix-bug.md`.
+- **`tests/template/run-all.sh` + `test-lint.sh`** — register the new fixtures + lib files so the canonical drivers actually invoke and parse-check them.
+- **`CLAUDE.md`** — File Structure now shows `hooks/lib/`; Template→Generated mapping has 2 new rows; SessionStart hook description calls out source-gating + the cannot-block constraint.
+
+Explicitly deferred (out of scope; reviewer-blessed):
+
+- **CONTINUITY.md split** — separating durable project facts from per-developer volatile state. PR #2 of this initiative.
+- **Master-default fixture for `check-state-updated.sh` migration** — real test gap, follow-up issue.
+- **Setup install-presence assertion** — real test gap, follow-up issue.
+- **Pre-existing `set -e + $((0+0))` exit-1 bug in `check-state-updated.sh`** — not introduced by this PR; flagged for separate `/fix-bug`.
+- **Audit-log breadcrumb on fetch failure** — chairman-deferred per council; PR #1 doesn't invent a logging side-channel.
+- **macOS without `gtimeout`/`timeout`** — accepts ~75s degraded-network stall (council-accepted; Maintainer dissent recorded).
+
+Suite: 256/256 assertions across 7 bash suites pass (lint 20, fixtures 23, contracts 64, hooks 22, default-branch 16, session-start 11, setup 100). PowerShell parity tests skip on dev hosts without `pwsh`; CI must have it installed.
+
+**Existing installs need `./setup.sh -f`** to pick up `hooks/lib/`, the updated SessionStart hook, the migrated `check-state-updated.sh`, and the new Pre-Flight bash in `commands/*.md`.
+
 ## 5.13 — 2026-04-21 · Phase 4 task-DAG dispatch with file-conflict constraints
 
 Replaces the previous Phase 4 one-liner (`/superpowers:executing-plans`) with a structured dispatch plan. Field evidence: user's msai-v2 run (19-task backtest feature) had the orchestrator hand-rolling a 16-wave table from scratch because the template gave no parallelism guidance. Research agent + Codex second-opinion both identified **DAG with continuous dispatch** as the correct primitive over static file-overlap waves; Anthropic's multi-agent research post cited for the `default 3 / max 5` concurrency ceiling.

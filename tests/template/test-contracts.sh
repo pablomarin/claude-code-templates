@@ -250,19 +250,29 @@ assert_contains "$REPO_ROOT/setup.ps1" "__PLAYWRIGHT_DIR__" \
     "setup.ps1 references placeholder"
 
 # ---------------------------------------------------------------------------
-# Contract: no hardcoded "main" in hooks/* outside the lib helper
+# Contract: no migrated-pattern 'main' references in hooks/* outside the lib helper
+#
+# SCOPE: this catches ONLY the specific patterns drift-hygiene PR #1 migrated:
+#   - `git merge-base main HEAD` (the original hardcoded form in check-state-updated)
+#   - `origin/main` referenced as a literal default
+#
+# It intentionally does NOT catch every possible 'main' reference — e.g., the
+# `git merge-base HEAD main` ordering used elsewhere in hooks/* is OUT OF SCOPE
+# for PR #1 (different reverse-merge-base computation, different consumer). If a
+# future PR migrates more hooks to the helper, tighten this regex (or split into
+# per-pattern contracts) at that time.
 # ---------------------------------------------------------------------------
-start_test "no hardcoded 'main' in hooks/* (outside hooks/lib/)"
+start_test "no migrated-pattern 'main' references in hooks/* (outside hooks/lib/)"
 
 HARDCODED=$(grep -rE "merge-base[[:space:]]+main[[:space:]]+HEAD|origin/main[^A-Za-z_]" \
     "$REPO_ROOT/hooks/" 2>/dev/null \
     | grep -v "^$REPO_ROOT/hooks/lib/" || true)
 
 if [[ -z "$HARDCODED" ]]; then
-    pass "no hardcoded 'main' references in hooks/* (outside lib/)"
+    pass "no migrated-pattern 'main' references in hooks/* (outside lib/)"
 else
     while IFS= read -r line; do
-        fail "hardcoded 'main' detected: $line"
+        fail "migrated-pattern 'main' detected (should use default-branch helper): $line"
     done <<< "$HARDCODED"
 fi
 

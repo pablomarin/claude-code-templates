@@ -46,15 +46,21 @@ fi
 - Surface drift on the parent default branch (advisory; no auto-FF from inside a worktree)
 
 ```bash
-# DRIFT-PREFLIGHT-ALREADY-BEGIN (kept byte-identical with commands/fix-bug.md via test-contracts.sh)
+# DRIFT-PREFLIGHT-ALREADY-BEGIN (byte-identical with commands/fix-bug.md — enforced by test-contracts.sh)
 ROOT="$(git rev-parse --show-toplevel)"
 LIB="$ROOT/.claude/hooks/lib/default-branch.sh"
 [ ! -f "$LIB" ] && LIB="$ROOT/hooks/lib/default-branch.sh"
 DEFAULT_BRANCH=$(bash "$LIB" 2>/dev/null) || DEFAULT_BRANCH="main"
 git fetch origin --quiet 2>/dev/null || true
-if git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
-  BEHIND=$(git rev-list --count "$DEFAULT_BRANCH..origin/$DEFAULT_BRANCH" 2>/dev/null || echo 0)
-  [ "$BEHIND" -gt 0 ] && echo "  ⚠ Parent '$DEFAULT_BRANCH' is $BEHIND commits behind origin (skipping auto-FF from worktree)"
+# Verify BOTH refs exist before rev-list — guards against exit-128 silently returning 0
+# when local <default> is missing (e.g., shallow/single-branch clone where origin/HEAD
+# was set to main but local main was never created).
+if git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1 \
+   && git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
+  BEHIND=$(git rev-list --count "$DEFAULT_BRANCH..origin/$DEFAULT_BRANCH" 2>/dev/null || echo "")
+  if [[ "$BEHIND" =~ ^[0-9]+$ ]] && [ "$BEHIND" -gt 0 ]; then
+    echo "  ⚠ Parent '$DEFAULT_BRANCH' is $BEHIND commits behind origin (skipping auto-FF from worktree)"
+  fi
 fi
 # DRIFT-PREFLIGHT-ALREADY-END
 ```
@@ -71,38 +77,56 @@ WORKTREE_PATH=".worktrees/$FIX_NAME"
 mkdir -p .worktrees
 grep -qxF '.worktrees/' .gitignore 2>/dev/null || echo '.worktrees/' >> .gitignore
 
-# DRIFT-PREFLIGHT-NEW-BEGIN (kept byte-identical with commands/fix-bug.md via test-contracts.sh)
-# Resolve default branch + fetch origin so the new worktree bases from current origin/<default>,
-# never a stale local default. If local <default> is behind origin AND clean, fast-forward.
-# If dirty, STOP — don't auto-stash or merge.
+# DRIFT-PREFLIGHT-NEW-BEGIN (byte-identical with commands/fix-bug.md — enforced by test-contracts.sh)
+# Resolve default branch, fetch origin (track success), and base the new worktree on
+# current origin/<default> when fetch succeeded — else local <default>. If local <default>
+# is behind origin AND we're on default with a clean tree, fast-forward; otherwise warn.
 ROOT="$(git rev-parse --show-toplevel)"
 LIB="$ROOT/.claude/hooks/lib/default-branch.sh"
 [ ! -f "$LIB" ] && LIB="$ROOT/hooks/lib/default-branch.sh"
 DEFAULT_BRANCH=$(bash "$LIB" 2>/dev/null) || DEFAULT_BRANCH="main"
 
-git fetch origin --quiet 2>/dev/null || echo "  ⚠ git fetch failed — proceeding with local refs"
+FETCH_OK=true
+git fetch origin --quiet 2>/dev/null || { FETCH_OK=false; echo "  ⚠ git fetch failed — proceeding with local refs (origin may be stale)"; }
 
-if git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
-  BEHIND=$(git rev-list --count "$DEFAULT_BRANCH..origin/$DEFAULT_BRANCH" 2>/dev/null || echo 0)
-  if [ "$BEHIND" -gt 0 ]; then
-    DIRTY=$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d ' ')
+# Behind-check: only if BOTH local <default> and origin/<default> refs exist locally,
+# so git rev-list can't exit 128 and we can't silently report "0 behind" when the
+# local default branch doesn't exist (which would mask a real configuration problem).
+if git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1 \
+   && git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
+  BEHIND=$(git rev-list --count "$DEFAULT_BRANCH..origin/$DEFAULT_BRANCH" 2>/dev/null || echo "")
+  if [[ "$BEHIND" =~ ^[0-9]+$ ]] && [ "$BEHIND" -gt 0 ]; then
     CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
-    if [ "$DIRTY" -gt 0 ]; then
-      echo "✗ Local '$DEFAULT_BRANCH' is $BEHIND commits behind origin, but working tree is dirty."
-      echo "  Commit or stash your changes, then re-run."
-      exit 1
-    elif [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
-      git pull --ff-only origin "$DEFAULT_BRANCH" || { echo "✗ git pull --ff-only failed (diverged?)"; exit 1; }
+    if [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
+      # Only on default → eligible for FF. Dirty tree blocks (would lose changes).
+      # Under user's `set -o pipefail`, grep -v on a clean tree (no input) exits 1
+      # and DIRTY becomes empty — symmetric with BEHIND, validate before integer compare.
+      DIRTY=$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d ' ' || echo 0)
+      [[ "$DIRTY" =~ ^[0-9]+$ ]] || DIRTY=0
+      if [ "$DIRTY" -gt 0 ]; then
+        echo "✗ Local '$DEFAULT_BRANCH' is $BEHIND commits behind origin, but working tree is dirty."
+        echo "  Commit or stash your changes, then re-run."
+        exit 1
+      fi
+      git pull --ff-only origin "$DEFAULT_BRANCH" || { echo "✗ git pull --ff-only failed — see git error above"; exit 1; }
       echo "✓ Updated local '$DEFAULT_BRANCH' from origin (was $BEHIND commits behind)"
     else
+      # Not on default → no FF attempted. Dirty changes on a feature branch are fine
+      # (they stay in this checkout; the new worktree gets its own working tree).
       echo "  ⚠ Local '$DEFAULT_BRANCH' is $BEHIND commits behind origin (you're on '$CURRENT_BRANCH', skipping auto-FF)"
     fi
   fi
 fi
 
-# Resolve worktree base. Prefer origin/<default>; fall back to local <default> if origin ref missing.
-BASE="origin/$DEFAULT_BRANCH"
-git rev-parse --verify "$BASE" >/dev/null 2>&1 || BASE="$DEFAULT_BRANCH"
+# Resolve worktree base. Prefer origin/<default> ONLY if fetch succeeded AND ref exists
+# locally. If fetch failed, prefer local <default> (don't trust the now-stale origin ref).
+if [ "$FETCH_OK" = "true" ] && git rev-parse --verify "origin/$DEFAULT_BRANCH" >/dev/null 2>&1; then
+  BASE="origin/$DEFAULT_BRANCH"
+elif git rev-parse --verify "$DEFAULT_BRANCH" >/dev/null 2>&1; then
+  BASE="$DEFAULT_BRANCH"
+else
+  BASE="HEAD"  # last-resort fallback — shouldn't happen; helper should have bailed
+fi
 # DRIFT-PREFLIGHT-NEW-END
 
 if [ -d "$WORKTREE_PATH" ]; then

@@ -36,9 +36,15 @@ if [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]; then
         fi
 
         if $TIMEOUT_CMD git fetch origin --quiet 2>/dev/null; then
-            BEHIND=$(git rev-list --count "$DEFAULT..origin/$DEFAULT" 2>/dev/null) || BEHIND=""
-            if [[ -n "$BEHIND" && "$BEHIND" =~ ^[0-9]+$ && "$BEHIND" -gt 0 ]]; then
-                CONTEXT="$CONTEXT (default branch '$DEFAULT' is $BEHIND commits behind origin — pull before starting work)"
+            # Verify BOTH refs exist before rev-list — without this, a missing local
+            # <default> branch (e.g., shallow/single-branch clone) makes rev-list exit
+            # 128 with empty stdout, silently masking a real config problem as "0 behind".
+            if git rev-parse --verify "$DEFAULT" >/dev/null 2>&1 \
+               && git rev-parse --verify "origin/$DEFAULT" >/dev/null 2>&1; then
+                BEHIND=$(git rev-list --count "$DEFAULT..origin/$DEFAULT" 2>/dev/null) || BEHIND=""
+                if [[ -n "$BEHIND" && "$BEHIND" =~ ^[0-9]+$ && "$BEHIND" -gt 0 ]]; then
+                    CONTEXT="$CONTEXT (default branch '$DEFAULT' is $BEHIND commits behind origin — pull before starting work)"
+                fi
             fi
         fi
     fi

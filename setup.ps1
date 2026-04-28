@@ -566,9 +566,16 @@ Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-bash-safety.p
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-workflow-gates.ps1") ".claude\hooks\check-workflow-gates.ps1" ".claude\hooks\check-workflow-gates.ps1"
 
 # Hook lib helpers
+# Install BOTH the .ps1 and .sh helpers on Windows because:
+#   - .ps1 is dot-sourced by the PowerShell hooks (session-start.ps1, check-state-updated.ps1)
+#   - .sh is invoked via `bash "$LIB"` from the bash code blocks in commands/new-feature.md
+#     and commands/fix-bug.md. Those blocks run under Git Bash on Windows and would silently
+#     fall back to DEFAULT_BRANCH=main if the .sh file weren't installed — breaking
+#     master-default repos and any non-main default downstream.
 $libDir = ".claude\hooks\lib"
 if (-not (Test-Path $libDir)) { New-Item -ItemType Directory -Path $libDir -Force | Out-Null }
-Copy-TemplateFile (Join-Path (Join-Path (Join-Path $ScriptDir "hooks") "lib") "default-branch.ps1") "$libDir\default-branch.ps1" "$libDir\default-branch.ps1 (default-branch detection helper)"
+Copy-TemplateFile (Join-Path (Join-Path (Join-Path $ScriptDir "hooks") "lib") "default-branch.ps1") "$libDir\default-branch.ps1" "$libDir\default-branch.ps1 (default-branch detection helper, PowerShell)"
+Copy-TemplateFile (Join-Path (Join-Path (Join-Path $ScriptDir "hooks") "lib") "default-branch.sh") "$libDir\default-branch.sh" "$libDir\default-branch.sh (default-branch detection helper, bash — used by commands/*.md preflight)"
 
 # Agents
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-app.md") ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
