@@ -2,6 +2,28 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.16 — 2026-04-28 · Migration UX — consolidated "ask Claude" reconcile message; dropped cry-wolf drift hint
+
+Replaces two separate warnings with one consolidated instruction:
+
+- `setup.sh -f` / `--upgrade` previously printed "⚠ Template may have drifted since your last upgrade" with a `git diff --no-index` command on every run, regardless of actual drift — cry wolf.
+- `setup.sh --migrate` previously printed a separate "@CONTINUITY.md dangling import — remove manually" warning.
+
+Both are now replaced by a single Variant B message at the end of `--migrate` output telling the user to paste this prompt into Claude Code:
+
+> Reconcile my CLAUDE.md against `$SCRIPT_DIR/CLAUDE.template.md`. Port any new template sections I'm missing, preserving my project-specific content. If you see an `@CONTINUITY.md` line on top, remove it -- it's a dangling import from before the 5.15 migration.
+
+Codex reviewed Variant A (minimal — bet that "reconcile" naturally removes the @-import) vs Variant B (explicit @-import callout); picked B because "reconcile + preserve project-specific" gives Claude room to keep unmatched top-of-file lines, and the @-import line is exactly the kind of stale-but-user-owned content that can survive without explicit naming.
+
+A "Manual fallback" subsection in `docs/guides/upgrading.md` covers SSH / scripted-install users (per Codex's caveat).
+
+- `scripts/migrate-continuity.{sh,ps1}` — replace @-import warning with Variant B message; both compute their own SCRIPT_DIR (bash/PS dispatch is direct, no env-var pass-through).
+- `setup.sh` + `setup.ps1` — drop the `git diff --no-index ... CLAUDE.template.md ...` cry-wolf hint from the upgrade summary. Legacy CONTINUITY.md detection block stays (actionable, not cry-wolf). Four-variant Upgrade-done message stays.
+- `docs/guides/upgrading.md` — add "Manual fallback" subsection; rewrite the dangling-import paragraph to point at the migration's Variant B prompt.
+- `README.md` — version badge bump 5.15 → 5.16, prepend version-history row.
+
+**Existing installs:** the new wording lands on next `setup.sh --upgrade`. No content migration needed.
+
 ## 5.15 — 2026-04-28 · CONTINUITY split — durable facts to CLAUDE.md, decisions to docs/adr/, volatile state to .claude/local/state.md (gitignored)
 
 Closes the multi-developer state-file conflict failure mode at the source: CONTINUITY.md mixed two genres (durable team-shared facts + volatile per-developer state) in one tracked file, producing merge conflicts on every multi-dev pull and silently injecting stale per-developer state into Claude's auto-loaded context. PR #2 of the multi-PR drift-hygiene initiative; PR #1 (drift-hygiene, 5.14) addressed the symptom via SessionStart fetch + warning. PR #2 fixes the source by splitting the artifact.

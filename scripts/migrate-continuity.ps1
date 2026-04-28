@@ -7,6 +7,12 @@
 # matching the bash 'set -u' (no -e) discipline.
 Set-StrictMode -Version Latest
 
+# Resolve this script's Forge-clone root so the dangling-import reconcile
+# message can name the canonical CLAUDE.template.md path. Forward slash kept
+# in the emitted text for cross-platform display + bash/PS parity (we
+# normalize $PSScriptRoot's backslashes to forward slashes when emitting).
+$ScriptDir = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path -replace '\\', '/'
+
 $LegacyFile = "CONTINUITY.md"
 $SentinelPrefix = "<!-- forge:migrated"
 $SentinelToday = "<!-- forge:migrated $(Get-Date -Format 'yyyy-MM-dd') -->"
@@ -288,8 +294,22 @@ foreach ($section in @("Now", "Next")) {
 }
 
 # --- (d) Flag dangling @CONTINUITY.md import in CLAUDE.md ---
+# Variant B reconcile-prompt: byte-equivalent to bash mirror's warning text
+# (AC-4 parity). LF separators via "`n" (PS literal LF, NOT CRLF). The literal
+# "@CONTINUITY.md" and "dangling" tokens are preserved for the existing
+# fixture asserts in tests/template/test-migrate.sh.
 if ((Test-Path "CLAUDE.md") -and (Select-String -Path "CLAUDE.md" -Pattern '^@CONTINUITY\.md\b' -Quiet -ErrorAction SilentlyContinue)) {
-    [void]$warnings.Add("CLAUDE.md still contains a '@CONTINUITY.md' dangling import - Claude Code silently ignores missing imports, but you may want to remove the line manually for cleanliness.")
+    $reconcilePrompt = "CLAUDE.md still contains an '@CONTINUITY.md' dangling import.`n" +
+        "    Open Claude Code in this project and paste this prompt:`n" +
+        "`n" +
+        "      Reconcile my CLAUDE.md against $ScriptDir/CLAUDE.template.md.`n" +
+        "      Port any new template sections I'm missing, preserving my`n" +
+        "      project-specific content. If you see an @CONTINUITY.md line`n" +
+        "      on top, remove it -- it's a dangling import from before the`n" +
+        "      5.15 migration.`n" +
+        "`n" +
+        "    (Not in Claude Code? See docs/guides/upgrading.md `"Manual fallback`".)"
+    [void]$warnings.Add($reconcilePrompt)
 }
 
 # --- (e) Print summary (byte-equivalent strings to bash) ---

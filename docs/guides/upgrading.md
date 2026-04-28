@@ -85,13 +85,7 @@ The migration assistant is **deterministic, idempotent, and non-destructive**:
 - The original `CONTINUITY.md` is **preserved byte-for-byte**. The script never modifies or deletes it. Once you've reviewed the migrated outputs, you can delete the legacy file yourself.
 - A sentinel marker is written into each migrated destination so re-running `--migrate` is safe — the assistant detects already-migrated content and skips it.
 
-If your `CLAUDE.md` still contains a `@CONTINUITY.md` import line (the pre-5.15 default), the migration assistant **flags it but does not auto-edit**. Claude Code's `@`-imports fail silently when the target is missing, so the dangling import won't crash anything — but it's clutter. Remove the line manually:
-
-```diff
--@CONTINUITY.md
--
- # CLAUDE.md - my-project
-```
+If your `CLAUDE.md` still contains a `@CONTINUITY.md` import line (the pre-5.15 default), the migration assistant **flags it and prints a prompt you can paste into Claude Code**. The prompt asks Claude to reconcile your `CLAUDE.md` against the latest `CLAUDE.template.md` (porting any new template sections you're missing while preserving project-specific content) AND to remove the dangling `@CONTINUITY.md` line in the same operation. Claude Code's `@`-imports fail silently when the target is missing, so the dangling import won't crash anything — but it's clutter that's worth a one-shot reconcile pass.
 
 ### Verifying the migration
 
@@ -110,3 +104,21 @@ ls -la CONTINUITY.md
 ```
 
 If any of those four checks fails, see the [troubleshooting guide](../troubleshooting.md#migration-and-the-volatile-state-file) for recovery steps.
+
+### Manual fallback (no Claude Code at hand)
+
+If you're upgrading over SSH, in a CI pipeline, or in any context where you can't paste prompts into Claude Code, the migration's "ask Claude to reconcile" recommendation can be done manually:
+
+```bash
+# Remove the dangling @CONTINUITY.md import
+sed -i.bak '/^@CONTINUITY\.md$/d' CLAUDE.md && rm CLAUDE.md.bak
+
+# Diff your CLAUDE.md against the latest template
+git diff --no-index -- ~/Code/claude-codex-forge/CLAUDE.template.md CLAUDE.md
+
+# Manually merge any template sections you want, preserving project-specific content
+```
+
+(Substitute your actual Forge clone path if different.)
+
+The Claude-mediated path is recommended because Claude can judge what counts as "project-specific" vs "stale template scaffolding"; the manual diff requires you to make those calls yourself.
