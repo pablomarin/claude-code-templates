@@ -62,7 +62,8 @@ if (Test-AlreadyMigrated) {
 
 # --- Sentinel write -- UNCONDITIONAL, before any extraction (Codex iter-2 P0 fix) ---
 # Validate state.md presence FIRST (Codex iter-3 P1: bail before printing "Migrating...").
-if (-not (Test-Path ".claude/local")) { New-Item -ItemType Directory -Path ".claude/local" -Force | Out-Null }
+# P3 fix: don't pre-create .claude/local/ -- on the failure path it leaves an empty
+# .claude/local/ behind in the user's repo. Skip the dir if state.md isn't present.
 if (-not (Test-Path ".claude/local/state.md")) {
     # Byte-equivalent to bash variant for AC-4 parity.
     [Console]::Error.WriteLine("x .claude/local/state.md not found.")

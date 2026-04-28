@@ -53,10 +53,11 @@ fi
 # This guarantees idempotency even when the legacy CONTINUITY.md has no Goal,
 # no Decisions table, or empty Done -- repos that migrate "nothing" still get
 # marked as migrated, so rerun is a no-op (Codex iter-2 P0 fix).
-mkdir -p .claude/local
 if [ ! -f ".claude/local/state.md" ]; then
     # state.md will be present on -f / --upgrade installs; if standalone --migrate
     # was invoked without first running -f, bail with a clear message.
+    # (P3 fix: don't pre-create .claude/local/ before this check -- on the failure
+    # path it leaves an empty .claude/local/ directory behind in the user's repo.)
     echo "x .claude/local/state.md not found." >&2
     echo "  Run setup -f first to install the state template, then rerun --migrate." >&2
     exit 1
@@ -102,11 +103,27 @@ if [ -n "$goal_trimmed" ] && [ "$goal_trimmed" != "$goal_placeholder" ]; then
     if [ -f "CLAUDE.md" ]; then
         if grep -q "^## Project Overview" CLAUDE.md; then
             # Sentinel was already prepended unconditionally above -- no need to duplicate here.
+            # Use tmpfile + getline to preserve embedded newlines in multi-paragraph goals
+            # (P1-C fix: `awk -v goal="..."` chokes on newlines in the variable value with
+            # "awk: newline in string" and silently drops the Goal -- since the sentinel is
+            # already written, a rerun is a no-op and the Goal never lands in CLAUDE.md).
+            content_file=$(mktemp)
+            printf '%s\n' "$goal_content" > "$content_file"
             tmp=$(mktemp)
-            awk -v goal="$goal_content" '
-                /^## Project Overview$/ { print; print ""; print "### Goal"; print ""; print goal; print ""; next }
+            awk -v cfile="$content_file" '
+                /^## Project Overview$/ {
+                    print
+                    print ""
+                    print "### Goal"
+                    print ""
+                    while ((getline line < cfile) > 0) print line
+                    close(cfile)
+                    print ""
+                    next
+                }
                 { print }
             ' CLAUDE.md > "$tmp" && mv "$tmp" CLAUDE.md
+            rm -f "$content_file"
             moved_sections+=("Goal -> CLAUDE.md (under ## Project Overview)")
         else
             skipped_sections+=("Goal (CLAUDE.md has no ## Project Overview section)")

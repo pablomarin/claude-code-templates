@@ -302,4 +302,85 @@ else
 fi
 rm -rf "$scratch"
 
+# ---------------------------------------------------------------------------
+# P1-C regression guard: multi-paragraph Goal content (valid markdown — users
+# may have a multi-paragraph project goal with em-dashes, parens, code spans,
+# blank lines between paragraphs). The original `awk -v goal="$goal_content"`
+# pattern fails with "awk: newline in string" and silently drops the Goal —
+# worse, the sentinel was already written, so a rerun is a no-op even though
+# the Goal never made it into CLAUDE.md.
+# ---------------------------------------------------------------------------
+make_legacy_continuity_with_multi_paragraph_goal() {
+    local scratch="$1"
+    cat > "$scratch/CONTINUITY.md" <<'EOF'
+# CONTINUITY
+
+## Goal
+
+Build a production-grade analytics platform — multi-tenant, GDPR-aware, with `pgvector` similarity search.
+
+The platform serves three personas: data analysts (SQL workbench), product managers (no-code dashboards), and engineers (raw `/api/v1/` access). Each persona gets a tailored UX while sharing a single source of truth.
+
+Long-term vision: become the default warehouse for mid-market SaaS (50–500 employees) — replacing the Snowflake + Looker + Segment stack with a single Postgres-backed product.
+
+## State
+
+### Done (recent 2-3 only)
+
+- 2026-04-04: shipped feature Z
+
+### Now
+
+On main, clean.
+
+### Next
+
+- ship PR #2
+
+EOF
+    cat > "$scratch/CLAUDE.md" <<'EOF'
+# CLAUDE.md - Test Project
+
+## Project Overview
+
+A test project.
+EOF
+}
+
+start_test "test_migrate_handles_multi_paragraph_goal"
+scratch=$(mktemp -d)
+make_legacy_continuity_with_multi_paragraph_goal "$scratch"
+out=$(run_migrate "$scratch" 2>&1)
+# CLAUDE.md must contain ALL three paragraphs of the Goal, not just the first.
+if grep -qF "Build a production-grade analytics platform" "$scratch/CLAUDE.md"; then
+    pass "Goal first paragraph migrated to CLAUDE.md"
+else
+    fail "Goal first paragraph missing from CLAUDE.md"
+fi
+if grep -qF "The platform serves three personas" "$scratch/CLAUDE.md"; then
+    pass "Goal second paragraph migrated (multi-paragraph preservation)"
+else
+    fail "Goal second paragraph DROPPED — P1-C bug: awk -v chokes on newlines"
+fi
+if grep -qF "Long-term vision: become the default warehouse" "$scratch/CLAUDE.md"; then
+    pass "Goal third paragraph migrated (multi-paragraph preservation)"
+else
+    fail "Goal third paragraph DROPPED — P1-C bug: awk -v chokes on newlines"
+fi
+# Em-dashes, backticks, parens preserved verbatim.
+if grep -qF '`pgvector` similarity search' "$scratch/CLAUDE.md"; then
+    pass "Goal preserves backticks/code spans"
+else
+    fail "Goal lost backticks (`pgvector`) — content corruption"
+fi
+# No awk error in output.
+if echo "$out" | grep -qE "awk:.*newline in string|awk:.*illegal"; then
+    fail "awk emitted error on multi-paragraph Goal — P1-C regression"
+else
+    pass "no awk newline/illegal errors on multi-paragraph Goal"
+fi
+# Summary line should mention the Goal migration succeeded.
+assert_str_contains "$out" "Goal -> CLAUDE.md" "summary reports Goal moved (not skipped)"
+rm -rf "$scratch"
+
 report "test-migrate.sh"
