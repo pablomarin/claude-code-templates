@@ -54,8 +54,16 @@ if [ ! -f "$STATE_FILE" ]; then
     exit 0
 fi
 
+# Scope extraction to ONLY the `## Workflow` section. Migrated content (e.g.,
+# from `setup.sh --migrate` ingesting old CONTINUITY.md "### Done" entries that
+# mention prior workflow scaffolds) can leave stray `| Command |` lines or
+# `### Checklist` headings elsewhere in the file. A whole-file grep with
+# `head -1` would pick the first match — which can be the stray, not the
+# canonical scaffold — and gate (or fail to gate) on bogus content.
+WORKFLOW_BLOCK=$(awk '/^## Workflow$/{flag=1;next} flag && /^## /{flag=0} flag' "$STATE_FILE" 2>/dev/null)
+
 # Use flexible whitespace matching — formatters may pad table cells
-WORKFLOW_CMD=$(grep -iE '\|\s*Command\s*\|' "$STATE_FILE" 2>/dev/null | head -1 | awk -F'|' '{print $3}' | xargs)
+WORKFLOW_CMD=$(echo "$WORKFLOW_BLOCK" | grep -iE '\|\s*Command\s*\|' | head -1 | awk -F'|' '{print $3}' | xargs)
 # No active workflow — allow
 [ -z "$WORKFLOW_CMD" ] && exit 0
 [ "$WORKFLOW_CMD" = "none" ] && exit 0
@@ -63,8 +71,10 @@ WORKFLOW_CMD=$(grep -iE '\|\s*Command\s*\|' "$STATE_FILE" 2>/dev/null | head -1 
 [ "$WORKFLOW_CMD" = "-" ] && exit 0
 
 # --- Active workflow: check always-required quality gates ---
-# Extract the Checklist section (between ### Checklist and next ## heading)
-CHECKLIST=$(sed -n '/^### Checklist/,/^## /p' "$STATE_FILE" 2>/dev/null)
+# Extract the Checklist section (between ### Checklist and next ## or ### heading
+# inside the Workflow block — staying scoped prevents stray "### Checklist"
+# headings in migrated State content from being picked up).
+CHECKLIST=$(echo "$WORKFLOW_BLOCK" | sed -n '/^### Checklist/,$p')
 
 # Only gate on the 4 pre-ship quality gates:
 #   "Code review loop" — code review must pass before shipping

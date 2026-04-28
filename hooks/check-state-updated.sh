@@ -87,13 +87,21 @@ if [ ! -f ".claude/local/state.md" ] && [ -f "CONTINUITY.md" ]; then
     # Continue to CHANGELOG check — gates are independent.
 fi
 
-# If .claude/local/state.md has an active workflow, extract phase/next-step for advisory reminder
+# If .claude/local/state.md has an active workflow, extract phase/next-step for advisory reminder.
+#
+# IMPORTANT: scope the extraction to ONLY the `## Workflow` section. Migrated
+# content (e.g., from `setup.sh --migrate` ingesting old CONTINUITY.md "### Done"
+# entries that mention prior workflow scaffolds) can leave stray `| Command |`
+# lines elsewhere in the file. A whole-file grep would match every one of them
+# and `xargs` would join them with spaces — yielding garbage like
+# "WORKFLOW: none /lifecycle | Phase: n/a shipping". Scope first, then match.
 WORKFLOW_REMINDER=""
 if [ -f ".claude/local/state.md" ]; then
-    WORKFLOW_CMD=$(grep -E '\|\s*Command\s*\|' .claude/local/state.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+    WORKFLOW_BLOCK=$(awk '/^## Workflow$/{flag=1;next} flag && /^## /{flag=0} flag' .claude/local/state.md 2>/dev/null)
+    WORKFLOW_CMD=$(echo "$WORKFLOW_BLOCK" | grep -E '\|\s*Command\s*\|' | head -1 | awk -F'|' '{print $3}' | xargs)
     if [ -n "$WORKFLOW_CMD" ] && [ "$WORKFLOW_CMD" != "none" ] && [ "$WORKFLOW_CMD" != "—" ] && [ "$WORKFLOW_CMD" != "-" ]; then
-        WORKFLOW_PHASE=$(grep -E '\|\s*Phase\s*\|' .claude/local/state.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
-        WORKFLOW_NEXT=$(grep -E '\|\s*Next step\s*\|' .claude/local/state.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+        WORKFLOW_PHASE=$(echo "$WORKFLOW_BLOCK" | grep -E '\|\s*Phase\s*\|' | head -1 | awk -F'|' '{print $3}' | xargs)
+        WORKFLOW_NEXT=$(echo "$WORKFLOW_BLOCK" | grep -E '\|\s*Next step\s*\|' | head -1 | awk -F'|' '{print $3}' | xargs)
         WORKFLOW_REMINDER="WORKFLOW: $WORKFLOW_CMD | Phase: $WORKFLOW_PHASE | Next: $WORKFLOW_NEXT"
     fi
 fi

@@ -52,18 +52,34 @@ if (-not (Test-Path $stateFile)) {
 }
 
 $content = Get-Content $stateFile -Raw -ErrorAction SilentlyContinue
-$cmdLine = ($content -split "`n" | Select-String '\|\s*Command\s*\|' | Select-Object -First 1)
+
+# Scope extraction to ONLY the `## Workflow` section. Migrated content (e.g.,
+# from `setup.sh --migrate` ingesting old CONTINUITY.md "### Done" entries that
+# mention prior workflow scaffolds) can leave stray `| Command |` lines or
+# `### Checklist` headings elsewhere in the file. A whole-file Select-String
+# with `-First 1` would pick the first match — which can be the stray, not the
+# canonical scaffold — and gate (or fail to gate) on bogus content.
+$workflowBlockLines = @()
+$inWorkflow = $false
+foreach ($line in ($content -split "`n")) {
+    if ($line -match '^## Workflow$') { $inWorkflow = $true; continue }
+    if ($inWorkflow -and $line -match '^## ') { break }
+    if ($inWorkflow) { $workflowBlockLines += $line }
+}
+
+$cmdLine = ($workflowBlockLines | Select-String '\|\s*Command\s*\|' | Select-Object -First 1)
 if (-not $cmdLine) { exit 0 }
 
 $cmd = ($cmdLine -split '\|')[2].Trim()
 if (-not $cmd -or $cmd -eq "none" -or $cmd -eq ([char]0x2014).ToString() -or $cmd -eq "-") { exit 0 }
 
 # --- Active workflow: check always-required quality gates ---
-# Extract checklist section
+# Extract checklist section (scoped to the Workflow block, so stray
+# `### Checklist` headings in migrated State content can't poison this).
 $inChecklist = $false
 $unchecked = @()
 
-foreach ($line in ($content -split "`n")) {
+foreach ($line in $workflowBlockLines) {
     if ($line -match '^### Checklist') { $inChecklist = $true; continue }
     if ($line -match '^## ' -and $inChecklist) { break }
     # Gate on the 4 canonical pre-ship markers:
@@ -101,7 +117,7 @@ if ($unchecked.Count -gt 0) {
 # commit. Skips gracefully if git state prevents determining branch-off.
 # ---------------------------------------------------------------------------
 $e2eCheckedLine = $null
-foreach ($line in ($content -split "`n")) {
+foreach ($line in $workflowBlockLines) {
     if ($line -match '- \[x\]\s+E2E verified') {
         $e2eCheckedLine = $line
         break

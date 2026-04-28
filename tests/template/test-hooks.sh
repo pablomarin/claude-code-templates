@@ -529,6 +529,219 @@ fi
 assert_equals "$rc_ad" "0" "Stop hook always exits 0 (advisory-only)"
 
 # ===========================================================================
+# Regression: stray Workflow-shaped tables in state.md must NOT poison the
+# Stop hook's WORKFLOW reminder.
+#
+# Pre-fix bug: hooks/check-state-updated.sh did `grep | awk | xargs` over the
+# WHOLE state.md, then xargs joined N matches with spaces. When migrated
+# content (e.g., from `setup.sh --migrate` ingesting an old CONTINUITY.md
+# Done entry that quoted a prior workflow scaffold) carried a stray
+# `| Command | … |` line in `### Done`, the reminder became garbage like:
+#   "WORKFLOW: none /lifecycle | Phase: n/a shipping | Next: n/a Fix #654 …"
+# Fix: scope extraction to ONLY the `## Workflow` section, then head -1.
+# ===========================================================================
+start_test "regression: stray Workflow tables in Done section don't poison reminder"
+
+S_STRAY=$(scratch_dir state-stray-tables)
+mkdir -p "$S_STRAY/.claude/local"
+cat > "$S_STRAY/.claude/local/state.md" <<'EOF'
+## Workflow
+
+| Field     | Value |
+| --------- | ----- |
+| Command   | none  |
+| Phase     | n/a   |
+| Next step | n/a   |
+
+### Checklist
+
+## State
+
+### Done
+- Phase 4 task-DAG: 2026-04-21. Updated table:
+  | Field     | Value             |
+  | Command   | /lifecycle        |
+  | Phase     | shipping          |
+  | Next step | Fix #654 findings |
+  Council-reviewed and merged.
+
+### Now
+On main, clean.
+EOF
+
+# stop_hook_active=false to mirror real Stop hook input.
+out_stray=$(cd "$S_STRAY" && printf '{"stop_hook_active":false}' | bash "$REPO_ROOT/hooks/check-state-updated.sh" 2>&1)
+rc_stray=$?
+
+# Canonical Command is `none` → no advisory should fire at all.
+if echo "$out_stray" | grep -qE "WORKFLOW:"; then
+    fail "stray-table fixture leaked a WORKFLOW reminder (got: $out_stray)"
+else
+    pass "Command=none in canonical scaffold → no WORKFLOW reminder despite stray tables"
+fi
+# Specifically guard against the garbage shape: 'none /lifecycle' joined-by-space.
+if echo "$out_stray" | grep -qF "none /lifecycle"; then
+    fail "regression: WORKFLOW reminder contains joined garbage 'none /lifecycle'"
+else
+    pass "no joined-garbage shape ('none /lifecycle') in stderr"
+fi
+assert_equals "$rc_stray" "0" "Stop hook exits 0 even with stray tables"
+
+# Companion case: stray table appears BEFORE the canonical `## Workflow` heading.
+# Pre-fix, `head -1` (PowerShell `Select-Object -First 1`) would pick the stray.
+start_test "regression: stray Workflow tables BEFORE canonical heading don't poison reminder"
+
+S_STRAY2=$(scratch_dir state-stray-before)
+mkdir -p "$S_STRAY2/.claude/local"
+cat > "$S_STRAY2/.claude/local/state.md" <<'EOF'
+# State
+
+Some preamble describing migration.
+
+### Done
+- Stray table mention from migrated content:
+  | Field     | Value             |
+  | Command   | /new-feature foo  |
+  | Phase     | shipping          |
+  | Next step | Fix things        |
+
+## Workflow
+
+| Field     | Value |
+| --------- | ----- |
+| Command   | none  |
+| Phase     | n/a   |
+| Next step | n/a   |
+
+### Checklist
+EOF
+
+out_stray2=$(cd "$S_STRAY2" && printf '{"stop_hook_active":false}' | bash "$REPO_ROOT/hooks/check-state-updated.sh" 2>&1)
+rc_stray2=$?
+
+if echo "$out_stray2" | grep -qE "WORKFLOW:"; then
+    fail "stray-before-canonical fixture leaked a WORKFLOW reminder (got: $out_stray2)"
+else
+    pass "stray table BEFORE canonical scaffold ignored; canonical Command=none wins"
+fi
+assert_equals "$rc_stray2" "0" "Stop hook exits 0 with stray-before fixture"
+
+# ===========================================================================
+# Regression: same bug class in check-workflow-gates.sh — stray tables must
+# not change which Workflow scaffold is read for ship-action gating.
+#
+# Pre-fix: grep over whole file with `head -1` could pick a stray
+# `| Command | /foo |` line in migrated Done content (when stray appears
+# BEFORE the canonical scaffold), causing the gate to treat the workflow
+# as active and block ship even when the canonical Command is `none`.
+# ===========================================================================
+start_test "regression: check-workflow-gates ignores stray tables before canonical"
+
+S_GATE=$(scratch_dir gates-stray-before)
+mkdir -p "$S_GATE/.claude/local"
+cat > "$S_GATE/.claude/local/state.md" <<'EOF'
+# State
+
+### Done
+- Old finished feature, table snippet:
+  | Field     | Value             |
+  | Command   | /new-feature foo  |
+  | Phase     | shipping          |
+
+## Workflow
+
+| Field     | Value |
+| --------- | ----- |
+| Command   | none  |
+
+### Checklist
+
+- [ ] E2E verified via verify-e2e agent (Phase 5.4)
+EOF
+
+printf '{"tool_input":{"command":"git commit -m test"}}' > "$S_GATE/.hook-input.json"
+(cd "$S_GATE" && bash "$REPO_ROOT/hooks/check-workflow-gates.sh" < "$S_GATE/.hook-input.json") > "$S_GATE/.hook-stdout" 2> "$S_GATE/.hook-stderr"
+rc_gate=$?
+
+assert_equals "$rc_gate" "0" \
+    "check-workflow-gates: canonical Command=none wins over stray /new-feature in Done"
+
+# ===========================================================================
+# Regression: check-workflow-gates also ignores stray Workflow-shaped content
+# in `### Done` AFTER the canonical scaffold. Specifically: a stray
+# `### Checklist` heading or `- [ ]` items in the Done section must not be
+# treated as part of the workflow checklist.
+# ===========================================================================
+start_test "regression: check-workflow-gates ignores stray checklist items in Done"
+
+S_GATE2=$(scratch_dir gates-stray-checklist)
+mkdir -p "$S_GATE2/.claude/local"
+cat > "$S_GATE2/.claude/local/state.md" <<'EOF'
+## Workflow
+
+| Field     | Value              |
+| --------- | ------------------ |
+| Command   | /new-feature test  |
+| Phase     | 5 — Quality Gates  |
+| Next step | ship               |
+
+### Checklist
+
+- [x] Code review loop (1 iterations) — PASS
+- [x] Simplified
+- [x] Verified (tests/lint/types)
+- [x] E2E verified — N/A: refactor
+
+## State
+
+### Done
+- Old feature shipped; quoting its checklist for posterity:
+  - [ ] Code review loop
+  - [ ] E2E verified via verify-e2e agent (Phase 5.4)
+EOF
+
+printf '{"tool_input":{"command":"git commit -m test"}}' > "$S_GATE2/.hook-input.json"
+(cd "$S_GATE2" && bash "$REPO_ROOT/hooks/check-workflow-gates.sh" < "$S_GATE2/.hook-input.json") > "$S_GATE2/.hook-stdout" 2> "$S_GATE2/.hook-stderr"
+rc_gate2=$?
+
+assert_equals "$rc_gate2" "0" \
+    "check-workflow-gates: stray '- [ ] Code review loop' in Done does not block ship"
+
+# ===========================================================================
+# PowerShell parity for the regression cases (skipped if pwsh not installed)
+# ===========================================================================
+start_test "PowerShell parity: stray Workflow tables don't poison .ps1 hooks"
+
+if command -v pwsh >/dev/null 2>&1; then
+    # Reuse the bash fixtures — same state.md, run the .ps1 hook.
+    out_ps_stray=$(cd "$S_STRAY" && printf '{"stop_hook_active":false}' | pwsh -NoProfile -File "$REPO_ROOT/hooks/check-state-updated.ps1" 2>&1)
+    if echo "$out_ps_stray" | grep -qE "WORKFLOW:"; then
+        fail ".ps1 stray-table fixture leaked a WORKFLOW reminder"
+    else
+        pass ".ps1 ignores stray tables in Done section"
+    fi
+
+    out_ps_stray2=$(cd "$S_STRAY2" && printf '{"stop_hook_active":false}' | pwsh -NoProfile -File "$REPO_ROOT/hooks/check-state-updated.ps1" 2>&1)
+    if echo "$out_ps_stray2" | grep -qE "WORKFLOW:"; then
+        fail ".ps1 stray-before-canonical fixture leaked a WORKFLOW reminder"
+    else
+        pass ".ps1 ignores stray tables before canonical heading"
+    fi
+
+    (cd "$S_GATE" && pwsh -NoProfile -File "$REPO_ROOT/hooks/check-workflow-gates.ps1" < "$S_GATE/.hook-input.json") > "$S_GATE/.hook-ps-stdout" 2> "$S_GATE/.hook-ps-stderr"
+    rc_ps_gate=$?
+    assert_equals "$rc_ps_gate" "0" \
+        ".ps1 check-workflow-gates: canonical Command=none wins over stray /new-feature in Done"
+
+    (cd "$S_GATE2" && pwsh -NoProfile -File "$REPO_ROOT/hooks/check-workflow-gates.ps1" < "$S_GATE2/.hook-input.json") > "$S_GATE2/.hook-ps-stdout" 2> "$S_GATE2/.hook-ps-stderr"
+    rc_ps_gate2=$?
+    assert_equals "$rc_ps_gate2" "0" \
+        ".ps1 check-workflow-gates: stray '- [ ]' in Done does not block ship"
+else
+    printf "  %s·%s skipped: pwsh not installed\n" "$C_DIM" "$C_RESET"
+fi
+
+# ===========================================================================
 # Report
 # ===========================================================================
 report "test-hooks.sh"

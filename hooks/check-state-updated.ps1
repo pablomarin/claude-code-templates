@@ -110,16 +110,31 @@ if (-not (Test-Path ".claude/local/state.md") -and (Test-Path "CONTINUITY.md")) 
 }
 
 # Workflow reminder — read .claude/local/state.md (gitignored), single-line format.
+#
+# IMPORTANT: scope the extraction to ONLY the `## Workflow` section. Migrated
+# content (e.g., from `setup.sh --migrate` ingesting old CONTINUITY.md "### Done"
+# entries that mention prior workflow scaffolds) can leave stray `| Command |`
+# lines elsewhere in the file. A whole-file Select-String would match every one
+# of them; even with `Select-Object -First 1` the FIRST hit can be the stray if
+# it appears before the canonical scaffold. Scope first, then match.
 $workflowReminder = ""
 if (Test-Path ".claude/local/state.md") {
     $stateContent = Get-Content ".claude/local/state.md" -Raw -ErrorAction SilentlyContinue
     if (-not [string]::IsNullOrEmpty($stateContent)) {
-        $cmdLine = ($stateContent -split "`n" | Select-String '\|\s*Command\s*\|' | Select-Object -First 1)
+        # Extract just the `## Workflow` block (between `## Workflow` and the next `## ` heading).
+        $workflowBlockLines = @()
+        $inWorkflow = $false
+        foreach ($line in ($stateContent -split "`n")) {
+            if ($line -match '^## Workflow$') { $inWorkflow = $true; continue }
+            if ($inWorkflow -and $line -match '^## ') { break }
+            if ($inWorkflow) { $workflowBlockLines += $line }
+        }
+        $cmdLine = ($workflowBlockLines | Select-String '\|\s*Command\s*\|' | Select-Object -First 1)
         if ($cmdLine) {
             $cmd = ($cmdLine -split '\|')[2].Trim()
             if ($cmd -and $cmd -ne "none" -and $cmd -ne ([char]0x2014).ToString() -and $cmd -ne "-") {
-                $phaseLine = ($stateContent -split "`n" | Select-String '\|\s*Phase\s*\|' | Select-Object -First 1)
-                $nextLine = ($stateContent -split "`n" | Select-String '\|\s*Next step\s*\|' | Select-Object -First 1)
+                $phaseLine = ($workflowBlockLines | Select-String '\|\s*Phase\s*\|' | Select-Object -First 1)
+                $nextLine = ($workflowBlockLines | Select-String '\|\s*Next step\s*\|' | Select-Object -First 1)
                 $phase = if ($phaseLine) { ($phaseLine -split '\|')[2].Trim() } else { "" }
                 $next = if ($nextLine) { ($nextLine -split '\|')[2].Trim() } else { "" }
                 $workflowReminder = "WORKFLOW: $cmd | Phase: $phase | Next: $next"
