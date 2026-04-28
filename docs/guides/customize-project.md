@@ -29,30 +29,37 @@ cd frontend && pnpm build # Build frontend
 
 > **Why so slim?** Official best practices recommend keeping CLAUDE.md under 60-100 lines. Shorter files = better Claude performance. Everything else lives in `.claude/rules/` which loads automatically.
 
-## 2. Edit CONTINUITY.md
+## 2. Per-developer state file (`.claude/local/state.md`)
 
-Set your current project state so Claude knows where you left off:
+`setup.sh` installs a starter `.claude/local/state.md` for your current developer state — Workflow row, Done / Now / Next, Open Questions, Blockers. The path is gitignored and **not** auto-loaded into Claude's context; hooks read it on demand to remind you to keep it current and to gate `git commit` / `git push` / `gh pr create`.
+
+You don't normally edit this file by hand — `/new-feature`, `/fix-bug`, and `/quick-fix` rewrite the Workflow section as part of Pre-Flight, and the Stop hook nudges you to update Done / Now / Next at the end of each turn. The starter content is:
 
 ```markdown
-## Goal
+## Workflow
 
-Build MVP of feature X by end of Q1
+| Field     | Value |
+| --------- | ----- |
+| Command   | none  |
+| Phase     | —     |
+| Next step | —     |
 
 ## State
 
 ### Done
 
-- Initial project setup
+(latest 2–3 only)
 
 ### Now
 
-Working on user authentication
+(what you're actively doing)
 
 ### Next
 
-- API endpoints
-- Frontend pages
+(top of the queue)
 ```
+
+Project goal lives in `CLAUDE.md` under the `## Project Overview` → `### Goal` subsection. Architecture decisions live as per-file ADRs in `docs/adr/NNNN-*.md` (one file per decision; `docs/adr/template.md` is the starter).
 
 ## 3. Release PR Skill (All Tech Stacks)
 
