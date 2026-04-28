@@ -27,7 +27,7 @@ Save to your auto memory (`MEMORY.md` or topic files) when you:
 
 ### When NOT to Save
 
-- Session-specific state (current task, in-progress work) — use `CONTINUITY.md` instead
+- Session-specific state (current task, in-progress work) — use `.claude/local/state.md` instead
 - Information that duplicates the project's `CLAUDE.md`
 - Speculative or unverified conclusions
 

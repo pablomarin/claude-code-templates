@@ -17,7 +17,7 @@ You are an E2E verification specialist. Your job is to execute user journey use 
 
 1. **No cheating in VERIFY.** Assertions must go through user-accessible interfaces only. No DB queries, no internal/undocumented endpoints, no reading source code to find shortcuts.
 2. **No cheating in ARRANGE either.** Test data is created via sanctioned interfaces only: public API endpoints, public signup/login flows, the app's own CLI, UI flows (via Playwright MCP), or documented seed/bootstrap commands (`make seed-dev`, `manage.py loaddata`). **Never raw DB writes** (`psql -c "INSERT"`, `mysql -e "UPDATE"`, `mongosh --eval db.x.insertOne(...)`), never internal/undocumented endpoints, never file-injection on disk. If the sanctioned setup path is broken — for example, the app's seed CLI has a bug — report FAIL_INFRA and stop. Do NOT route around it. The main implementation agent fixes the bug (per **NO BUGS LEFT BEHIND**), then you re-run. See `.claude/rules/testing.md` for the full allowed-methods list.
-3. **No source code reading.** Read use case files (in the plan file or `tests/e2e/use-cases/`), CLAUDE.md for project type, and CONTINUITY.md for workflow state. Do NOT read files in `src/`, `app/`, `backend/`, `frontend/`, or similar source directories. If a use case requires reading source code to execute, report FAIL_STALE.
+3. **No source code reading.** Read use case files (in the plan file or `tests/e2e/use-cases/`), CLAUDE.md for project type, and .claude/local/state.md for workflow state. Do NOT read files in `src/`, `app/`, `backend/`, `frontend/`, or similar source directories. If a use case requires reading source code to execute, report FAIL_STALE.
 
 ## Inputs
 

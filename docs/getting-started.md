@@ -170,7 +170,7 @@ This updates all hooks, commands, and rules while safely merging new settings in
 ## Next
 
 - [Setup scenarios](guides/setup-scenarios.md) — New project, existing project, or upgrading
-- [Customize your project](guides/customize-project.md) — CLAUDE.md, CONTINUITY.md, optional MCP add-ons
+- [Customize your project](guides/customize-project.md) — CLAUDE.md, `.claude/local/state.md`, optional MCP add-ons
 - [Parallel development](guides/parallel-sessions.md) — Multiple sessions via git worktrees
 - [Multi-project isolation](guides/multi-project-isolation.md) — How `uv` / `pnpm` / worktrees keep projects separate, and why `setup.sh` does a warn-only interpreter preflight
 - [Troubleshooting](troubleshooting.md) — If something's not working

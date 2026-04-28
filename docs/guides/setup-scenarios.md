@@ -78,7 +78,7 @@ Install the Superpowers plugin if not already done (see [getting-started Step 4]
 
 ```bash
 # 4. Commit the new files
-git add .claude/ .mcp.json CLAUDE.md CONTINUITY.md docs/
+git add .claude/ .mcp.json CLAUDE.md docs/ .gitignore
 git commit -m "chore: add Claude Code automation setup"
 git push
 ```

@@ -1,7 +1,23 @@
 #!/bin/bash
 # .claude/hooks/check-state-updated.sh
 # This hook runs when Claude is about to stop responding.
-# It checks if there are uncommitted changes and reminds Claude to update state.
+#
+# THREE CONCERNS — only ONE blocks:
+#
+#   1. state.md missing breadcrumb (advisory, stderr only, exit 0).
+#      Fires only when legacy CONTINUITY.md is present (signals upgraded
+#      install that hasn't run --migrate yet). Suppressed otherwise to
+#      avoid spamming every Stop event.
+#
+#   2. Workflow reminder (advisory, stderr only, exit 0).
+#      Reads .claude/local/state.md ## Workflow table; emits
+#      "WORKFLOW: <cmd> | Phase: <n> | Next: <step>" so the model always
+#      sees current phase even when no issues fire.
+#
+#   3. CHANGELOG threshold gate (BLOCKS via exit 2).
+#      If 4+ files changed on branch (committed + uncommitted) but
+#      docs/CHANGELOG.md was never modified, hook blocks the stop with
+#      a stderr message. This is the ONLY blocking concern.
 #
 # Uses exit code 2 + stderr to block (avoids JSON stdout parsing issues
 # caused by shell profile echo statements polluting stdout).
@@ -31,7 +47,6 @@ fi
 UNCOMMITTED=$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d ' ')
 
 # Files modified (uncommitted)
-CONTINUITY_MODIFIED=$(git status --porcelain CONTINUITY.md 2>/dev/null | wc -l | tr -d ' ')
 CHANGELOG_MODIFIED=$(git status --porcelain docs/CHANGELOG.md 2>/dev/null | wc -l | tr -d ' ')
 
 # Total files changed on branch (committed + uncommitted) vs default branch
@@ -63,23 +78,35 @@ TOTAL_CHANGED=$((BRANCH_CHANGED + UNCOMMITTED_FILES))
 CHANGELOG_IN_BRANCH=$(git diff --name-only "$BRANCH_BASE" HEAD 2>/dev/null | grep -c "CHANGELOG.md" || true)
 
 # --- Workflow state tracking ---
-# If CONTINUITY.md has an active workflow, extract phase/next-step for advisory reminder
+# State file is gitignored. Emit breadcrumb only when a legacy CONTINUITY.md
+# is present (signals user upgraded but hasn't migrated yet) — avoids spamming
+# every Stop event in repos that never had CONTINUITY.md.
+if [ ! -f ".claude/local/state.md" ] && [ -f "CONTINUITY.md" ]; then
+    echo "ℹ check-state-updated: .claude/local/state.md not found, but CONTINUITY.md exists." >&2
+    echo "  Run setup --migrate to move your content to the new structure." >&2
+    # Continue to CHANGELOG check — gates are independent.
+fi
+
+# If .claude/local/state.md has an active workflow, extract phase/next-step for advisory reminder.
+#
+# IMPORTANT: scope the extraction to ONLY the `## Workflow` section. Migrated
+# content (e.g., from `setup.sh --migrate` ingesting old CONTINUITY.md "### Done"
+# entries that mention prior workflow scaffolds) can leave stray `| Command |`
+# lines elsewhere in the file. A whole-file grep would match every one of them
+# and `xargs` would join them with spaces — yielding garbage like
+# "WORKFLOW: none /lifecycle | Phase: n/a shipping". Scope first, then match.
 WORKFLOW_REMINDER=""
-if [ -f "CONTINUITY.md" ]; then
-    WORKFLOW_CMD=$(grep -E '\|\s*Command\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+if [ -f ".claude/local/state.md" ]; then
+    WORKFLOW_BLOCK=$(awk '/^## Workflow$/{flag=1;next} flag && /^## /{flag=0} flag' .claude/local/state.md 2>/dev/null)
+    WORKFLOW_CMD=$(echo "$WORKFLOW_BLOCK" | grep -E '\|\s*Command\s*\|' | head -1 | awk -F'|' '{print $3}' | xargs)
     if [ -n "$WORKFLOW_CMD" ] && [ "$WORKFLOW_CMD" != "none" ] && [ "$WORKFLOW_CMD" != "—" ] && [ "$WORKFLOW_CMD" != "-" ]; then
-        WORKFLOW_PHASE=$(grep -E '\|\s*Phase\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
-        WORKFLOW_NEXT=$(grep -E '\|\s*Next step\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+        WORKFLOW_PHASE=$(echo "$WORKFLOW_BLOCK" | grep -E '\|\s*Phase\s*\|' | head -1 | awk -F'|' '{print $3}' | xargs)
+        WORKFLOW_NEXT=$(echo "$WORKFLOW_BLOCK" | grep -E '\|\s*Next step\s*\|' | head -1 | awk -F'|' '{print $3}' | xargs)
         WORKFLOW_REMINDER="WORKFLOW: $WORKFLOW_CMD | Phase: $WORKFLOW_PHASE | Next: $WORKFLOW_NEXT"
     fi
 fi
 
 ISSUES=""
-
-# Block: uncommitted changes but CONTINUITY.md not updated
-if [ "$UNCOMMITTED" -gt 0 ] && [ "$CONTINUITY_MODIFIED" -eq 0 ]; then
-    ISSUES="Update CONTINUITY.md Done/Now/Next sections."
-fi
 
 # Block: 3+ files changed on branch but CHANGELOG.md never updated
 if [ "$TOTAL_CHANGED" -gt 3 ] && [ "$CHANGELOG_IN_BRANCH" -eq 0 ] && [ "$CHANGELOG_MODIFIED" -eq 0 ]; then

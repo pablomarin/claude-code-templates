@@ -20,6 +20,8 @@ param(
     [Alias("u")]
     [switch]$Upgrade,
 
+    [switch]$Migrate,
+
     [Alias("g")]
     [switch]$Global,
 
@@ -55,6 +57,7 @@ function Show-Usage {
     Write-Host "  -p, -Project NAME   Project name (default: directory name)"
     Write-Host "  -t, -Tech STACK     Tech stack: python, typescript, fullstack (default: fullstack)"
     Write-Host "  -f, -Force          Overwrite existing files"
+    Write-Host "  -Migrate            Migrate legacy CONTINUITY.md content to the new structure"
     Write-Host "  -g, -Global         Set up global memory system (~/.claude/)"
     Write-Host "  -w, -WithPlaywright Install Playwright framework templates (requires -Tech fullstack or typescript)"
     Write-Host ""
@@ -63,6 +66,7 @@ function Show-Usage {
     Write-Host "  .\setup.ps1 -p `"My Project`"          # Custom project name"
     Write-Host "  .\setup.ps1 -t python                # Python-only project"
     Write-Host "  .\setup.ps1 -f                       # Force overwrite existing files"
+    Write-Host "  .\setup.ps1 -Migrate                 # Migrate CONTINUITY.md to .claude/local/state.md + ADRs"
     Write-Host "  .\setup.ps1 -Global                  # Set up global memory (run once per machine)"
     Write-Host "  .\setup.ps1 -Global -f               # Force overwrite global settings"
     Write-Host "  .\setup.ps1 -Tech fullstack -WithPlaywright  # Install Playwright framework templates"
@@ -72,6 +76,20 @@ function Show-Usage {
 if ($Help) {
     Show-Usage
     exit 0
+}
+
+# --- Migration dispatch (PR #2 / continuity-split) -------------------------
+# Migration runs as a SEPARATE script for review hygiene. The logic lives at
+# $ScriptDir\scripts\migrate-continuity.ps1 -- not embedded here.
+if ($Migrate) {
+    $migrateHelper = Join-Path (Join-Path $ScriptDir "scripts") "migrate-continuity.ps1"
+    if (-not (Test-Path $migrateHelper)) {
+        [Console]::Error.WriteLine("x Migration helper not found at $migrateHelper")
+        [Console]::Error.WriteLine("  Your Forge clone may be incomplete. Re-clone from https://github.com/pablomarin/claude-codex-forge")
+        exit 1
+    }
+    & $migrateHelper
+    exit $LASTEXITCODE
 }
 
 # Copy function with force check
@@ -520,11 +538,16 @@ if ($hadClaude) {
 } else {
     Copy-TemplateFile (Join-Path $ScriptDir "CLAUDE.template.md") "CLAUDE.md" "CLAUDE.md"
 }
-if ($hadContinuity) {
-    Write-Host "  " -NoNewline; Write-Color "o" "Blue"; Write-Host " CONTINUITY.md already exists (never overwritten - user content)"
-    Write-TemplateDriftHint "CONTINUITY.template.md" "CONTINUITY.md"
-} else {
-    Copy-TemplateFile (Join-Path $ScriptDir "CONTINUITY.template.md") "CONTINUITY.md" "CONTINUITY.md"
+# Install state template (stable path under .claude/ -- used by /new-feature
+# Pre-Flight reuse and migration helper). Always refresh this -- it's the
+# canonical template, not user content.
+if (-not (Test-Path ".claude")) { New-Item -ItemType Directory -Path ".claude" -Force | Out-Null }
+Copy-TemplateFile (Join-Path $ScriptDir "state.template.md") ".claude\state.template.md" ".claude\state.template.md (template, stable path)"
+
+# Volatile per-developer state (gitignored, never overwritten).
+if (-not (Test-Path ".claude\local\state.md")) {
+    if (-not (Test-Path ".claude\local")) { New-Item -ItemType Directory -Path ".claude\local" -Force | Out-Null }
+    Copy-TemplateFile (Join-Path $ScriptDir "state.template.md") ".claude\local\state.md" ".claude\local\state.md (volatile per-developer state)"
 }
 
 # Resolve Python command (Windows uses 'python', Unix uses 'python3')
@@ -576,6 +599,31 @@ $libDir = ".claude\hooks\lib"
 if (-not (Test-Path $libDir)) { New-Item -ItemType Directory -Path $libDir -Force | Out-Null }
 Copy-TemplateFile (Join-Path (Join-Path (Join-Path $ScriptDir "hooks") "lib") "default-branch.ps1") "$libDir\default-branch.ps1" "$libDir\default-branch.ps1 (default-branch detection helper, PowerShell)"
 Copy-TemplateFile (Join-Path (Join-Path (Join-Path $ScriptDir "hooks") "lib") "default-branch.sh") "$libDir\default-branch.sh" "$libDir\default-branch.sh (default-branch detection helper, bash — used by commands/*.md preflight)"
+
+# ADRs -- ship template + README + seed ADRs (existing-file-skip semantics).
+if (-not (Test-Path "docs\adr")) { New-Item -ItemType Directory -Path "docs\adr" -Force | Out-Null }
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "docs") "adr\template.md") "docs\adr\template.md" "docs\adr\template.md"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "docs") "adr\README.md") "docs\adr\README.md" "docs\adr\README.md (ADR index)"
+foreach ($adr in @("0001-volatile-state-not-auto-loaded", "0002-bash-and-powershell-dual-platform", "0003-template-distributed-no-build-step", "0004-diataxis-docs-structure", "0005-hard-platform-parity-rule")) {
+    Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "docs") "adr\$adr.md") "docs\adr\$adr.md" "docs\adr\$adr.md"
+}
+
+# Append .claude/local/ to root .gitignore if not already present (idempotent).
+if (Test-Path ".gitignore") {
+    $gitignoreContent = Get-Content ".gitignore" -ErrorAction SilentlyContinue
+    if (-not ($gitignoreContent -contains ".claude/local/")) {
+        Add-Content -Path ".gitignore" -Value ""
+        Add-Content -Path ".gitignore" -Value "# Volatile per-developer workflow state (PR #2 / continuity-split)"
+        Add-Content -Path ".gitignore" -Value ".claude/local/"
+        Write-Host "  " -NoNewline; Write-Color "+" "Green"; Write-Host " Added .claude/local/ to .gitignore"
+    }
+} else {
+    @"
+# Volatile per-developer workflow state (PR #2 / continuity-split)
+.claude/local/
+"@ | Set-Content ".gitignore"
+    Write-Host "  " -NoNewline; Write-Color "+" "Green"; Write-Host " Created .gitignore with .claude/local/"
+}
 
 # Agents
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "agents") "verify-app.md") ".claude\agents\verify-app.md" ".claude\agents\verify-app.md"
@@ -956,21 +1004,33 @@ if ($Upgrade) {
             Write-Host "    git diff --no-index -- '$templatePath' '$localAbs'"
         }
         if ($hadContinuity) {
-            $templatePath = Join-Path $ScriptDir "CONTINUITY.template.md"
-            $localAbs = Join-Path $cwd "CONTINUITY.md"
-            Write-Host "    git diff --no-index -- '$templatePath' '$localAbs'"
+            Write-Host "    (Legacy CONTINUITY.md detected -- see migration prompt below.)"
         }
         Write-Host "  (Or ask Claude to reconcile - point it at the diff output.)"
+        Write-Host ""
+    }
+    # PR #2 (continuity-split): legacy CONTINUITY.md migration prompt.
+    if ($hadContinuity) {
+        Write-Color "! Legacy CONTINUITY.md detected." "Yellow"
+        Write-Host "  PR #2 (continuity-split) replaces CONTINUITY.md with three artifacts:"
+        Write-Host "    - durable team-shared facts -> CLAUDE.md"
+        Write-Host "    - architecture decisions -> docs/adr/NNNN-*.md"
+        Write-Host "    - volatile per-developer state -> .claude/local/state.md (gitignored)"
+        Write-Host "  Run the migration assistant to move your content into the new structure:"
+        Write-Host ""
+        Write-Host "    .\setup.ps1 -Migrate"
+        Write-Host ""
+        Write-Host "  The migration is idempotent (sentinel-marker-based) and preserves your CONTINUITY.md byte-for-byte."
         Write-Host ""
     }
     # Replaces a pre-existing hardcoded claim that lied whenever the user had
     # deleted one of the files before running --upgrade.
     if ($hadClaude -and $hadContinuity) {
-        Write-Color "Upgrade done! Your CLAUDE.md and CONTINUITY.md were preserved (user content)." "Green"
+        Write-Color "Upgrade done! Your CLAUDE.md and CONTINUITY.md were preserved (run -Migrate to move content to the new structure)." "Green"
     } elseif ($hadClaude) {
         Write-Color "Upgrade done! Your CLAUDE.md was preserved (user content)." "Green"
     } elseif ($hadContinuity) {
-        Write-Color "Upgrade done! Your CONTINUITY.md was preserved (user content)." "Green"
+        Write-Color "Upgrade done! Your CONTINUITY.md was preserved (run -Migrate to move content to the new structure)." "Green"
     } else {
         Write-Color "Upgrade done!" "Green"
     }
@@ -982,7 +1042,8 @@ if ($Upgrade) {
     Write-Color "What was created:" "Yellow"
     Write-Host ""
     Write-Host "  CLAUDE.md                Your project description (edit this!)"
-    Write-Host "  CONTINUITY.md            Task state that persists across sessions"
+    Write-Host "  .claude\local\state.md   Volatile per-developer workflow state (gitignored)"
+    Write-Host "  .claude\state.template.md Canonical state template (always-refresh)"
     Write-Host "  .claude\settings.json    Hooks and permissions"
     Write-Host "  .mcp.json                MCP servers (Playwright + Context7)"
     Write-Host "  .claude\commands\        Workflow commands: /new-feature, /fix-bug, /quick-fix"
@@ -990,7 +1051,7 @@ if ($Upgrade) {
     Write-Host "  .claude\agents\          Subagent definitions (verify-app, verify-e2e)"
     Write-Host "  .claude\rules\           Coding standards + workflow rules (safe to update)"
     Write-Host "  .claude\skills\           Skills (release, council, ui-design if typescript/fullstack)"
-    Write-Host "  docs\                    Changelog, PRDs, solutions knowledge base"
+    Write-Host "  docs\                    Changelog, ADRs (docs\adr\), PRDs, solutions knowledge base"
     Write-Host ""
     Write-Color "Plugins pre-enabled in .claude\settings.json:" "Yellow"
     Write-Host ""
@@ -1023,8 +1084,9 @@ if ($Upgrade) {
     Write-Host "   (It's intentionally short - all rules live in .claude\rules\)"
     Write-Host ""
     Write-Host "2. " -NoNewline
-    Write-Color "Edit CONTINUITY.md" "Blue"
-    Write-Host " - Set your current goal and task state"
+    Write-Color "Set your project goal" "Blue"
+    Write-Host " - In CLAUDE.md, add one sentence under '### Goal'"
+    Write-Host "   (Volatile state lives in .claude\local\state.md - gitignored, populated by /new-feature)"
     Write-Host ""
     Write-Host "3. " -NoNewline
     Write-Color "Install the Superpowers plugin" "Blue"
@@ -1052,7 +1114,7 @@ if ($Upgrade) {
     Write-Color "Commit and push" "Blue"
     Write-Host ":"
     Write-Host ""
-    Write-Host "   git add .claude/ .mcp.json CLAUDE.md CONTINUITY.md docs/"
+    Write-Host "   git add .claude/ .mcp.json CLAUDE.md docs/"
     Write-Host "   git commit -m `"chore: add Claude Code automation setup`""
     Write-Host "   git push"
     Write-Host ""

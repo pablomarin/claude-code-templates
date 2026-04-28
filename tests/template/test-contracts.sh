@@ -199,42 +199,51 @@ assert_contains "$SETUP_SH"  "$DRIFT_MSG" "setup.sh contains drift-hint message"
 assert_contains "$SETUP_PS1" "$DRIFT_MSG" "setup.ps1 contains drift-hint message"
 
 # (ii) Template filenames referenced
-assert_contains "$SETUP_SH"  "CLAUDE.template.md"      "setup.sh references CLAUDE.template.md"
-assert_contains "$SETUP_SH"  "CONTINUITY.template.md"  "setup.sh references CONTINUITY.template.md"
-assert_contains "$SETUP_PS1" "CLAUDE.template.md"      "setup.ps1 references CLAUDE.template.md"
-assert_contains "$SETUP_PS1" "CONTINUITY.template.md"  "setup.ps1 references CONTINUITY.template.md"
+# Post PR #2: CONTINUITY.template.md no longer ships, so it must NOT be
+# referenced from setup.{sh,ps1}. CLAUDE.template.md remains the source for
+# the preserved-CLAUDE drift hint.
+assert_contains     "$SETUP_SH"  "CLAUDE.template.md"      "setup.sh references CLAUDE.template.md"
+assert_not_contains "$SETUP_SH"  "CONTINUITY.template.md"  "setup.sh does NOT reference CONTINUITY.template.md (deleted in PR #2)"
+assert_contains     "$SETUP_PS1" "CLAUDE.template.md"      "setup.ps1 references CLAUDE.template.md"
+assert_not_contains "$SETUP_PS1" "CONTINUITY.template.md"  "setup.ps1 does NOT reference CONTINUITY.template.md (deleted in PR #2)"
 
 # (iii) git diff --no-index suggested (cross-platform, works in Git Bash)
 assert_contains "$SETUP_SH"  "git diff --no-index" "setup.sh suggests git diff --no-index"
 assert_contains "$SETUP_PS1" "git diff --no-index" "setup.ps1 suggests git diff --no-index"
 
-# (iv) Exact call-site fingerprints — prove helpers are invoked, not dead.
-# setup.sh: Bash helper name + positional args
+# (iv) Exact call-site fingerprints — prove the CLAUDE.md drift-hint helper
+# is invoked, not dead. The CONTINUITY drift-hint call site is removed in
+# PR #2 (the file is gone); migration prompt replaces it.
 assert_contains "$SETUP_SH" 'print_template_drift_hint "CLAUDE.template.md" "CLAUDE.md"' \
     "setup.sh calls drift-hint helper for CLAUDE.md"
-assert_contains "$SETUP_SH" 'print_template_drift_hint "CONTINUITY.template.md" "CONTINUITY.md"' \
-    "setup.sh calls drift-hint helper for CONTINUITY.md"
-# setup.ps1: PowerShell helper name + positional args
 assert_contains "$SETUP_PS1" 'Write-TemplateDriftHint "CLAUDE.template.md" "CLAUDE.md"' \
     "setup.ps1 calls drift-hint helper for CLAUDE.md"
-assert_contains "$SETUP_PS1" 'Write-TemplateDriftHint "CONTINUITY.template.md" "CONTINUITY.md"' \
-    "setup.ps1 calls drift-hint helper for CONTINUITY.md"
 
-# (v) Final-summary parity: all three positive variants + negative legacy guard
-BOTH_VARIANT="Your CLAUDE.md and CONTINUITY.md were preserved (user content)"
+# (iv-bis) Migration prompt — both installers must surface --migrate (sh) /
+# -Migrate (ps1) when a legacy CONTINUITY.md is detected.
+assert_contains "$SETUP_SH"  "./setup.sh --migrate"  "setup.sh prompts --migrate for legacy CONTINUITY.md"
+assert_contains "$SETUP_PS1" "-Migrate"              "setup.ps1 prompts -Migrate for legacy CONTINUITY.md"
+
+# (v) Final-summary parity: three positive variants + negative legacy guard.
+# Post PR #2: when CONTINUITY.md is preserved the variant prompts the user to
+# run --migrate; when only CLAUDE.md is preserved the original "(user content)"
+# wording stays.
+BOTH_VARIANT_SH="Your CLAUDE.md and CONTINUITY.md were preserved (run --migrate to move content to the new structure)"
+BOTH_VARIANT_PS1="Your CLAUDE.md and CONTINUITY.md were preserved (run -Migrate to move content to the new structure)"
 CLAUDE_VARIANT="Your CLAUDE.md was preserved (user content)"
-CONTINUITY_VARIANT="Your CONTINUITY.md was preserved (user content)"
+CONTINUITY_VARIANT_SH="Your CONTINUITY.md was preserved (run --migrate to move content to the new structure)"
+CONTINUITY_VARIANT_PS1="Your CONTINUITY.md was preserved (run -Migrate to move content to the new structure)"
 LEGACY_STRING="were not modified"
 
-assert_contains "$SETUP_SH"  "$BOTH_VARIANT"       "setup.sh has both-preserved final variant"
-assert_contains "$SETUP_SH"  "$CLAUDE_VARIANT"     "setup.sh has only-CLAUDE final variant"
-assert_contains "$SETUP_SH"  "$CONTINUITY_VARIANT" "setup.sh has only-CONTINUITY final variant"
-assert_not_contains "$SETUP_SH" "$LEGACY_STRING"   "setup.sh removed legacy 'were not modified'"
+assert_contains "$SETUP_SH"  "$BOTH_VARIANT_SH"       "setup.sh has both-preserved final variant"
+assert_contains "$SETUP_SH"  "$CLAUDE_VARIANT"        "setup.sh has only-CLAUDE final variant"
+assert_contains "$SETUP_SH"  "$CONTINUITY_VARIANT_SH" "setup.sh has only-CONTINUITY final variant"
+assert_not_contains "$SETUP_SH" "$LEGACY_STRING"      "setup.sh removed legacy 'were not modified'"
 
-assert_contains "$SETUP_PS1" "$BOTH_VARIANT"       "setup.ps1 has both-preserved final variant"
-assert_contains "$SETUP_PS1" "$CLAUDE_VARIANT"     "setup.ps1 has only-CLAUDE final variant"
-assert_contains "$SETUP_PS1" "$CONTINUITY_VARIANT" "setup.ps1 has only-CONTINUITY final variant"
-assert_not_contains "$SETUP_PS1" "$LEGACY_STRING"  "setup.ps1 removed legacy 'were not modified'"
+assert_contains "$SETUP_PS1" "$BOTH_VARIANT_PS1"       "setup.ps1 has both-preserved final variant"
+assert_contains "$SETUP_PS1" "$CLAUDE_VARIANT"         "setup.ps1 has only-CLAUDE final variant"
+assert_contains "$SETUP_PS1" "$CONTINUITY_VARIANT_PS1" "setup.ps1 has only-CONTINUITY final variant"
+assert_not_contains "$SETUP_PS1" "$LEGACY_STRING"      "setup.ps1 removed legacy 'were not modified'"
 
 # ---------------------------------------------------------------------------
 # Contract 4: CI template placeholder ↔ setup.sh substitution
@@ -348,6 +357,300 @@ assert_contains "$SS_SH"  "$BEHIND_PHRASE" \
     "session-start.sh contains '$BEHIND_PHRASE'"
 assert_contains "$SS_PS1" "$BEHIND_PHRASE" \
     "session-start.ps1 contains '$BEHIND_PHRASE'"
+
+# ---------------------------------------------------------------------------
+# CONTINUITY-split contracts (PR #2)
+# ---------------------------------------------------------------------------
+
+# Helper — find a usable PowerShell runtime; skip parity test if none.
+detect_pwsh() {
+    if command -v pwsh >/dev/null 2>&1; then echo "pwsh"; return 0; fi
+    if command -v powershell >/dev/null 2>&1; then echo "powershell"; return 0; fi
+    if command -v powershell.exe >/dev/null 2>&1; then echo "powershell.exe"; return 0; fi
+    return 1
+}
+
+# Helper — count CONTINUITY.md hits in a path that indicate an actual
+# operational dependency on CONTINUITY.md (reading state from it, gating
+# workflows on it, falling back to it). Excludes:
+#   - Comment lines (sh `#`, ps1 `#`)
+#   - User-facing message lines: echo / printf / Write-Output / Write-Host /
+#     Write-Error / Write-Warning / [Console]::*::Write* — CONTINUITY.md
+#     appearing inside a quoted string in these contexts is just a breadcrumb,
+#     not a code path that depends on the file.
+#   - Existence-probe gates: `[ -f / -e CONTINUITY.md ]`, `[[ -f / -e ... ]]`,
+#     `Test-Path "CONTINUITY.md"` — these intentionally probe for the legacy
+#     file ONLY to decide whether to print the migration breadcrumb. They are
+#     part of the migration UX, not a state dependency.
+#   - Allowlisted historical references in docs (CHANGELOG, upgrading guide,
+#     troubleshooting migration section).
+#
+# What WILL be counted (and should fail the contract):
+#   - `cat CONTINUITY.md`, `grep ... CONTINUITY.md`, `< CONTINUITY.md`
+#   - `Get-Content CONTINUITY.md`, `Select-String ... CONTINUITY.md`
+#   - any other code path that reads from or writes to CONTINUITY.md as state.
+count_continuity_refs_excluding_allowlist() {
+    local search_path="$1"
+    grep -rn "CONTINUITY\.md" "$search_path" 2>/dev/null \
+        | grep -vE ':(docs/CHANGELOG\.md|docs/guides/upgrading\.md|docs/troubleshooting\.md):' \
+        | grep -vE ':[[:space:]]*#' \
+        | grep -vE '(echo|printf|Write-Output|Write-Host|Write-Error|Write-Warning|\[Console\]::[A-Za-z]+\.Write[A-Za-z]*)' \
+        | grep -vE '(\[[[:space:]]*!?[[:space:]]*-[fe][[:space:]]+"?CONTINUITY\.md"?[[:space:]]*\]|Test-Path[[:space:]]+"?CONTINUITY\.md"?)' \
+        | wc -l | tr -d ' '
+}
+
+start_test "no-CONTINUITY-in-hooks"
+hits=$(count_continuity_refs_excluding_allowlist "$REPO_ROOT/hooks")
+assert_equals "$hits" "0" "no CONTINUITY.md references in hooks/"
+
+start_test "no-CONTINUITY-in-commands"
+hits=$(count_continuity_refs_excluding_allowlist "$REPO_ROOT/commands")
+assert_equals "$hits" "0" "no CONTINUITY.md references in commands/"
+
+start_test "no-CONTINUITY-in-rules-agents-settings"
+total=0
+for d in rules agents settings; do
+    h=$(count_continuity_refs_excluding_allowlist "$REPO_ROOT/$d")
+    total=$((total + h))
+done
+assert_equals "$total" "0" "no CONTINUITY.md references in rules/, agents/, settings/"
+
+# AC-3 broadened — also cover root templates (Codex P1 finding).
+start_test "no-CONTINUITY-in-root-templates"
+total=0
+for f in CLAUDE.template.md GLOBAL-CLAUDE.template.md state.template.md; do
+    [ -f "$REPO_ROOT/$f" ] || continue
+    # `grep -c` always prints a count to stdout; rc=1 when 0 matches.
+    # Don't chain with `|| echo 0` — that produces double-output and breaks arith.
+    n=$(grep -c "CONTINUITY\.md" "$REPO_ROOT/$f" 2>/dev/null)
+    [ -z "$n" ] && n=0
+    total=$((total + n))
+done
+assert_equals "$total" "0" "no CONTINUITY.md in root templates (CLAUDE.template.md, GLOBAL-CLAUDE.template.md, state.template.md)"
+
+start_test "hooks-parity-missing-state"
+ps_runner=$(detect_pwsh)
+if [ -z "$ps_runner" ]; then
+    pass "ℹ no PowerShell runtime found (pwsh / powershell / powershell.exe); skipping bash/PS parity test"
+else
+    scratch=$(mktemp -d)
+    ( cd "$scratch" && git init -q )
+    sh_out=$(cd "$scratch" && echo '{"tool_input":{"command":"git commit -m x"}}' | bash "$REPO_ROOT/hooks/check-workflow-gates.sh" 2>&1)
+    ps_out=$(cd "$scratch" && echo '{"tool_input":{"command":"git commit -m x"}}' | "$ps_runner" -NoProfile -File "$REPO_ROOT/hooks/check-workflow-gates.ps1" 2>&1)
+    assert_equals "$sh_out" "$ps_out" "bash and PS check-workflow-gates emit byte-equivalent missing-state breadcrumb"
+    rm -rf "$scratch"
+
+    # AC-4 broadened — also cover check-state-updated parity.
+    scratch=$(mktemp -d)
+    ( cd "$scratch" && git init -q )
+    sh_out=$(cd "$scratch" && bash "$REPO_ROOT/hooks/check-state-updated.sh" < /dev/null 2>&1)
+    ps_out=$(cd "$scratch" && "$ps_runner" -NoProfile -File "$REPO_ROOT/hooks/check-state-updated.ps1" < /dev/null 2>&1)
+    assert_equals "$sh_out" "$ps_out" "bash and PS check-state-updated emit byte-equivalent missing-state breadcrumb"
+    rm -rf "$scratch"
+
+    # AC-4 malformed-file parity (state.md exists but missing Command field).
+    scratch=$(mktemp -d)
+    (
+        cd "$scratch" && git init -q && mkdir -p .claude/local && cat > .claude/local/state.md <<'EOF'
+# state without Command field
+## Workflow
+| Field | Value |
+| Phase | 3 |
+EOF
+    )
+    sh_out=$(cd "$scratch" && bash "$REPO_ROOT/hooks/check-state-updated.sh" < /dev/null 2>&1)
+    ps_out=$(cd "$scratch" && "$ps_runner" -NoProfile -File "$REPO_ROOT/hooks/check-state-updated.ps1" < /dev/null 2>&1)
+    assert_equals "$sh_out" "$ps_out" "bash and PS check-state-updated handle malformed state.md identically"
+    rm -rf "$scratch"
+fi
+
+start_test "adr-template-canonical-5-sections"
+headers=$(grep -E "^## " "$REPO_ROOT/docs/adr/template.md" | sort -u)
+# Note: sort puts 'Consequences' before 'Considered' (e < i at position 5).
+expected="## Consequences
+## Considered Options
+## Context
+## Decision
+## Status"
+if [ "$headers" = "$expected" ]; then
+    pass "ADR template has the canonical 5 sections"
+else
+    fail "ADR template headers don't match canonical 5: got '$headers'"
+fi
+
+start_test "adr-seed-files-canonical-5-sections"
+all_ok=true
+for f in "$REPO_ROOT"/docs/adr/[0-9][0-9][0-9][0-9]-*.md; do
+    [ -f "$f" ] || continue
+    for h in "## Status" "## Context" "## Considered Options" "## Decision" "## Consequences"; do
+        if ! grep -qF "$h" "$f"; then
+            fail "$(basename "$f") missing $h"
+            all_ok=false
+        fi
+    done
+done
+$all_ok && pass "all docs/adr/NNNN-*.md have the canonical 5 sections"
+
+# AC-2 verification: state.template.md has the canonical schema headers.
+start_test "state-template-canonical-schema"
+required_headers=(
+    "## Workflow"
+    "### Checklist"
+    "## State"
+    "### Done"
+    "### Now"
+    "### Next"
+    "### Deferred"
+    "## Open Questions"
+    "## Blockers"
+    "## Update Rules"
+)
+all_ok=true
+for h in "${required_headers[@]}"; do
+    if ! grep -qF "$h" "$REPO_ROOT/state.template.md"; then
+        fail "state.template.md missing canonical header: '$h'"
+        all_ok=false
+    fi
+done
+# Default Command value must be 'none'.
+if grep -qE '\|\s*Command\s*\|\s*none\s*\|' "$REPO_ROOT/state.template.md"; then
+    pass "state.template.md default Command is 'none'"
+else
+    fail "state.template.md default Command is not 'none' (AC-2 violation)"
+fi
+$all_ok && pass "state.template.md has all canonical schema headers (AC-2)"
+
+# P2-7: bash/PS migration-helper parity. Run both migrate-continuity scripts
+# on the same fixture, compare stdout + state.md + ADR file content. Skips
+# gracefully when no PowerShell runtime is installed.
+start_test "migration-parity-bash-vs-ps"
+ps_runner=$(detect_pwsh)
+if [ -z "$ps_runner" ]; then
+    pass "ℹ no PowerShell runtime found; skipping migration bash/PS parity test"
+else
+    # Build a shared fixture directory layout. Both runs need identical inputs.
+    make_fixture() {
+        local d="$1"
+        mkdir -p "$d/.claude/local"
+        cp "$REPO_ROOT/state.template.md" "$d/.claude/local/state.md"
+        cat > "$d/CONTINUITY.md" <<'EOF'
+# CONTINUITY
+
+## Goal
+
+Build a thing.
+
+## Architecture Decisions
+
+| Decision | Choice | Why |
+|----------|--------|-----|
+| DB | Postgres | ACID |
+
+## State
+
+### Done (recent 2-3 only)
+
+- 2026-04-01: shipped feature X
+- 2026-04-02: shipped feature Y
+- 2026-04-03: shipped feature Z
+
+### Now
+
+Working on the migration assistant.
+
+### Next
+
+- ship PR #2
+
+EOF
+        cat > "$d/CLAUDE.md" <<'EOF'
+# CLAUDE.md - Test Project
+
+## Project Overview
+
+A test project.
+EOF
+    }
+
+    sh_dir=$(mktemp -d)
+    ps_dir=$(mktemp -d)
+    make_fixture "$sh_dir"
+    make_fixture "$ps_dir"
+
+    sh_out=$(cd "$sh_dir" && bash "$REPO_ROOT/scripts/migrate-continuity.sh" 2>&1)
+    ps_out=$(cd "$ps_dir" && "$ps_runner" -NoProfile -File "$REPO_ROOT/scripts/migrate-continuity.ps1" 2>&1)
+
+    # Stdout: byte-equivalent.
+    if [ "$sh_out" = "$ps_out" ]; then
+        pass "bash and PS migrate-continuity emit byte-equivalent stdout"
+    else
+        fail "stdout differs between bash and PS migrate-continuity"
+        diff <(printf '%s' "$sh_out") <(printf '%s' "$ps_out") | head -20
+    fi
+
+    # state.md content: byte-equivalent.
+    if cmp -s "$sh_dir/.claude/local/state.md" "$ps_dir/.claude/local/state.md"; then
+        pass "state.md content byte-equivalent across bash and PS"
+    else
+        fail "state.md content differs between bash and PS migrate-continuity"
+        diff "$sh_dir/.claude/local/state.md" "$ps_dir/.claude/local/state.md" | head -20
+    fi
+
+    # Sentinel placement: line 1 of both state.md AND CLAUDE.md, in BOTH runs.
+    for d in "$sh_dir" "$ps_dir"; do
+        first_state=$(head -1 "$d/.claude/local/state.md")
+        first_claude=$(head -1 "$d/CLAUDE.md")
+        case "$first_state" in
+            "<!-- forge:migrated "*"-->") : ;;
+            *)  fail "sentinel NOT on line 1 of $d/.claude/local/state.md (got: $first_state)" ;;
+        esac
+        case "$first_claude" in
+            "<!-- forge:migrated "*"-->") : ;;
+            *)  fail "sentinel NOT on line 1 of $d/CLAUDE.md (got: $first_claude)" ;;
+        esac
+    done
+    pass "sentinel on line 1 of state.md AND CLAUDE.md in both bash and PS runs"
+
+    # ADR content: at least one ADR was created in both, and contents match.
+    sh_adr=$(find "$sh_dir/docs/adr" -name "*-db.md" -o -name "*-database.md" 2>/dev/null | head -1)
+    ps_adr=$(find "$ps_dir/docs/adr" -name "*-db.md" -o -name "*-database.md" 2>/dev/null | head -1)
+    if [ -n "$sh_adr" ] && [ -n "$ps_adr" ]; then
+        if cmp -s "$sh_adr" "$ps_adr"; then
+            pass "ADR file content byte-equivalent across bash and PS"
+        else
+            fail "ADR file content differs between bash and PS"
+            diff "$sh_adr" "$ps_adr" | head -20
+        fi
+    else
+        fail "ADR file missing in one or both runs (sh: '$sh_adr', ps: '$ps_adr')"
+    fi
+
+    # CLAUDE.md content: byte-equivalent (Goal injection should produce same output).
+    if cmp -s "$sh_dir/CLAUDE.md" "$ps_dir/CLAUDE.md"; then
+        pass "CLAUDE.md content byte-equivalent after migration (bash vs PS)"
+    else
+        fail "CLAUDE.md content differs between bash and PS migrate-continuity"
+        diff "$sh_dir/CLAUDE.md" "$ps_dir/CLAUDE.md" | head -20
+    fi
+
+    rm -rf "$sh_dir" "$ps_dir"
+fi
+
+# AC-2 byte-identical STATE-INIT contract: the bash block in commands/new-feature.md
+# and commands/fix-bug.md between # STATE-INIT-BEGIN and # STATE-INIT-END markers
+# must be byte-identical (mirrors the existing DRIFT-PREFLIGHT-NEW contract from PR #1).
+start_test "state-init-block-byte-identical-across-commands"
+extract_state_init() {
+    awk '/^# STATE-INIT-BEGIN/{flag=1} flag{print} /^# STATE-INIT-END/{flag=0}' "$1"
+}
+nf_block=$(extract_state_init "$REPO_ROOT/commands/new-feature.md")
+fb_block=$(extract_state_init "$REPO_ROOT/commands/fix-bug.md")
+if [ -z "$nf_block" ]; then fail "STATE-INIT-BEGIN/END markers not found in commands/new-feature.md"
+elif [ -z "$fb_block" ]; then fail "STATE-INIT-BEGIN/END markers not found in commands/fix-bug.md"
+elif ! echo "$nf_block" | grep -q "state.md"; then fail "STATE-INIT block in new-feature.md doesn't reference state.md (sanity check)"
+elif [ "$nf_block" = "$fb_block" ]; then pass "STATE-INIT block byte-identical across new-feature.md and fix-bug.md"
+else fail "STATE-INIT block diverges between new-feature.md and fix-bug.md"
+fi
 
 # ---------------------------------------------------------------------------
 # Report

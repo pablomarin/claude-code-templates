@@ -35,13 +35,13 @@ Copy-paste friendly cheatsheet for the full daily workflow.
 │                                                             │
 │ → Updates hooks, commands, rules (overwrites)               │
 │ → Merges settings.json + .mcp.json (adds new, keeps yours)  │
-│ → Never touches CLAUDE.md or CONTINUITY.md                  │
+│ → Never touches CLAUDE.md (your project description)        │
 ├─────────────────────────────────────────────────────────────┤
 │ DAILY WORKFLOW (Hooks enforce this!)                        │
 ├─────────────────────────────────────────────────────────────┤
 │ START:                                                      │
 │   claude                               ← Start Claude Code  │
-│   CONTINUITY.md loads automatically    ← @import in CLAUDE.md │
+│   Hooks read .claude/local/state.md    ← gitignored state   │
 │                                                             │
 │ THEN RUN ONE OF THESE COMMANDS:                             │
 │   /new-feature <name>  ← Full workflow (Research→PRD→Plan)  │
@@ -69,7 +69,7 @@ Copy-paste friendly cheatsheet for the full daily workflow.
 │ SHORTCUTS                                                   │
 ├─────────────────────────────────────────────────────────────┤
 │ Shift+Tab  → Toggle auto-accept mode                        │
-│ /clear     → Fresh context (CONTINUITY.md re-imported)      │
+│ /clear     → Fresh context (rules re-loaded from disk)      │
 │ /compact   → Compact context (triggers PreCompact hook)     │
 │ /cost      → Check token usage                              │
 │ Escape     → Interrupt Claude                               │

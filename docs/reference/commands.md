@@ -11,7 +11,7 @@ All slash commands and subagents available after setup.
 | `/quick-fix <name>`   | Trivial changes only  | < 3 files, no arch impact, still requires verify                                 |
 | `/finish-branch`      | Merge + cleanup       | Merge PR to main → Delete remote/local branch + worktree → Restart servers       |
 
-**Workflow commands guide the process.** CONTINUITY.md auto-loads via `@import`, Stop hook validates completion.
+**Workflow commands guide the process.** `.claude/local/state.md` is read on demand by hooks (not auto-loaded), and the Stop hook reminds you to keep it current; `check-workflow-gates.sh` validates completion before commit/push/PR.
 
 ## Decision Analysis
 
@@ -86,3 +86,20 @@ Custom subagents available via the Task tool.
 | `verify-e2e`      | User-journey E2E through API / UI / CLI; produces markdown report at `tests/e2e/reports/`         | "Use the verify-e2e agent"                            |
 | `research-first`  | Pre-design library/API research via Context7 + official docs; writes `docs/research/<feature>.md` | Phase 2 of `/new-feature`, Phase 2.5 of `/fix-bug`    |
 | `council-advisor` | Engineering Council advisor (persona via prompt)                                                  | Dispatched by `/council` skill — not invoked directly |
+
+---
+
+## `setup.sh` Flags
+
+Run from a fresh `claude-codex-forge` clone.
+
+| Flag                               | Purpose                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-p "Project Name"`                | Project name (required for fresh installs)                                                                                                                                                                                                                                                                            |
+| `-t python\|typescript\|fullstack` | Pick the language profile (controls which `rules/*.md` get installed)                                                                                                                                                                                                                                                 |
+| `-f`                               | Force-overwrite refreshable templates (rules, commands, hooks, settings)                                                                                                                                                                                                                                              |
+| `--upgrade`                        | Same as `-f` plus a template-drift summary at the end                                                                                                                                                                                                                                                                 |
+| `--global`                         | Install global files into `~/.claude/`                                                                                                                                                                                                                                                                                |
+| `--with-playwright`                | Scaffold Playwright config + auth fixture + reference CI workflow                                                                                                                                                                                                                                                     |
+| `--playwright-dir <path>`          | Override autodetected scaffolding directory for monorepos                                                                                                                                                                                                                                                             |
+| `--migrate`                        | Run the legacy-state-file migration assistant: extracts Goal into `CLAUDE.md`, decisions into `docs/adr/`, and Done/Now/Next into `.claude/local/state.md`. Idempotent; original file preserved byte-for-byte. Flags any dangling `@`-import in `CLAUDE.md`. See `docs/guides/upgrading.md` for the full walkthrough. |

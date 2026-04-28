@@ -274,16 +274,21 @@ assert_hash_equals "$S8/CONTINUITY.md" "$HASH_CONTINUITY" \
 
 # UC1 drift notice: --upgrade with BOTH user files present → per-file hints,
 # consolidated reminder, both-preserved final summary.
+# Post PR #2: CONTINUITY.template.md no longer exists, so the per-file diff
+# hint only applies to CLAUDE.md. Legacy CONTINUITY.md gets a migration prompt
+# instead, and the both-preserved final summary now points at --migrate.
 assert_contains "$LOG8b" "Template may have drifted" \
     "UC1: --upgrade shows drift notice"
 assert_contains "$LOG8b" "git diff --no-index" \
     "UC1: --upgrade suggests git diff --no-index"
 assert_contains "$LOG8b" "CLAUDE.template.md" \
     "UC1: --upgrade references CLAUDE.template.md"
-assert_contains "$LOG8b" "CONTINUITY.template.md" \
-    "UC1: --upgrade references CONTINUITY.template.md"
-assert_contains "$LOG8b" "Your CLAUDE.md and CONTINUITY.md were preserved (user content)" \
-    "UC1: --upgrade final summary = both-preserved variant"
+assert_not_contains "$LOG8b" "CONTINUITY.template.md" \
+    "UC1: --upgrade does NOT reference CONTINUITY.template.md (deleted in PR #2)"
+assert_contains "$LOG8b" "./setup.sh --migrate" \
+    "UC1: --upgrade prompts --migrate for legacy CONTINUITY.md"
+assert_contains "$LOG8b" "Your CLAUDE.md and CONTINUITY.md were preserved (run --migrate to move content to the new structure)" \
+    "UC1: --upgrade final summary = both-preserved variant (--migrate suffix)"
 assert_not_contains "$LOG8b" "were not modified" \
     "UC1: --upgrade does NOT contain legacy 'were not modified' string"
 
@@ -409,13 +414,17 @@ assert_contains "$LOG9f" "Prerequisites OK" \
 # ===========================================================================
 start_test "Test 10: asymmetric preservation drift notice"
 
-# Scenario A — user deleted CLAUDE.md, kept CONTINUITY.md.
-# Expect: only-CONTINUITY drift hint, only-CONTINUITY final summary variant.
+# Scenario A — legacy install with CONTINUITY.md, no CLAUDE.md.
+# Post PR #2 the fresh install does not create CONTINUITY.md, so we seed it
+# manually to simulate a legacy install that hasn't run --migrate yet (the
+# motivating real-world scenario for this variant).
+# Expect: migration prompt for CONTINUITY, only-CONTINUITY final summary variant.
 S10a=$(scratch_dir upgrade-asym-a)
 make_project "$S10a" frontend
 run_setup "$S10a" "$S10a/.install.log" -p "AsymA" -t fullstack
 assert_equals "$?" "0" "Scenario A: initial install exits 0"
 rm -f "$S10a/CLAUDE.md"  # simulate user clearing CLAUDE.md
+echo "# legacy CONTINUITY.md" > "$S10a/CONTINUITY.md"  # seed legacy file
 
 run_setup "$S10a" "$S10a/.upgrade.log" --upgrade
 assert_equals "$?" "0" "Scenario A: --upgrade exits 0"
@@ -424,14 +433,16 @@ assert_file_exists "$S10a/CLAUDE.md" \
 assert_file_exists "$S10a/CONTINUITY.md" \
     "Scenario A: CONTINUITY.md still present"
 
-# Drift hint must fire ONLY for CONTINUITY (CLAUDE was recreated, not preserved).
-assert_contains "$S10a/.upgrade.log" "Template may have drifted" \
-    "Scenario A: drift hint fires (for CONTINUITY)"
-assert_contains "$S10a/.upgrade.log" "CONTINUITY.template.md" \
-    "Scenario A: drift hint references CONTINUITY.template.md"
-# Final summary: only-CONTINUITY variant.
-assert_contains "$S10a/.upgrade.log" "Your CONTINUITY.md was preserved (user content)" \
-    "Scenario A: final summary = only-CONTINUITY variant"
+# Migration prompt must fire because legacy CONTINUITY.md is present.
+assert_contains "$S10a/.upgrade.log" "Legacy CONTINUITY.md detected" \
+    "Scenario A: migration prompt fires (for legacy CONTINUITY)"
+assert_contains "$S10a/.upgrade.log" "./setup.sh --migrate" \
+    "Scenario A: migration prompt suggests ./setup.sh --migrate"
+assert_not_contains "$S10a/.upgrade.log" "CONTINUITY.template.md" \
+    "Scenario A: log does NOT reference CONTINUITY.template.md (deleted in PR #2)"
+# Final summary: only-CONTINUITY variant (with --migrate suffix).
+assert_contains "$S10a/.upgrade.log" "Your CONTINUITY.md was preserved (run --migrate to move content to the new structure)" \
+    "Scenario A: final summary = only-CONTINUITY variant (--migrate suffix)"
 assert_not_contains "$S10a/.upgrade.log" "Your CLAUDE.md and CONTINUITY.md were preserved" \
     "Scenario A: final summary is NOT the both-preserved variant"
 assert_not_contains "$S10a/.upgrade.log" "were not modified" \
@@ -511,6 +522,166 @@ assert_hash_equals "$S11/.claude/hooks/lib/default-branch.sh" "$SRC_HASH" \
 # Note: setup.ps1 (Windows installer) installs default-branch.ps1; setup.sh
 # (Unix installer) installs only default-branch.sh. The cross-installer parity
 # is covered by test-contracts.sh (Contract: hooks/lib parity setup.sh ↔ setup.ps1).
+
+# ===========================================================================
+# Test 12: state.md, ADR, gitignore install assertions (PR #2 — continuity-split)
+# ===========================================================================
+start_test "Test 12: continuity-split install assertions"
+
+# Verify state.template.md installs to .claude/local/state.md (fresh install).
+test_state_md_installs() {
+    local scratch; scratch=$(scratch_dir state-md-install)
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    if [ -f "$scratch/.claude/local/state.md" ]; then
+        pass ".claude/local/state.md installed on fresh setup"
+    else
+        fail ".claude/local/state.md NOT installed on fresh setup"
+    fi
+    # The harness-side state.template.md (from T12 Step 3 amendment) is also installed.
+    if [ -f "$scratch/.claude/state.template.md" ]; then
+        pass ".claude/state.template.md installed (T12 Step 3 amendment)"
+    else
+        fail ".claude/state.template.md NOT installed (T12 Step 3 amendment expected)"
+    fi
+    # state.template.md (root) ships in the harness source tree.
+    if [ -f "$REPO_ROOT/state.template.md" ]; then
+        pass "state.template.md ships in repo root (source of truth)"
+    else
+        fail "state.template.md MISSING from repo root"
+    fi
+}
+
+# Verify .gitignore is mutated to include .claude/local/.
+test_gitignore_has_claude_local() {
+    local scratch; scratch=$(scratch_dir gitignore-claude-local)
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    if [ -f "$scratch/.gitignore" ] && grep -qxF ".claude/local/" "$scratch/.gitignore"; then
+        pass ".claude/local/ present in .gitignore"
+    else
+        fail ".claude/local/ NOT in .gitignore (or .gitignore missing)"
+    fi
+}
+
+# Verify gitignore mutation is idempotent (second setup -f does not duplicate).
+test_gitignore_idempotent() {
+    local scratch; scratch=$(scratch_dir gitignore-idempotent)
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -f -p TestProj -t fullstack >/dev/null 2>&1 )
+    local count
+    count=$(grep -cxF ".claude/local/" "$scratch/.gitignore" 2>/dev/null || echo 0)
+    assert_equals "$count" "1" ".claude/local/ entry is idempotent (one occurrence after -f rerun)"
+}
+
+# Verify ADRs install.
+test_adrs_install() {
+    local scratch; scratch=$(scratch_dir adrs-install)
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    local all_ok=true
+    for adr in template README 0001-volatile-state-not-auto-loaded 0002-bash-and-powershell-dual-platform 0003-template-distributed-no-build-step 0004-diataxis-docs-structure 0005-hard-platform-parity-rule; do
+        if [ ! -f "$scratch/docs/adr/${adr}.md" ]; then
+            fail "docs/adr/${adr}.md not installed"
+            all_ok=false
+        fi
+    done
+    $all_ok && pass "all ADR files installed (template, README, 0001-0005)"
+}
+
+# Verify CONTINUITY.template.md is NOT installed (legacy file should not be generated
+# in a fresh install — though the source CONTINUITY.template.md may still ship in the
+# harness during the hard-cut transition; this check covers the *target* project).
+test_no_continuity_installed() {
+    local scratch; scratch=$(scratch_dir no-continuity-installed)
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    # Allow CONTINUITY.md to exist if setup still seeds it during transition; the
+    # critical check is that it is NOT auto-imported by CLAUDE.md after PR #2.
+    # Conservative assertion: no CONTINUITY.md in the freshly-set-up project after PR #2.
+    if [ ! -f "$scratch/CONTINUITY.md" ]; then
+        pass "CONTINUITY.md not installed in fresh project (post PR #2)"
+    else
+        fail "CONTINUITY.md unexpectedly installed in fresh project (post PR #2 expects none)"
+    fi
+}
+
+# Verify -f preserves an existing CONTINUITY.md byte-for-byte.
+test_f_preserves_existing_continuity() {
+    local scratch; scratch=$(scratch_dir f-preserves-continuity)
+    echo "user content" > "$scratch/CONTINUITY.md"
+    local before; before=$(hash_file "$scratch/CONTINUITY.md")
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -f -p TestProj -t fullstack >/dev/null 2>&1 )
+    if [ -f "$scratch/CONTINUITY.md" ]; then
+        local after; after=$(hash_file "$scratch/CONTINUITY.md")
+        assert_equals "$before" "$after" "existing CONTINUITY.md byte-preserved through -f"
+    else
+        fail "CONTINUITY.md was deleted by -f (should be preserved)"
+    fi
+}
+
+# P2-3 regression guard: -f must NEVER overwrite an existing populated
+# .claude/local/state.md. The if-guard at setup.sh:533 protects this today, but
+# a future refactor could replace it with copy_file (which overwrites under -f).
+test_f_preserves_existing_state_md() {
+    local scratch; scratch=$(scratch_dir f-preserves-state-md)
+    # Initial install creates state.md.
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack >/dev/null 2>&1 )
+    # Simulate a developer populating state.md with real workflow content.
+    echo "## USER WORKFLOW STATE SENTINEL" >> "$scratch/.claude/local/state.md"
+    local before; before=$(hash_file "$scratch/.claude/local/state.md")
+    # Re-run with -f. state.md must NOT be overwritten.
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -f -p TestProj -t fullstack >/dev/null 2>&1 )
+    if [ -f "$scratch/.claude/local/state.md" ]; then
+        local after; after=$(hash_file "$scratch/.claude/local/state.md")
+        assert_equals "$before" "$after" "existing .claude/local/state.md byte-preserved through -f"
+    else
+        fail ".claude/local/state.md was deleted by -f (should be preserved)"
+    fi
+}
+
+# P2-2 regression guard: fresh-install banner must NOT mention CONTINUITY.md
+# (post PR #2, no CONTINUITY.md is created — pointing users at it is misleading).
+# It SHOULD mention the new artifacts (.claude/local/state.md and docs/adr/).
+test_fresh_install_banner_no_continuity_ref() {
+    local scratch; scratch=$(scratch_dir fresh-banner-no-continuity)
+    local log="$scratch/.setup.log"
+    ( cd "$scratch" && bash "$REPO_ROOT/setup.sh" -p TestProj -t fullstack > "$log" 2>&1 )
+    # Extract the "What was created" block: from header until the next "Plugins"
+    # header (the "What was created" block has interior blank lines, so a single
+    # blank-line terminator is wrong). ANSI color codes and the trailing blank
+    # are tolerated.
+    local block
+    block=$(awk '/What was created:/{flag=1;next} flag && /Plugins pre-enabled/{flag=0} flag' "$log")
+    if echo "$block" | grep -qE "^[[:space:]]*CONTINUITY\.md"; then
+        fail "fresh-install banner still mentions CONTINUITY.md (post PR #2 it shouldn't)"
+    else
+        pass "fresh-install banner does not mention CONTINUITY.md"
+    fi
+    # Positive: mentions state.md and docs/adr/ (the new artifacts).
+    if echo "$block" | grep -qF ".claude/local/state.md"; then
+        pass "banner mentions .claude/local/state.md (new artifact)"
+    else
+        fail "banner does not mention .claude/local/state.md (got: $block)"
+    fi
+    if echo "$block" | grep -qF "docs/adr/"; then
+        pass "banner mentions docs/adr/ (new artifact)"
+    else
+        fail "banner does not mention docs/adr/"
+    fi
+    # P1-A/P1-B regression guard: the ENTIRE post-install output (not just the
+    # "What was created" block) must be free of CONTINUITY.md references.
+    # Iter-1 only scoped to the "What was created" block, which is why the
+    # "Next steps" block ("Edit CONTINUITY.md", "git add ... CONTINUITY.md ...")
+    # slipped through. Scan the whole log, ignoring this very test's filename
+    # context which is irrelevant to user-facing output.
+    assert_not_contains "$log" "CONTINUITY.md" "fresh-install full output has zero CONTINUITY.md mentions (P1-A/P1-B guard)"
+}
+
+test_state_md_installs
+test_gitignore_has_claude_local
+test_gitignore_idempotent
+test_adrs_install
+test_no_continuity_installed
+test_f_preserves_existing_continuity
+test_f_preserves_existing_state_md
+test_fresh_install_banner_no_continuity_ref
 
 # ===========================================================================
 # Report

@@ -128,7 +128,7 @@ echo "✓ Pruned stale references"
 
 ### 2.8 Clear Workflow Tracking
 
-If CONTINUITY.md has a `## Workflow` section with an active workflow, either:
+If .claude/local/state.md has a `## Workflow` section with an active workflow, either:
 
 - Set Command to `none` and clear the Checklist, OR
 - Delete the entire `## Workflow` section

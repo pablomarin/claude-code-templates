@@ -5,10 +5,13 @@ After setup, your project should have:
 ```
 your-project/
 ├── CLAUDE.md                          # Project description (slim, user-owned)
-├── CONTINUITY.md                      # Current state (Done/Now/Next)
 ├── .mcp.json                          # MCP servers (Playwright + Context7)
 ├── docs/
 │   ├── CHANGELOG.md                   # Historical record
+│   ├── adr/                           # Architecture Decision Records (per-file, append-only)
+│   │   ├── README.md                  # Index
+│   │   ├── template.md                # Blank ADR starter
+│   │   └── NNNN-*.md                  # One file per decision
 │   ├── prds/                          # Product requirements
 │   │   ├── {feature}.md               # Structured PRD
 │   │   └── {feature}-discussion.md    # Refinement conversation log
@@ -27,6 +30,8 @@ your-project/
 │       └── patterns/                  # Consolidated when 3+ similar
 ├── .claude/
 │   ├── settings.json                  # Permissions + Hooks (NOT MCP servers)
+│   ├── local/                         # Per-developer, gitignored
+│   │   └── state.md                   # Workflow + Done/Now/Next (NOT auto-loaded)
 │   ├── hooks/
 │   │   ├── lib/
 │   │   │   └── default-branch.sh      # Shared helper: detect repo's default branch (.ps1 on Windows)

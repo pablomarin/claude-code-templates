@@ -28,6 +28,7 @@ usage() {
     echo "  -t, --tech STACK    Tech stack: python, typescript, fullstack (default: fullstack)"
     echo "  -f, --force         Overwrite existing files (destructive)"
     echo "  -u, --upgrade       Smart upgrade: merge new hooks/permissions into existing settings"
+    echo "      --migrate       Migrate legacy CONTINUITY.md content to the new structure"
     echo "  -g, --global        Set up global memory system (~/.claude/)"
     echo "  -w, --with-playwright  Install Playwright framework templates (requires -t fullstack or typescript)"
     echo "  --playwright-dir DIR   Scaffold Playwright into DIR instead of repo root (monorepo layouts)"
@@ -39,6 +40,7 @@ usage() {
     echo "  $0 -t python                # Python-only project"
     echo "  $0 -f                       # Force overwrite existing files"
     echo "  $0 --upgrade                # Upgrade: add new hooks/rules, merge settings"
+    echo "  $0 --migrate                # Migrate CONTINUITY.md to .claude/local/state.md + ADRs"
     echo "  $0 --global                 # Set up global memory (run once per machine)"
     echo "  $0 --global -f              # Force overwrite global settings"
     echo "  $0 -t fullstack --with-playwright  # Install Playwright framework templates"
@@ -49,6 +51,7 @@ PROJECT_NAME=""
 TECH_STACK="fullstack"
 FORCE=false
 UPGRADE=false
+MIGRATE=false
 GLOBAL=false
 WITH_PLAYWRIGHT=false
 
@@ -75,6 +78,10 @@ while [[ $# -gt 0 ]]; do
             FORCE=true  # upgrade implies force for hooks/commands/rules
             shift
             ;;
+        --migrate)
+            MIGRATE=true
+            shift
+            ;;
         -g|--global)
             GLOBAL=true
             shift
@@ -94,6 +101,19 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# --- Migration dispatch (PR #2 / continuity-split) -------------------------
+# Migration runs as a SEPARATE script for review hygiene. The logic lives at
+# $SCRIPT_DIR/scripts/migrate-continuity.sh — not embedded here.
+if [ "$MIGRATE" = "true" ]; then
+    if [ ! -x "$SCRIPT_DIR/scripts/migrate-continuity.sh" ] && [ ! -f "$SCRIPT_DIR/scripts/migrate-continuity.sh" ]; then
+        echo -e "${RED}✗${NC} Migration helper not found at $SCRIPT_DIR/scripts/migrate-continuity.sh" >&2
+        echo "  Your Forge clone may be incomplete. Re-clone from https://github.com/pablomarin/claude-codex-forge" >&2
+        exit 1
+    fi
+    bash "$SCRIPT_DIR/scripts/migrate-continuity.sh"
+    exit $?
+fi
 
 # Copy function with force check
 copy_file() {
@@ -503,11 +523,16 @@ if [[ "$had_claude_md" == true ]]; then
 else
     copy_file "$SCRIPT_DIR/CLAUDE.template.md" "CLAUDE.md" "CLAUDE.md"
 fi
-if [[ "$had_continuity_md" == true ]]; then
-    echo -e "  ${BLUE}○${NC} CONTINUITY.md already exists (never overwritten — user content)"
-    print_template_drift_hint "CONTINUITY.template.md" "CONTINUITY.md"
-else
-    copy_file "$SCRIPT_DIR/CONTINUITY.template.md" "CONTINUITY.md" "CONTINUITY.md"
+# Install state template (stable path under .claude/ — used by /new-feature
+# Pre-Flight reuse and migration helper). Always refresh this — it's the
+# canonical template, not user content.
+mkdir -p .claude
+copy_file "$SCRIPT_DIR/state.template.md" ".claude/state.template.md" ".claude/state.template.md (template, stable path)"
+
+# Volatile per-developer state (gitignored, never overwritten).
+if [ ! -f ".claude/local/state.md" ]; then
+    mkdir -p .claude/local
+    copy_file "$SCRIPT_DIR/state.template.md" ".claude/local/state.md" ".claude/local/state.md (volatile per-developer state)"
 fi
 
 # Settings — merge on upgrade, copy otherwise
@@ -547,6 +572,30 @@ chmod +x .claude/hooks/pre-compact-memory.sh 2>/dev/null || true
 chmod +x .claude/hooks/check-config-change.sh 2>/dev/null || true
 chmod +x .claude/hooks/check-bash-safety.sh 2>/dev/null || true
 chmod +x .claude/hooks/check-workflow-gates.sh 2>/dev/null || true
+
+# ADRs — ship template + README + seed ADRs (existing-file-skip semantics).
+mkdir -p docs/adr
+copy_file "$SCRIPT_DIR/docs/adr/template.md" "docs/adr/template.md" "docs/adr/template.md"
+copy_file "$SCRIPT_DIR/docs/adr/README.md" "docs/adr/README.md" "docs/adr/README.md (ADR index)"
+for adr in 0001-volatile-state-not-auto-loaded 0002-bash-and-powershell-dual-platform 0003-template-distributed-no-build-step 0004-diataxis-docs-structure 0005-hard-platform-parity-rule; do
+    copy_file "$SCRIPT_DIR/docs/adr/${adr}.md" "docs/adr/${adr}.md" "docs/adr/${adr}.md"
+done
+
+# Step 5: Append .claude/local/ to root .gitignore if not already present (idempotent).
+if [ -f ".gitignore" ]; then
+    if ! grep -qxF ".claude/local/" .gitignore; then
+        echo "" >> .gitignore
+        echo "# Volatile per-developer workflow state (PR #2 / continuity-split)" >> .gitignore
+        echo ".claude/local/" >> .gitignore
+        echo -e "  ${GREEN}+${NC} Added .claude/local/ to .gitignore"
+    fi
+else
+    cat > .gitignore <<'EOF'
+# Volatile per-developer workflow state (PR #2 / continuity-split)
+.claude/local/
+EOF
+    echo -e "  ${GREEN}+${NC} Created .gitignore with .claude/local/"
+fi
 
 # Agents
 copy_file "$SCRIPT_DIR/agents/verify-app.md" ".claude/agents/verify-app.md" ".claude/agents/verify-app.md"
@@ -874,19 +923,33 @@ if [[ "$UPGRADE" == true ]]; then
             echo "    git diff --no-index -- '$SCRIPT_DIR/CLAUDE.template.md' '$local_cwd/CLAUDE.md'"
         fi
         if [[ "$had_continuity_md" == true ]]; then
-            echo "    git diff --no-index -- '$SCRIPT_DIR/CONTINUITY.template.md' '$local_cwd/CONTINUITY.md'"
+            echo "    (Legacy CONTINUITY.md detected — see migration prompt below.)"
         fi
         echo "  (Or ask Claude to reconcile — point it at the diff output.)"
+        echo ""
+    fi
+    # PR #2 (continuity-split): legacy CONTINUITY.md migration prompt.
+    if [[ "$had_continuity_md" == true ]]; then
+        echo -e "${YELLOW}⚠ Legacy CONTINUITY.md detected.${NC}"
+        echo "  PR #2 (continuity-split) replaces CONTINUITY.md with three artifacts:"
+        echo "    - durable team-shared facts → CLAUDE.md"
+        echo "    - architecture decisions → docs/adr/NNNN-*.md"
+        echo "    - volatile per-developer state → .claude/local/state.md (gitignored)"
+        echo "  Run the migration assistant to move your content into the new structure:"
+        echo ""
+        echo "    ./setup.sh --migrate"
+        echo ""
+        echo "  The migration is idempotent (sentinel-marker-based) and preserves your CONTINUITY.md byte-for-byte."
         echo ""
     fi
     # Replaces a pre-existing hardcoded claim that lied whenever the user had
     # deleted one of the files before running --upgrade.
     if [[ "$had_claude_md" == true ]] && [[ "$had_continuity_md" == true ]]; then
-        echo -e "${GREEN}Upgrade done! Your CLAUDE.md and CONTINUITY.md were preserved (user content).${NC}"
+        echo -e "${GREEN}Upgrade done! Your CLAUDE.md and CONTINUITY.md were preserved (run --migrate to move content to the new structure).${NC}"
     elif [[ "$had_claude_md" == true ]]; then
         echo -e "${GREEN}Upgrade done! Your CLAUDE.md was preserved (user content).${NC}"
     elif [[ "$had_continuity_md" == true ]]; then
-        echo -e "${GREEN}Upgrade done! Your CONTINUITY.md was preserved (user content).${NC}"
+        echo -e "${GREEN}Upgrade done! Your CONTINUITY.md was preserved (run --migrate to move content to the new structure).${NC}"
     else
         echo -e "${GREEN}Upgrade done!${NC}"
     fi
@@ -898,7 +961,8 @@ else
     echo -e "${YELLOW}What was created:${NC}"
     echo ""
     echo "  CLAUDE.md                Your project description (edit this!)"
-    echo "  CONTINUITY.md            Task state that persists across sessions"
+    echo "  .claude/local/state.md   Volatile per-developer workflow state (gitignored)"
+    echo "  .claude/state.template.md Canonical state template (always-refresh)"
     echo "  .claude/settings.json    Hooks and permissions"
     echo "  .mcp.json                MCP servers (Playwright + Context7)"
     echo "  .claude/commands/        Workflow commands: /new-feature, /fix-bug, /quick-fix"
@@ -906,7 +970,7 @@ else
     echo "  .claude/agents/          Subagent definitions (verify-app, verify-e2e)"
     echo "  .claude/skills/           Skills (release, council, ui-design if typescript/fullstack)"
     echo "  .claude/rules/           Coding standards + workflow rules (safe to update)"
-    echo "  docs/                    Changelog, PRDs, solutions knowledge base"
+    echo "  docs/                    Changelog, ADRs (docs/adr/), PRDs, solutions knowledge base"
     echo ""
     echo -e "${YELLOW}Plugins pre-enabled in .claude/settings.json:${NC}"
     echo ""
@@ -932,7 +996,8 @@ else
     echo -e "1. ${BLUE}Edit CLAUDE.md${NC} — Fill in your project description, tech stack, and commands"
     echo "   (It's intentionally short — all rules live in .claude/rules/)"
     echo ""
-    echo -e "2. ${BLUE}Edit CONTINUITY.md${NC} — Set your current goal and task state"
+    echo -e "2. ${BLUE}Set your project goal${NC} — In CLAUDE.md, add one sentence under '### Goal'"
+    echo "   (Volatile state lives in .claude/local/state.md — gitignored, populated by /new-feature)"
     echo ""
     echo -e "3. ${BLUE}Install the Superpowers plugin${NC} (one time):"
     echo ""
@@ -954,7 +1019,7 @@ else
     echo ""
     echo -e "5. ${BLUE}Commit and push${NC}:"
     echo ""
-    echo "   git add .claude/ .mcp.json CLAUDE.md CONTINUITY.md docs/"
+    echo "   git add .claude/ .mcp.json CLAUDE.md docs/"
     echo "   git commit -m \"chore: add Claude Code automation setup\""
     echo "   git push"
     echo ""

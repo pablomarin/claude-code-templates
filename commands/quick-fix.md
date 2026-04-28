@@ -83,7 +83,7 @@ npm test && npm run lint && npm run typecheck  # Node
 
 ### Update state files
 
-1. **CONTINUITY.md**: Update Done (keep 2-3 recent), Now, Next
+1. **.claude/local/state.md**: Update Done (keep 2-3 recent), Now, Next
 
 ### Commit the changes
 
@@ -109,7 +109,7 @@ gh pr create --base main --fill
 - [ ] Change is truly trivial (< 3 files, no arch impact)
 - [ ] Change verified manually or with tests
 - [ ] Verified via `verify-app` agent
-- [ ] CONTINUITY.md updated
+- [ ] .claude/local/state.md updated
 - [ ] Changes committed
 
 ---

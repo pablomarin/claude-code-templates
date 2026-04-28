@@ -2,6 +2,34 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.15 — 2026-04-28 · CONTINUITY split — durable facts to CLAUDE.md, decisions to docs/adr/, volatile state to .claude/local/state.md (gitignored)
+
+Closes the multi-developer state-file conflict failure mode at the source: CONTINUITY.md mixed two genres (durable team-shared facts + volatile per-developer state) in one tracked file, producing merge conflicts on every multi-dev pull and silently injecting stale per-developer state into Claude's auto-loaded context. PR #2 of the multi-PR drift-hygiene initiative; PR #1 (drift-hygiene, 5.14) addressed the symptom via SessionStart fetch + warning. PR #2 fixes the source by splitting the artifact.
+
+Council fired (5 advisors + Codex chairman, xhigh reasoning). Phase 1 Contrarian Gate returned OBJECT (Codex argued PR #1's bug was _shared_ stale state, not auto-load semantics). Per protocol, escalated to full council on high-impact-surface ground. Final tally: Pragmatist + Hawk APPROVE A; Maintainer CONDITIONAL on A; Simplifier OBJECT (wants Anthropic-blessed `CLAUDE.local.md`); Contrarian CONDITIONAL leaning B with schema discipline (also surfaced Option C: `.claude/state.md` without `/local/`). Chairman picked Option A: `.claude/local/state.md`, gitignored, NOT auto-loaded — "PR #1 proved that stale state in model context is harmful; shared tracking was the trigger, but auto-load was the transport."
+
+- **`.claude/local/state.md` (NEW path)** — gitignored, per-developer, NOT auto-loaded by Claude Code. Hooks read it via shell on demand. Schema: Workflow (Command/Phase/Next step + Checklist), State (Done/Now/Next/Deferred), Open Questions, Blockers. Default Command is `none` (explicit inactive state).
+- **`docs/adr/NNNN-*.md` (NEW directory)** — per-file ADRs (Nygard core + MADR's "Considered Options" extension). Five seed ADRs ship: 0001 (this decision), 0002 (bash+PS dual-platform), 0003 (template-distributed no-build-step), 0004 (Diátaxis docs), 0005 (hard platform parity rule). README index + blank template.
+- **`hooks/check-state-updated.{sh,ps1}` redesigned as advisory-only** — drops only the CONTINUITY-specific gate (`git status --porcelain` block, incompatible with gitignored state). Extracts active workflow Cmd/Phase/Next, prints reminder. CHANGELOG threshold gate remains. Gating role for state moves entirely to PreToolUse hook.
+- **`hooks/check-workflow-gates.{sh,ps1}` hard-cut** — reads only `.claude/local/state.md`. Missing file → friendly stderr breadcrumb pointing at `--migrate`, exits 0 (no fallback to legacy CONTINUITY.md).
+- **`setup.sh --migrate` (NEW flag)** — user-invoked, deterministic content migration from legacy `CONTINUITY.md`. Extracts Goal → CLAUDE.md, Architecture/Key Decisions table → per-file ADRs (auto-numbered after seed), Done (trimmed to 3) / Now / Next → state.md. Idempotent. Original CONTINUITY.md preserved byte-for-byte. Flags dangling `@CONTINUITY.md` imports in preserved CLAUDE.md files.
+- **`setup.sh -f` / `--upgrade`** — installs new files alongside legacy CONTINUITY.md (preserved). Updated upgrade summary block prompts user to run `--migrate` if a legacy file is detected.
+- **`CLAUDE.template.md`** — `@CONTINUITY.md` line removed from line 1 (research finding: Claude Code @-import fails silently on missing target). Project Overview now contains a Goal subsection placeholder for migrated content.
+- **`CONTINUITY.template.md` deleted** — no longer generated.
+- **`tests/template/test-migrate.sh` (NEW)** — fixtures: extracts goal, creates ADRs from decisions table, trims Done to 3, byte-preserves original, idempotent (sentinel marker), flags dangling import, gracefully handles no-legacy-file.
+- **`tests/template/test-contracts.sh`** — new contracts: zero CONTINUITY refs in hooks/commands/rules/agents/settings (excluding intentional user-facing breadcrumb messages); bash/PS hook parity on missing-state breadcrumb; ADR template shape; all seed ADRs have canonical 5 sections.
+- **`tests/template/test-hooks.sh`** — fixtures migrated to state.md; new tests for hard-cut behavior (no CONTINUITY fallback) and Stop-hook-advisory-only.
+- **`tests/template/test-setup.sh`** — assertions for state.md install, gitignore mutation idempotency, ADR install, CONTINUITY.template.md NOT shipped, -f preserves existing CONTINUITY.md.
+- **`docs/explanation/memory-architecture.md`** — diagram updated to reflect three-artifact split.
+- **`scripts/migrate-continuity.{sh,ps1}` (NEW)** — refactored migration helper out of setup.sh per Codex plan-review feedback (P2). Same algorithm, ~250 LOC each, parity-tested. setup.{sh,ps1} dispatches to these on `--migrate`.
+- **Forge dogfood** — Forge's own CONTINUITY.md migrated in this PR. Forge's CLAUDE.md folds in durable content. Forge's docs/adr/ contains the seed ADRs. Forge's `.claude/local/state.md` holds the volatile workflow state.
+- **Migration is hard-cut** — no fallback in hooks. Existing installs that upgrade but don't run `--migrate` see a friendly breadcrumb on commit/push attempts pointing at the migration flag.
+- **Idempotency via sentinel marker** — `<!-- forge:migrated YYYY-MM-DD -->` is written into migrated content; subsequent `--migrate` runs detect the marker and no-op without mutating any user-edited content. Prevents data loss on rerun.
+
+**Existing installs need `./setup.sh -f` to pick up the new files, then `./setup.sh --migrate` to move their CONTINUITY.md content to the new structure.**
+
+Test suite: refer to `bash tests/template/run-all.sh` output post-merge for the exact pre→post assertion delta. ~30 new assertions + 1 new suite (test-migrate.sh).
+
 ## 5.14 — 2026-04-27 · Drift hygiene — SessionStart `git fetch` + worktree from `origin/<default>`
 
 Closes the multi-developer staleness failure mode: local `main` silently 97 commits behind origin while Claude reads `CONTINUITY.md` as authoritative state and confidently cites already-merged PRs as "open." Worse, `/new-feature` and `/fix-bug` were creating worktrees from local `HEAD`, so feature branches got built on stale baselines. PR #1 of a multi-PR initiative; PR #2 (CONTINUITY.md split + per-developer state migration) is non-goals here.
