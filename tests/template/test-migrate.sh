@@ -36,10 +36,10 @@ Build a thing that does the thing.
 
 ### Done (recent 2-3 only)
 
-- 2026-04-01: shipped feature X
-- 2026-04-02: shipped feature Y
-- 2026-04-03: shipped feature Z (older entry — should be trimmed by --migrate)
-- 2026-04-04: ancient entry (also trimmed)
+- 2026-04-01: oldest entry (should be trimmed by tail -3)
+- 2026-04-02: shipped feature X
+- 2026-04-03: shipped feature Y
+- 2026-04-04: shipped feature Z (most recent, should be kept)
 
 ### Now
 
@@ -110,10 +110,18 @@ run_migrate "$scratch" >/dev/null
 done_count=$(awk '/^### Done/{f=1;next} f && /^### /{f=0} f && /^- /{n++} END{print n+0}' "$scratch/.claude/local/state.md")
 if [ "$done_count" -le 3 ]; then pass "Done block has $done_count entries (≤ 3)"; else fail "Done has $done_count entries, expected ≤ 3"; fi
 # Verify it kept the LAST entries, not the first (Codex P1: tail vs head).
-if grep -qF "2026-04-04: ancient entry" "$scratch/.claude/local/state.md"; then
+# Fixture has 4 dated entries; tail -3 should keep 02, 03, 04 and drop 01.
+if grep -qF "2026-04-01: oldest entry" "$scratch/.claude/local/state.md"; then
     fail "Done kept the OLDEST entry — should have used tail, not head"
 else
     pass "Done dropped the oldest entry (correct tail behavior)"
+fi
+# And the most-recent entry MUST be present (regression guard for P1-1:
+# multi-line awk silently dropped Done content, leaving the placeholder).
+if grep -qF "2026-04-04: shipped feature Z" "$scratch/.claude/local/state.md"; then
+    pass "Done kept the most-recent entry (real content, not placeholder)"
+else
+    fail "Done is missing the most-recent entry (P1-1 regression: awk dropped content?)"
 fi
 rm -rf "$scratch"
 
@@ -168,6 +176,130 @@ start_test "test_migrate_no_continuity_present"
 scratch=$(mktemp -d)
 out=$(run_migrate "$scratch")
 assert_str_contains "$out" "No CONTINUITY.md" "graceful no-op when no legacy file"
+rm -rf "$scratch"
+
+# ---------------------------------------------------------------------------
+# P1-1 regression guard: multi-line Done entries with em-dashes, parentheticals,
+# embedded URLs, PR refs — the shape of real Forge dogfood content. The original
+# `awk -v done_content="$section"` pattern fails with "awk: newline in string"
+# and silently drops the section, leaving the placeholder.
+# ---------------------------------------------------------------------------
+make_legacy_continuity_with_complex_done() {
+    local scratch="$1"
+    cat > "$scratch/CONTINUITY.md" <<'EOF'
+# CONTINUITY
+
+## Goal
+
+Build a real production thing.
+
+## Architecture Decisions
+
+| Decision | Choice | Why |
+|----------|--------|-----|
+| DB       | Postgres | ACID; pgvector |
+
+## State
+
+### Done (recent 2-3 only)
+- ARRANGE rule text fixes (PR #512, squash-merged be70a83): 2026-04-20. Closes MSAI field gap where Claude ran `docker exec … psql INSERT` to seed E2E test data. 4 files: `rules/critical-rules.md` (ARRANGE named explicitly in E2E bullet), `rules/testing.md` (line 176 contradiction removed), `agents/verify-e2e.md` (Critical Constraints #2 forbids raw DB in ARRANGE).
+- Phase 4 task-DAG dispatch + /compact banner + headless opt-in (PR #524, squash-merged 6bc290d): 2026-04-21. Replaces Phase 4's vague reference with a mandatory task-DAG dispatch plan (continuous dispatch, disjoint `Writes`, default 3 / max 5 concurrent subagents, sequential-override for tightly-coupled plans), optional `/compact` reminder banner, and headless kept as an explicit opt-in phrase.
+- Template-drift notice on `setup.sh -f` / `--upgrade` (PR #523, squash-merged dbe6f6f): 2026-04-21. Closes the downstream pain where bumping the harness didn't surface template drift in preserved CLAUDE.md / CONTINUITY.md. New helper + consolidated reminder + four boolean-gated final-summary variants.
+
+### Now
+
+On main, clean.
+
+### Next
+
+- ship PR #2
+
+EOF
+    cat > "$scratch/CLAUDE.md" <<'EOF'
+# CLAUDE.md - Test Project
+
+## Project Overview
+
+A test project.
+EOF
+}
+
+start_test "test_migrate_handles_multi_line_done"
+scratch=$(mktemp -d)
+make_legacy_continuity_with_complex_done "$scratch"
+out=$(run_migrate "$scratch" 2>&1)
+# state.md must contain the actual content, NOT the placeholder.
+if grep -qF "(your most recent completed work)" "$scratch/.claude/local/state.md"; then
+    fail "Done section still has placeholder — multi-line content was DROPPED (P1-1 bug)"
+else
+    pass "Done placeholder replaced by real content"
+fi
+# The 3 fixture entries are all real Done entries; tail -3 keeps all of them.
+# Each must appear in state.md with full content (em-dash + parens + PR ref).
+if grep -qF "ARRANGE rule text fixes (PR #512" "$scratch/.claude/local/state.md"; then
+    pass "Done preserved entry with parens + em-dash + PR ref (PR #512)"
+else
+    fail "Done lost entry with parens / em-dash / PR ref (PR #512)"
+fi
+if grep -qF "Phase 4 task-DAG dispatch" "$scratch/.claude/local/state.md"; then
+    pass "Done preserved entry with backticks + PR ref (PR #524)"
+else
+    fail "Done lost entry (PR #524)"
+fi
+if grep -qF "Template-drift notice" "$scratch/.claude/local/state.md"; then
+    pass "Done preserved most-recent entry (PR #523)"
+else
+    fail "Done lost most-recent entry (PR #523)"
+fi
+# No awk error in output.
+if echo "$out" | grep -qE "awk:.*newline in string|awk:.*illegal"; then
+    fail "awk emitted error — multi-line variable interpolation regressed"
+else
+    pass "no awk newline/illegal errors on multi-line Done content"
+fi
+rm -rf "$scratch"
+
+# ---------------------------------------------------------------------------
+# AC-10 regression guard: sentinel must land on LINE 1 of CLAUDE.md (not line 2).
+# ---------------------------------------------------------------------------
+start_test "test_migrate_sentinel_on_line_1_of_claude_md"
+scratch=$(mktemp -d)
+make_legacy_continuity_for_migration "$scratch"
+run_migrate "$scratch" >/dev/null
+first_line=$(head -1 "$scratch/CLAUDE.md")
+case "$first_line" in
+    "<!-- forge:migrated "*"-->")
+        pass "CLAUDE.md sentinel on line 1 (matches state.md treatment + dogfood result)"
+        ;;
+    *)
+        fail "CLAUDE.md sentinel NOT on line 1 (got: $first_line)"
+        ;;
+esac
+# state.md sentinel also on line 1 (regression guard).
+state_first=$(head -1 "$scratch/.claude/local/state.md")
+case "$state_first" in
+    "<!-- forge:migrated "*"-->")
+        pass "state.md sentinel on line 1"
+        ;;
+    *)
+        fail "state.md sentinel NOT on line 1 (got: $state_first)"
+        ;;
+esac
+rm -rf "$scratch"
+
+# ---------------------------------------------------------------------------
+# P3 nit guard: idempotency message uses "Already migrated on YYYY-MM-DD."
+# ---------------------------------------------------------------------------
+start_test "test_migrate_idempotency_message_format"
+scratch=$(mktemp -d)
+make_legacy_continuity_for_migration "$scratch"
+run_migrate "$scratch" >/dev/null
+out=$(run_migrate "$scratch" 2>&1)
+if echo "$out" | grep -qE "Already migrated on [0-9]{4}-[0-9]{2}-[0-9]{2}\."; then
+    pass "idempotency message uses 'Already migrated on YYYY-MM-DD.' form"
+else
+    fail "idempotency message has wrong format (got: $(echo "$out" | head -1))"
+fi
 rm -rf "$scratch"
 
 report "test-migrate.sh"

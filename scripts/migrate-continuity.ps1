@@ -11,6 +11,23 @@ $LegacyFile = "CONTINUITY.md"
 $SentinelPrefix = "<!-- forge:migrated"
 $SentinelToday = "<!-- forge:migrated $(Get-Date -Format 'yyyy-MM-dd') -->"
 
+# BOM-less UTF-8 encoding for all writes -- Set-Content -Encoding utf8 on
+# Windows PowerShell 5.1 emits a BOM, which breaks AC-4 byte-equivalence with
+# the bash mirror. PowerShell 7+ has -Encoding utf8NoBOM but 5.1 doesn't, so
+# use System.IO.File + System.Text.UTF8Encoding($false) for portability.
+$Utf8NoBom = New-Object System.Text.UTF8Encoding $false
+function Write-Utf8NoBom {
+    param([string]$Path, [string]$Content)
+    # Resolve to absolute path. System.IO.File.WriteAllText needs an absolute
+    # path because it uses .NET's CWD, not PowerShell's (these can diverge).
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        $abs = $Path
+    } else {
+        $abs = Join-Path (Get-Location).ProviderPath $Path
+    }
+    [System.IO.File]::WriteAllText($abs, $Content, $script:Utf8NoBom)
+}
+
 if (-not (Test-Path $LegacyFile)) {
     Write-Output "!  No CONTINUITY.md found in this directory. Nothing to migrate."
     exit 0
@@ -31,7 +48,13 @@ if (Test-AlreadyMigrated) {
             if ($found) { $existing = $found.Matches[0].Value; break }
         }
     }
-    Write-Output "Already migrated. $existing"
+    # Strip "<!-- forge:migrated " prefix and " -->" suffix to get the date.
+    $existingDate = $existing -replace '^<!--\s*forge:migrated\s+', '' -replace '\s+-->\s*$', ''
+    if ($existingDate) {
+        Write-Output "Already migrated on $existingDate."
+    } else {
+        Write-Output "Already migrated."
+    }
     Write-Output "  Sentinel marker detected in CLAUDE.md or .claude/local/state.md."
     Write-Output "  No content was modified. To force a fresh migration, remove the marker line(s) and rerun."
     exit 0
@@ -48,15 +71,16 @@ if (-not (Test-Path ".claude/local/state.md")) {
 }
 # Prepend sentinel to state.md (line 1).
 $stateContent = Get-Content ".claude/local/state.md" -Raw
-"$SentinelToday`n$stateContent" | Set-Content ".claude/local/state.md" -NoNewline -Encoding utf8
+if ($null -eq $stateContent) { $stateContent = "" }
+Write-Utf8NoBom ".claude/local/state.md" "$SentinelToday`n$stateContent"
 
-# Prepend sentinel to CLAUDE.md (line 2, after H1).
+# Prepend sentinel to CLAUDE.md (line 1) -- matches state.md treatment + AC-10
+# amendment. Forge dogfood result confirmed line-1 placement is the desired
+# behavior; the original "after H1" wording was wrong.
 if ((Test-Path "CLAUDE.md") -and -not (Select-String -Path "CLAUDE.md" -SimpleMatch $SentinelPrefix -Quiet -ErrorAction SilentlyContinue)) {
-    $claudeLines = Get-Content "CLAUDE.md"
-    if ($claudeLines.Count -ge 1) {
-        $newClaude = @($claudeLines[0], $SentinelToday) + ($claudeLines | Select-Object -Skip 1)
-        $newClaude | Set-Content "CLAUDE.md" -Encoding utf8
-    }
+    $claudeRaw = Get-Content "CLAUDE.md" -Raw
+    if ($null -eq $claudeRaw) { $claudeRaw = "" }
+    Write-Utf8NoBom "CLAUDE.md" "$SentinelToday`n$claudeRaw"
 }
 
 # Print "Migrating..." AFTER validation passes (Codex iter-3 P1 fix).
@@ -100,7 +124,7 @@ if ($goalTrimmed -ne "" -and $goalTrimmed -ne $goalPlaceholder) {
                     [void]$newClaude.Add("")
                 }
             }
-            $newClaude | Set-Content "CLAUDE.md" -Encoding utf8
+            Write-Utf8NoBom "CLAUDE.md" (($newClaude -join "`n") + "`n")
             [void]$movedSections.Add("Goal -> CLAUDE.md (under ## Project Overview)")
         } else {
             [void]$skippedSections.Add("Goal (CLAUDE.md has no ## Project Overview section)")
@@ -183,7 +207,8 @@ $choice
 
 $whyText
 "@
-        $adrContent | Set-Content $adrFile -Encoding utf8
+        # ADR content uses here-string with trailing newline; ensure file ends with newline.
+        Write-Utf8NoBom $adrFile ($adrContent + "`n")
         [void]$createdAdrs.Add($adrFile)
         [void]$movedSections.Add("Decision '$decision' -> $adrFile")
         $nextNum++
@@ -223,7 +248,7 @@ if ($doneTail.Count -gt 0) {
         if ($inDoneState -and $line -match '^### ') { $inDoneState = $false }
         if (-not $inDoneState) { [void]$newState.Add($line) }
     }
-    $newState | Set-Content ".claude/local/state.md" -Encoding utf8
+    Write-Utf8NoBom ".claude/local/state.md" (($newState -join "`n") + "`n")
     [void]$movedSections.Add("Done (last 3 entries) -> .claude/local/state.md")
 }
 
@@ -256,7 +281,7 @@ foreach ($section in @("Now", "Next")) {
             }
             if (-not $inSectionState) { [void]$newState.Add($line) }
         }
-        $newState | Set-Content ".claude/local/state.md" -Encoding utf8
+        Write-Utf8NoBom ".claude/local/state.md" (($newState -join "`n") + "`n")
         [void]$movedSections.Add("$section -> .claude/local/state.md")
     }
 }

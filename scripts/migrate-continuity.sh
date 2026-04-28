@@ -37,7 +37,13 @@ already_migrated() {
 if already_migrated; then
     # Use -E (regex), NOT -F (fixed-string + regex metachars don't mix).
     existing=$(grep -hoE '<!-- forge:migrated [^>]*-->' CLAUDE.md .claude/local/state.md 2>/dev/null | head -1)
-    echo "Already migrated. ${existing}"
+    # Strip "<!-- forge:migrated " prefix and " -->" suffix to get the date alone.
+    existing_date=$(echo "$existing" | sed -E 's/^<!-- forge:migrated[[:space:]]+//; s/[[:space:]]+-->$//')
+    if [ -n "$existing_date" ]; then
+        echo "Already migrated on ${existing_date}."
+    else
+        echo "Already migrated."
+    fi
     echo "  Sentinel marker detected in CLAUDE.md or .claude/local/state.md."
     echo "  No content was modified. To force a fresh migration, remove the marker line(s) and rerun."
     exit 0
@@ -58,12 +64,11 @@ fi
 # Prepend sentinel to state.md (line 1).
 { echo "$SENTINEL_TODAY"; cat .claude/local/state.md; } > .claude/local/state.md.tmp && mv .claude/local/state.md.tmp .claude/local/state.md
 
-# If CLAUDE.md exists, prepend sentinel as a comment line on line 2 (after H1).
+# If CLAUDE.md exists, prepend sentinel as a comment line on line 1 (matches
+# state.md treatment + AC-10 amendment). Forge dogfood result confirmed line-1
+# placement is the desired behavior; the original "after H1" wording was wrong.
 if [ -f "CLAUDE.md" ] && ! grep -qF "$SENTINEL_PREFIX" CLAUDE.md; then
-    awk -v sentinel="$SENTINEL_TODAY" '
-        NR==1 { print; print sentinel; next }
-        { print }
-    ' CLAUDE.md > CLAUDE.md.tmp && mv CLAUDE.md.tmp CLAUDE.md
+    { echo "$SENTINEL_TODAY"; cat CLAUDE.md; } > CLAUDE.md.tmp && mv CLAUDE.md.tmp CLAUDE.md
 fi
 
 echo "Migrating $LEGACY_FILE..."
@@ -198,13 +203,27 @@ done_section=$(awk '
 
 if [ -n "$done_section" ]; then
     # Sentinel is already on line 1 of state.md (unconditional write at top).
+    # Use tmpfile + getline to preserve embedded newlines / em-dashes / parens
+    # (P1-1 fix: `awk -v done_content="..."` chokes on newlines in the variable
+    # value with "awk: newline in string" and drops the section).
+    content_file=$(mktemp)
+    printf '%s\n' "$done_section" > "$content_file"
     tmp=$(mktemp)
-    awk -v done_content="$done_section" '
-        /^### Done/ { in_done=1; print; print ""; print done_content; print ""; next }
+    awk -v cfile="$content_file" '
+        /^### Done/ {
+            print
+            print ""
+            while ((getline line < cfile) > 0) print line
+            close(cfile)
+            print ""
+            in_done=1
+            next
+        }
         in_done && /^### / { in_done=0 }
         in_done { next }
         { print }
     ' .claude/local/state.md > "$tmp" && mv "$tmp" .claude/local/state.md
+    rm -f "$content_file"
     moved_sections+=("Done (last 3 entries) -> .claude/local/state.md")
 fi
 
@@ -217,13 +236,24 @@ for section in Now Next; do
         flag
     ' "$LEGACY_FILE")
     if [ -n "$section_content" ]; then
+        # Same tmpfile + getline pattern as Done above (P1-1 fix).
+        content_file=$(mktemp)
+        printf '%s\n' "$section_content" > "$content_file"
         tmp=$(mktemp)
-        awk -v sec="$section" -v content="$section_content" '
-            $0 ~ "^### "sec"([[:space:]]|$|[^[:alnum:]])" { in_sec=1; print; print ""; print content; next }
+        awk -v sec="$section" -v cfile="$content_file" '
+            $0 ~ "^### "sec"([[:space:]]|$|[^[:alnum:]])" {
+                print
+                print ""
+                while ((getline line < cfile) > 0) print line
+                close(cfile)
+                in_sec=1
+                next
+            }
             in_sec && /^### / { in_sec=0; print; next }
             in_sec { next }
             { print }
         ' .claude/local/state.md > "$tmp" && mv "$tmp" .claude/local/state.md
+        rm -f "$content_file"
         moved_sections+=("$section -> .claude/local/state.md")
     fi
 done
