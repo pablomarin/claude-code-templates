@@ -350,6 +350,165 @@ assert_contains "$SS_PS1" "$BEHIND_PHRASE" \
     "session-start.ps1 contains '$BEHIND_PHRASE'"
 
 # ---------------------------------------------------------------------------
+# CONTINUITY-split contracts (PR #2)
+# ---------------------------------------------------------------------------
+
+# Helper — find a usable PowerShell runtime; skip parity test if none.
+detect_pwsh() {
+    if command -v pwsh >/dev/null 2>&1; then echo "pwsh"; return 0; fi
+    if command -v powershell >/dev/null 2>&1; then echo "powershell"; return 0; fi
+    if command -v powershell.exe >/dev/null 2>&1; then echo "powershell.exe"; return 0; fi
+    return 1
+}
+
+# Helper — count CONTINUITY.md hits in a path, with explicit allowlist for
+# files where historical references are intentional (CHANGELOG, upgrading guide,
+# troubleshooting migration section).
+count_continuity_refs_excluding_allowlist() {
+    local search_path="$1"
+    grep -rln "CONTINUITY\.md" "$search_path" 2>/dev/null \
+        | grep -vE '(docs/CHANGELOG\.md|docs/guides/upgrading\.md|docs/troubleshooting\.md)$' \
+        | wc -l | tr -d ' '
+}
+
+start_test "no-CONTINUITY-in-hooks"
+hits=$(count_continuity_refs_excluding_allowlist "$REPO_ROOT/hooks")
+assert_equals "$hits" "0" "no CONTINUITY.md references in hooks/"
+
+start_test "no-CONTINUITY-in-commands"
+hits=$(count_continuity_refs_excluding_allowlist "$REPO_ROOT/commands")
+assert_equals "$hits" "0" "no CONTINUITY.md references in commands/"
+
+start_test "no-CONTINUITY-in-rules-agents-settings"
+total=0
+for d in rules agents settings; do
+    h=$(count_continuity_refs_excluding_allowlist "$REPO_ROOT/$d")
+    total=$((total + h))
+done
+assert_equals "$total" "0" "no CONTINUITY.md references in rules/, agents/, settings/"
+
+# AC-3 broadened — also cover root templates (Codex P1 finding).
+start_test "no-CONTINUITY-in-root-templates"
+total=0
+for f in CLAUDE.template.md GLOBAL-CLAUDE.template.md state.template.md; do
+    [ -f "$REPO_ROOT/$f" ] || continue
+    # `grep -c` always prints a count to stdout; rc=1 when 0 matches.
+    # Don't chain with `|| echo 0` — that produces double-output and breaks arith.
+    n=$(grep -c "CONTINUITY\.md" "$REPO_ROOT/$f" 2>/dev/null)
+    [ -z "$n" ] && n=0
+    total=$((total + n))
+done
+assert_equals "$total" "0" "no CONTINUITY.md in root templates (CLAUDE.template.md, GLOBAL-CLAUDE.template.md, state.template.md)"
+
+start_test "hooks-parity-missing-state"
+ps_runner=$(detect_pwsh)
+if [ -z "$ps_runner" ]; then
+    pass "ℹ no PowerShell runtime found (pwsh / powershell / powershell.exe); skipping bash/PS parity test"
+else
+    scratch=$(mktemp -d)
+    ( cd "$scratch" && git init -q )
+    sh_out=$(cd "$scratch" && echo '{"tool_input":{"command":"git commit -m x"}}' | bash "$REPO_ROOT/hooks/check-workflow-gates.sh" 2>&1)
+    ps_out=$(cd "$scratch" && echo '{"tool_input":{"command":"git commit -m x"}}' | "$ps_runner" -NoProfile -File "$REPO_ROOT/hooks/check-workflow-gates.ps1" 2>&1)
+    assert_equals "$sh_out" "$ps_out" "bash and PS check-workflow-gates emit byte-equivalent missing-state breadcrumb"
+    rm -rf "$scratch"
+
+    # AC-4 broadened — also cover check-state-updated parity.
+    scratch=$(mktemp -d)
+    ( cd "$scratch" && git init -q )
+    sh_out=$(cd "$scratch" && bash "$REPO_ROOT/hooks/check-state-updated.sh" < /dev/null 2>&1)
+    ps_out=$(cd "$scratch" && "$ps_runner" -NoProfile -File "$REPO_ROOT/hooks/check-state-updated.ps1" < /dev/null 2>&1)
+    assert_equals "$sh_out" "$ps_out" "bash and PS check-state-updated emit byte-equivalent missing-state breadcrumb"
+    rm -rf "$scratch"
+
+    # AC-4 malformed-file parity (state.md exists but missing Command field).
+    scratch=$(mktemp -d)
+    (
+        cd "$scratch" && git init -q && mkdir -p .claude/local && cat > .claude/local/state.md <<'EOF'
+# state without Command field
+## Workflow
+| Field | Value |
+| Phase | 3 |
+EOF
+    )
+    sh_out=$(cd "$scratch" && bash "$REPO_ROOT/hooks/check-state-updated.sh" < /dev/null 2>&1)
+    ps_out=$(cd "$scratch" && "$ps_runner" -NoProfile -File "$REPO_ROOT/hooks/check-state-updated.ps1" < /dev/null 2>&1)
+    assert_equals "$sh_out" "$ps_out" "bash and PS check-state-updated handle malformed state.md identically"
+    rm -rf "$scratch"
+fi
+
+start_test "adr-template-canonical-5-sections"
+headers=$(grep -E "^## " "$REPO_ROOT/docs/adr/template.md" | sort -u)
+# Note: sort puts 'Consequences' before 'Considered' (e < i at position 5).
+expected="## Consequences
+## Considered Options
+## Context
+## Decision
+## Status"
+if [ "$headers" = "$expected" ]; then
+    pass "ADR template has the canonical 5 sections"
+else
+    fail "ADR template headers don't match canonical 5: got '$headers'"
+fi
+
+start_test "adr-seed-files-canonical-5-sections"
+all_ok=true
+for f in "$REPO_ROOT"/docs/adr/[0-9][0-9][0-9][0-9]-*.md; do
+    [ -f "$f" ] || continue
+    for h in "## Status" "## Context" "## Considered Options" "## Decision" "## Consequences"; do
+        if ! grep -qF "$h" "$f"; then
+            fail "$(basename "$f") missing $h"
+            all_ok=false
+        fi
+    done
+done
+$all_ok && pass "all docs/adr/NNNN-*.md have the canonical 5 sections"
+
+# AC-2 verification: state.template.md has the canonical schema headers.
+start_test "state-template-canonical-schema"
+required_headers=(
+    "## Workflow"
+    "### Checklist"
+    "## State"
+    "### Done"
+    "### Now"
+    "### Next"
+    "### Deferred"
+    "## Open Questions"
+    "## Blockers"
+    "## Update Rules"
+)
+all_ok=true
+for h in "${required_headers[@]}"; do
+    if ! grep -qF "$h" "$REPO_ROOT/state.template.md"; then
+        fail "state.template.md missing canonical header: '$h'"
+        all_ok=false
+    fi
+done
+# Default Command value must be 'none'.
+if grep -qE '\|\s*Command\s*\|\s*none\s*\|' "$REPO_ROOT/state.template.md"; then
+    pass "state.template.md default Command is 'none'"
+else
+    fail "state.template.md default Command is not 'none' (AC-2 violation)"
+fi
+$all_ok && pass "state.template.md has all canonical schema headers (AC-2)"
+
+# AC-2 byte-identical STATE-INIT contract: the bash block in commands/new-feature.md
+# and commands/fix-bug.md between # STATE-INIT-BEGIN and # STATE-INIT-END markers
+# must be byte-identical (mirrors the existing DRIFT-PREFLIGHT-NEW contract from PR #1).
+start_test "state-init-block-byte-identical-across-commands"
+extract_state_init() {
+    awk '/^# STATE-INIT-BEGIN/{flag=1} flag{print} /^# STATE-INIT-END/{flag=0}' "$1"
+}
+nf_block=$(extract_state_init "$REPO_ROOT/commands/new-feature.md")
+fb_block=$(extract_state_init "$REPO_ROOT/commands/fix-bug.md")
+if [ -z "$nf_block" ]; then fail "STATE-INIT-BEGIN/END markers not found in commands/new-feature.md"
+elif [ -z "$fb_block" ]; then fail "STATE-INIT-BEGIN/END markers not found in commands/fix-bug.md"
+elif ! echo "$nf_block" | grep -q "state.md"; then fail "STATE-INIT block in new-feature.md doesn't reference state.md (sanity check)"
+elif [ "$nf_block" = "$fb_block" ]; then pass "STATE-INIT block byte-identical across new-feature.md and fix-bug.md"
+else fail "STATE-INIT block diverges between new-feature.md and fix-bug.md"
+fi
+
+# ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
 report "test-contracts.sh"
