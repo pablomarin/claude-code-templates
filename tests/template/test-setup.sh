@@ -665,6 +665,13 @@ test_fresh_install_banner_no_continuity_ref() {
     else
         fail "banner does not mention docs/adr/"
     fi
+    # P1-A/P1-B regression guard: the ENTIRE post-install output (not just the
+    # "What was created" block) must be free of CONTINUITY.md references.
+    # Iter-1 only scoped to the "What was created" block, which is why the
+    # "Next steps" block ("Edit CONTINUITY.md", "git add ... CONTINUITY.md ...")
+    # slipped through. Scan the whole log, ignoring this very test's filename
+    # context which is irrelevant to user-facing output.
+    assert_not_contains "$log" "CONTINUITY.md" "fresh-install full output has zero CONTINUITY.md mentions (P1-A/P1-B guard)"
 }
 
 test_state_md_installs

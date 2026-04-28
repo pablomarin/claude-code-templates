@@ -1084,8 +1084,9 @@ if ($Upgrade) {
     Write-Host "   (It's intentionally short - all rules live in .claude\rules\)"
     Write-Host ""
     Write-Host "2. " -NoNewline
-    Write-Color "Edit CONTINUITY.md" "Blue"
-    Write-Host " - Set your current goal and task state"
+    Write-Color "Set your project goal" "Blue"
+    Write-Host " - In CLAUDE.md, add one sentence under '### Goal'"
+    Write-Host "   (Volatile state lives in .claude\local\state.md - gitignored, populated by /new-feature)"
     Write-Host ""
     Write-Host "3. " -NoNewline
     Write-Color "Install the Superpowers plugin" "Blue"
@@ -1113,7 +1114,7 @@ if ($Upgrade) {
     Write-Color "Commit and push" "Blue"
     Write-Host ":"
     Write-Host ""
-    Write-Host "   git add .claude/ .mcp.json CLAUDE.md CONTINUITY.md docs/"
+    Write-Host "   git add .claude/ .mcp.json CLAUDE.md docs/"
     Write-Host "   git commit -m `"chore: add Claude Code automation setup`""
     Write-Host "   git push"
     Write-Host ""
