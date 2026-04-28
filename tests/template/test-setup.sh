@@ -274,16 +274,21 @@ assert_hash_equals "$S8/CONTINUITY.md" "$HASH_CONTINUITY" \
 
 # UC1 drift notice: --upgrade with BOTH user files present → per-file hints,
 # consolidated reminder, both-preserved final summary.
+# Post PR #2: CONTINUITY.template.md no longer exists, so the per-file diff
+# hint only applies to CLAUDE.md. Legacy CONTINUITY.md gets a migration prompt
+# instead, and the both-preserved final summary now points at --migrate.
 assert_contains "$LOG8b" "Template may have drifted" \
     "UC1: --upgrade shows drift notice"
 assert_contains "$LOG8b" "git diff --no-index" \
     "UC1: --upgrade suggests git diff --no-index"
 assert_contains "$LOG8b" "CLAUDE.template.md" \
     "UC1: --upgrade references CLAUDE.template.md"
-assert_contains "$LOG8b" "CONTINUITY.template.md" \
-    "UC1: --upgrade references CONTINUITY.template.md"
-assert_contains "$LOG8b" "Your CLAUDE.md and CONTINUITY.md were preserved (user content)" \
-    "UC1: --upgrade final summary = both-preserved variant"
+assert_not_contains "$LOG8b" "CONTINUITY.template.md" \
+    "UC1: --upgrade does NOT reference CONTINUITY.template.md (deleted in PR #2)"
+assert_contains "$LOG8b" "./setup.sh --migrate" \
+    "UC1: --upgrade prompts --migrate for legacy CONTINUITY.md"
+assert_contains "$LOG8b" "Your CLAUDE.md and CONTINUITY.md were preserved (run --migrate to move content to the new structure)" \
+    "UC1: --upgrade final summary = both-preserved variant (--migrate suffix)"
 assert_not_contains "$LOG8b" "were not modified" \
     "UC1: --upgrade does NOT contain legacy 'were not modified' string"
 
@@ -409,13 +414,17 @@ assert_contains "$LOG9f" "Prerequisites OK" \
 # ===========================================================================
 start_test "Test 10: asymmetric preservation drift notice"
 
-# Scenario A — user deleted CLAUDE.md, kept CONTINUITY.md.
-# Expect: only-CONTINUITY drift hint, only-CONTINUITY final summary variant.
+# Scenario A — legacy install with CONTINUITY.md, no CLAUDE.md.
+# Post PR #2 the fresh install does not create CONTINUITY.md, so we seed it
+# manually to simulate a legacy install that hasn't run --migrate yet (the
+# motivating real-world scenario for this variant).
+# Expect: migration prompt for CONTINUITY, only-CONTINUITY final summary variant.
 S10a=$(scratch_dir upgrade-asym-a)
 make_project "$S10a" frontend
 run_setup "$S10a" "$S10a/.install.log" -p "AsymA" -t fullstack
 assert_equals "$?" "0" "Scenario A: initial install exits 0"
 rm -f "$S10a/CLAUDE.md"  # simulate user clearing CLAUDE.md
+echo "# legacy CONTINUITY.md" > "$S10a/CONTINUITY.md"  # seed legacy file
 
 run_setup "$S10a" "$S10a/.upgrade.log" --upgrade
 assert_equals "$?" "0" "Scenario A: --upgrade exits 0"
@@ -424,14 +433,16 @@ assert_file_exists "$S10a/CLAUDE.md" \
 assert_file_exists "$S10a/CONTINUITY.md" \
     "Scenario A: CONTINUITY.md still present"
 
-# Drift hint must fire ONLY for CONTINUITY (CLAUDE was recreated, not preserved).
-assert_contains "$S10a/.upgrade.log" "Template may have drifted" \
-    "Scenario A: drift hint fires (for CONTINUITY)"
-assert_contains "$S10a/.upgrade.log" "CONTINUITY.template.md" \
-    "Scenario A: drift hint references CONTINUITY.template.md"
-# Final summary: only-CONTINUITY variant.
-assert_contains "$S10a/.upgrade.log" "Your CONTINUITY.md was preserved (user content)" \
-    "Scenario A: final summary = only-CONTINUITY variant"
+# Migration prompt must fire because legacy CONTINUITY.md is present.
+assert_contains "$S10a/.upgrade.log" "Legacy CONTINUITY.md detected" \
+    "Scenario A: migration prompt fires (for legacy CONTINUITY)"
+assert_contains "$S10a/.upgrade.log" "./setup.sh --migrate" \
+    "Scenario A: migration prompt suggests ./setup.sh --migrate"
+assert_not_contains "$S10a/.upgrade.log" "CONTINUITY.template.md" \
+    "Scenario A: log does NOT reference CONTINUITY.template.md (deleted in PR #2)"
+# Final summary: only-CONTINUITY variant (with --migrate suffix).
+assert_contains "$S10a/.upgrade.log" "Your CONTINUITY.md was preserved (run --migrate to move content to the new structure)" \
+    "Scenario A: final summary = only-CONTINUITY variant (--migrate suffix)"
 assert_not_contains "$S10a/.upgrade.log" "Your CLAUDE.md and CONTINUITY.md were preserved" \
     "Scenario A: final summary is NOT the both-preserved variant"
 assert_not_contains "$S10a/.upgrade.log" "were not modified" \

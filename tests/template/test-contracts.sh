@@ -199,42 +199,51 @@ assert_contains "$SETUP_SH"  "$DRIFT_MSG" "setup.sh contains drift-hint message"
 assert_contains "$SETUP_PS1" "$DRIFT_MSG" "setup.ps1 contains drift-hint message"
 
 # (ii) Template filenames referenced
-assert_contains "$SETUP_SH"  "CLAUDE.template.md"      "setup.sh references CLAUDE.template.md"
-assert_contains "$SETUP_SH"  "CONTINUITY.template.md"  "setup.sh references CONTINUITY.template.md"
-assert_contains "$SETUP_PS1" "CLAUDE.template.md"      "setup.ps1 references CLAUDE.template.md"
-assert_contains "$SETUP_PS1" "CONTINUITY.template.md"  "setup.ps1 references CONTINUITY.template.md"
+# Post PR #2: CONTINUITY.template.md no longer ships, so it must NOT be
+# referenced from setup.{sh,ps1}. CLAUDE.template.md remains the source for
+# the preserved-CLAUDE drift hint.
+assert_contains     "$SETUP_SH"  "CLAUDE.template.md"      "setup.sh references CLAUDE.template.md"
+assert_not_contains "$SETUP_SH"  "CONTINUITY.template.md"  "setup.sh does NOT reference CONTINUITY.template.md (deleted in PR #2)"
+assert_contains     "$SETUP_PS1" "CLAUDE.template.md"      "setup.ps1 references CLAUDE.template.md"
+assert_not_contains "$SETUP_PS1" "CONTINUITY.template.md"  "setup.ps1 does NOT reference CONTINUITY.template.md (deleted in PR #2)"
 
 # (iii) git diff --no-index suggested (cross-platform, works in Git Bash)
 assert_contains "$SETUP_SH"  "git diff --no-index" "setup.sh suggests git diff --no-index"
 assert_contains "$SETUP_PS1" "git diff --no-index" "setup.ps1 suggests git diff --no-index"
 
-# (iv) Exact call-site fingerprints — prove helpers are invoked, not dead.
-# setup.sh: Bash helper name + positional args
+# (iv) Exact call-site fingerprints — prove the CLAUDE.md drift-hint helper
+# is invoked, not dead. The CONTINUITY drift-hint call site is removed in
+# PR #2 (the file is gone); migration prompt replaces it.
 assert_contains "$SETUP_SH" 'print_template_drift_hint "CLAUDE.template.md" "CLAUDE.md"' \
     "setup.sh calls drift-hint helper for CLAUDE.md"
-assert_contains "$SETUP_SH" 'print_template_drift_hint "CONTINUITY.template.md" "CONTINUITY.md"' \
-    "setup.sh calls drift-hint helper for CONTINUITY.md"
-# setup.ps1: PowerShell helper name + positional args
 assert_contains "$SETUP_PS1" 'Write-TemplateDriftHint "CLAUDE.template.md" "CLAUDE.md"' \
     "setup.ps1 calls drift-hint helper for CLAUDE.md"
-assert_contains "$SETUP_PS1" 'Write-TemplateDriftHint "CONTINUITY.template.md" "CONTINUITY.md"' \
-    "setup.ps1 calls drift-hint helper for CONTINUITY.md"
 
-# (v) Final-summary parity: all three positive variants + negative legacy guard
-BOTH_VARIANT="Your CLAUDE.md and CONTINUITY.md were preserved (user content)"
+# (iv-bis) Migration prompt — both installers must surface --migrate (sh) /
+# -Migrate (ps1) when a legacy CONTINUITY.md is detected.
+assert_contains "$SETUP_SH"  "./setup.sh --migrate"  "setup.sh prompts --migrate for legacy CONTINUITY.md"
+assert_contains "$SETUP_PS1" "-Migrate"              "setup.ps1 prompts -Migrate for legacy CONTINUITY.md"
+
+# (v) Final-summary parity: three positive variants + negative legacy guard.
+# Post PR #2: when CONTINUITY.md is preserved the variant prompts the user to
+# run --migrate; when only CLAUDE.md is preserved the original "(user content)"
+# wording stays.
+BOTH_VARIANT_SH="Your CLAUDE.md and CONTINUITY.md were preserved (run --migrate to move content to the new structure)"
+BOTH_VARIANT_PS1="Your CLAUDE.md and CONTINUITY.md were preserved (run -Migrate to move content to the new structure)"
 CLAUDE_VARIANT="Your CLAUDE.md was preserved (user content)"
-CONTINUITY_VARIANT="Your CONTINUITY.md was preserved (user content)"
+CONTINUITY_VARIANT_SH="Your CONTINUITY.md was preserved (run --migrate to move content to the new structure)"
+CONTINUITY_VARIANT_PS1="Your CONTINUITY.md was preserved (run -Migrate to move content to the new structure)"
 LEGACY_STRING="were not modified"
 
-assert_contains "$SETUP_SH"  "$BOTH_VARIANT"       "setup.sh has both-preserved final variant"
-assert_contains "$SETUP_SH"  "$CLAUDE_VARIANT"     "setup.sh has only-CLAUDE final variant"
-assert_contains "$SETUP_SH"  "$CONTINUITY_VARIANT" "setup.sh has only-CONTINUITY final variant"
-assert_not_contains "$SETUP_SH" "$LEGACY_STRING"   "setup.sh removed legacy 'were not modified'"
+assert_contains "$SETUP_SH"  "$BOTH_VARIANT_SH"       "setup.sh has both-preserved final variant"
+assert_contains "$SETUP_SH"  "$CLAUDE_VARIANT"        "setup.sh has only-CLAUDE final variant"
+assert_contains "$SETUP_SH"  "$CONTINUITY_VARIANT_SH" "setup.sh has only-CONTINUITY final variant"
+assert_not_contains "$SETUP_SH" "$LEGACY_STRING"      "setup.sh removed legacy 'were not modified'"
 
-assert_contains "$SETUP_PS1" "$BOTH_VARIANT"       "setup.ps1 has both-preserved final variant"
-assert_contains "$SETUP_PS1" "$CLAUDE_VARIANT"     "setup.ps1 has only-CLAUDE final variant"
-assert_contains "$SETUP_PS1" "$CONTINUITY_VARIANT" "setup.ps1 has only-CONTINUITY final variant"
-assert_not_contains "$SETUP_PS1" "$LEGACY_STRING"  "setup.ps1 removed legacy 'were not modified'"
+assert_contains "$SETUP_PS1" "$BOTH_VARIANT_PS1"       "setup.ps1 has both-preserved final variant"
+assert_contains "$SETUP_PS1" "$CLAUDE_VARIANT"         "setup.ps1 has only-CLAUDE final variant"
+assert_contains "$SETUP_PS1" "$CONTINUITY_VARIANT_PS1" "setup.ps1 has only-CONTINUITY final variant"
+assert_not_contains "$SETUP_PS1" "$LEGACY_STRING"      "setup.ps1 removed legacy 'were not modified'"
 
 # ---------------------------------------------------------------------------
 # Contract 4: CI template placeholder ↔ setup.sh substitution
@@ -361,13 +370,32 @@ detect_pwsh() {
     return 1
 }
 
-# Helper — count CONTINUITY.md hits in a path, with explicit allowlist for
-# files where historical references are intentional (CHANGELOG, upgrading guide,
-# troubleshooting migration section).
+# Helper — count CONTINUITY.md hits in a path that indicate an actual
+# operational dependency on CONTINUITY.md (reading state from it, gating
+# workflows on it, falling back to it). Excludes:
+#   - Comment lines (sh `#`, ps1 `#`)
+#   - User-facing message lines: echo / printf / Write-Output / Write-Host /
+#     Write-Error / Write-Warning / [Console]::*::Write* — CONTINUITY.md
+#     appearing inside a quoted string in these contexts is just a breadcrumb,
+#     not a code path that depends on the file.
+#   - Existence-probe gates: `[ -f / -e CONTINUITY.md ]`, `[[ -f / -e ... ]]`,
+#     `Test-Path "CONTINUITY.md"` — these intentionally probe for the legacy
+#     file ONLY to decide whether to print the migration breadcrumb. They are
+#     part of the migration UX, not a state dependency.
+#   - Allowlisted historical references in docs (CHANGELOG, upgrading guide,
+#     troubleshooting migration section).
+#
+# What WILL be counted (and should fail the contract):
+#   - `cat CONTINUITY.md`, `grep ... CONTINUITY.md`, `< CONTINUITY.md`
+#   - `Get-Content CONTINUITY.md`, `Select-String ... CONTINUITY.md`
+#   - any other code path that reads from or writes to CONTINUITY.md as state.
 count_continuity_refs_excluding_allowlist() {
     local search_path="$1"
-    grep -rln "CONTINUITY\.md" "$search_path" 2>/dev/null \
-        | grep -vE '(docs/CHANGELOG\.md|docs/guides/upgrading\.md|docs/troubleshooting\.md)$' \
+    grep -rn "CONTINUITY\.md" "$search_path" 2>/dev/null \
+        | grep -vE ':(docs/CHANGELOG\.md|docs/guides/upgrading\.md|docs/troubleshooting\.md):' \
+        | grep -vE ':[[:space:]]*#' \
+        | grep -vE '(echo|printf|Write-Output|Write-Host|Write-Error|Write-Warning|\[Console\]::[A-Za-z]+\.Write[A-Za-z]*)' \
+        | grep -vE '(\[[[:space:]]*!?[[:space:]]*-[fe][[:space:]]+"?CONTINUITY\.md"?[[:space:]]*\]|Test-Path[[:space:]]+"?CONTINUITY\.md"?)' \
         | wc -l | tr -d ' '
 }
 
