@@ -31,7 +31,6 @@ fi
 UNCOMMITTED=$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d ' ')
 
 # Files modified (uncommitted)
-CONTINUITY_MODIFIED=$(git status --porcelain CONTINUITY.md 2>/dev/null | wc -l | tr -d ' ')
 CHANGELOG_MODIFIED=$(git status --porcelain docs/CHANGELOG.md 2>/dev/null | wc -l | tr -d ' ')
 
 # Total files changed on branch (committed + uncommitted) vs default branch
@@ -63,23 +62,27 @@ TOTAL_CHANGED=$((BRANCH_CHANGED + UNCOMMITTED_FILES))
 CHANGELOG_IN_BRANCH=$(git diff --name-only "$BRANCH_BASE" HEAD 2>/dev/null | grep -c "CHANGELOG.md" || true)
 
 # --- Workflow state tracking ---
-# If CONTINUITY.md has an active workflow, extract phase/next-step for advisory reminder
+# State file is gitignored. Emit breadcrumb only when a legacy CONTINUITY.md
+# is present (signals user upgraded but hasn't migrated yet) — avoids spamming
+# every Stop event in repos that never had CONTINUITY.md.
+if [ ! -f ".claude/local/state.md" ] && [ -f "CONTINUITY.md" ]; then
+    echo "ℹ check-state-updated: .claude/local/state.md not found, but CONTINUITY.md exists." >&2
+    echo "  Run setup --migrate to move your content to the new structure." >&2
+    # Continue to CHANGELOG check — gates are independent.
+fi
+
+# If .claude/local/state.md has an active workflow, extract phase/next-step for advisory reminder
 WORKFLOW_REMINDER=""
-if [ -f "CONTINUITY.md" ]; then
-    WORKFLOW_CMD=$(grep -E '\|\s*Command\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+if [ -f ".claude/local/state.md" ]; then
+    WORKFLOW_CMD=$(grep -E '\|\s*Command\s*\|' .claude/local/state.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
     if [ -n "$WORKFLOW_CMD" ] && [ "$WORKFLOW_CMD" != "none" ] && [ "$WORKFLOW_CMD" != "—" ] && [ "$WORKFLOW_CMD" != "-" ]; then
-        WORKFLOW_PHASE=$(grep -E '\|\s*Phase\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
-        WORKFLOW_NEXT=$(grep -E '\|\s*Next step\s*\|' CONTINUITY.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+        WORKFLOW_PHASE=$(grep -E '\|\s*Phase\s*\|' .claude/local/state.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
+        WORKFLOW_NEXT=$(grep -E '\|\s*Next step\s*\|' .claude/local/state.md 2>/dev/null | awk -F'|' '{print $3}' | xargs)
         WORKFLOW_REMINDER="WORKFLOW: $WORKFLOW_CMD | Phase: $WORKFLOW_PHASE | Next: $WORKFLOW_NEXT"
     fi
 fi
 
 ISSUES=""
-
-# Block: uncommitted changes but CONTINUITY.md not updated
-if [ "$UNCOMMITTED" -gt 0 ] && [ "$CONTINUITY_MODIFIED" -eq 0 ]; then
-    ISSUES="Update CONTINUITY.md Done/Now/Next sections."
-fi
 
 # Block: 3+ files changed on branch but CHANGELOG.md never updated
 if [ "$TOTAL_CHANGED" -gt 3 ] && [ "$CHANGELOG_IN_BRANCH" -eq 0 ] && [ "$CHANGELOG_MODIFIED" -eq 0 ]; then
