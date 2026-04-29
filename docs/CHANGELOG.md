@@ -2,6 +2,21 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.18 — 2026-04-28 · Tighten reconcile prompt — enumerate all CONTINUITY reference types
+
+The 5.17 soft tip and 5.16 migration warning shipped a single-clause prompt that only addressed the `@CONTINUITY.md` dangling-import line at the top of CLAUDE.md. Field bug from msai-v2: leftover references at line 102 (file-tree diagram listing CONTINUITY.md as a project file) and line 212 (`(see CONTINUITY)` deferred-followup pointer) survived running the v5.17 prompt because the wording only covered the @-import case AND the "preserving my project-specific content" clause actively pushed Claude to keep them.
+
+Prompt expanded to (a) instruct Claude to scan the ENTIRE file, (b) enumerate four concrete reference types (`@CONTINUITY.md` import lines, file-tree diagrams, prose pointers like `see CONTINUITY` / `in CONTINUITY.md` / `(CONTINUITY)`, comments/labels referencing CONTINUITY.md), and (c) explicitly carve CONTINUITY pointers OUT of the "preserve project-specific content" rule by labeling them "stale infrastructure references."
+
+> Reconcile my CLAUDE.md against `$SCRIPT_DIR/CLAUDE.template.md`. Port any new template sections, preserving my project-specific content. Then scan the ENTIRE file and remove every dangling reference to CONTINUITY.md left over from before the 5.15 migration. Look for: `@CONTINUITY.md` import lines (usually at the top); file-tree diagrams that list CONTINUITY.md as a project file; prose pointers like `see CONTINUITY`, `in CONTINUITY.md`, `(CONTINUITY)`; comments or labels that reference CONTINUITY.md as a location. CONTINUITY.md no longer exists — its content moved to CLAUDE.md (durable), `docs/adr/` (decisions), and `.claude/local/state.md` (volatile). Remove these references; the "preserve project-specific content" rule does NOT apply to CONTINUITY pointers — they are stale infrastructure references.
+
+- `setup.sh` + `setup.ps1` — soft tip body expanded; closing-quote position preserved on last echo line; ASCII-only output for cross-platform byte-parity (per migration-script gotcha).
+- `scripts/migrate-continuity.sh` + `scripts/migrate-continuity.ps1` — Variant B warning body matches setup.sh/setup.ps1 exactly (parity).
+- `tests/template/test-setup.sh` + `test-contracts.sh` — assertions updated: legacy `@CONTINUITY.md line on top` exact-phrase check replaced with `@CONTINUITY.md import lines` (5.18 wording); three new lock-in assertions per platform (`scan the ENTIRE file`, `File-tree diagrams`, `stale infrastructure references`) so the broader scope cannot silently regress.
+- `README.md` — version badge bump 5.17 → 5.18, prepend version-history row.
+
+**Existing installs:** the new wording lands on next `setup.sh --upgrade`. No content migration needed. Re-run the recommended prompt against your CLAUDE.md to clean up any leftover CONTINUITY references that survived the v5.17 pass.
+
 ## 5.17 — 2026-04-28 · Drop per-file template-drift cry-wolf hint; soft "ask Claude to reconcile" tip
 
 Removes the per-file inline `Template may have drifted. To review: git diff --no-index ...` hint that fired every time CLAUDE.md was preserved during `--upgrade`. Same cry-wolf problem as the consolidated preamble dropped in 5.16, just at a different layer.

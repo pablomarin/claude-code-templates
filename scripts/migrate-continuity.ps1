@@ -304,9 +304,20 @@ if ((Test-Path "CLAUDE.md") -and (Select-String -Path "CLAUDE.md" -Pattern '^@CO
         "`n" +
         "      Reconcile my CLAUDE.md against $ScriptDir/CLAUDE.template.md.`n" +
         "      Port any new template sections I'm missing, preserving my`n" +
-        "      project-specific content. If you see an @CONTINUITY.md line`n" +
-        "      on top, remove it -- it's a dangling import from before the`n" +
-        "      5.15 migration.`n" +
+        "      project-specific content.`n" +
+        "`n" +
+        "      Then scan the ENTIRE file and remove every dangling reference to`n" +
+        "      CONTINUITY.md left over from before the 5.15 migration. Look for:`n" +
+        "        - @CONTINUITY.md import lines (usually at the top)`n" +
+        "        - File-tree diagrams that list CONTINUITY.md as a project file`n" +
+        "        - Prose pointers like 'see CONTINUITY', 'in CONTINUITY.md', '(CONTINUITY)'`n" +
+        "        - Comments or labels that reference CONTINUITY.md as a location`n" +
+        "`n" +
+        "      CONTINUITY.md no longer exists -- its content moved to CLAUDE.md`n" +
+        "      (durable), docs/adr/ (decisions), and .claude/local/state.md`n" +
+        "      (volatile). Remove these references; the 'preserve project-specific`n" +
+        "      content' rule does NOT apply to CONTINUITY pointers -- they are`n" +
+        "      stale infrastructure references.`n" +
         "`n" +
         "    (Not in Claude Code? See docs/guides/upgrading.md `"Manual fallback`".)"
     [void]$warnings.Add($reconcilePrompt)

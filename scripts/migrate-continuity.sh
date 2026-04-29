@@ -292,9 +292,20 @@ if [ -f "CLAUDE.md" ] && grep -qE '^@CONTINUITY\.md\b' CLAUDE.md; then
 
       Reconcile my CLAUDE.md against $SCRIPT_DIR/CLAUDE.template.md.
       Port any new template sections I'm missing, preserving my
-      project-specific content. If you see an @CONTINUITY.md line
-      on top, remove it -- it's a dangling import from before the
-      5.15 migration.
+      project-specific content.
+
+      Then scan the ENTIRE file and remove every dangling reference to
+      CONTINUITY.md left over from before the 5.15 migration. Look for:
+        - @CONTINUITY.md import lines (usually at the top)
+        - File-tree diagrams that list CONTINUITY.md as a project file
+        - Prose pointers like 'see CONTINUITY', 'in CONTINUITY.md', '(CONTINUITY)'
+        - Comments or labels that reference CONTINUITY.md as a location
+
+      CONTINUITY.md no longer exists -- its content moved to CLAUDE.md
+      (durable), docs/adr/ (decisions), and .claude/local/state.md
+      (volatile). Remove these references; the 'preserve project-specific
+      content' rule does NOT apply to CONTINUITY pointers -- they are
+      stale infrastructure references.
 
     (Not in Claude Code? See docs/guides/upgrading.md \"Manual fallback\".)")
 fi

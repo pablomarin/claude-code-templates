@@ -234,18 +234,35 @@ assert_contains "$SETUP_PS1" "ask Claude to reconcile your CLAUDE.md against the
 # dangling-import cleanup clause (matches migration script wording from 5.16).
 # Codex-flagged P2 #1 from the v1 attempt: dropping this clause leaves users on
 # a non-migrate path without instructions to remove the dangling import.
+# 5.18: prompt expanded to enumerate ALL CONTINUITY reference types (tree
+# diagrams, prose pointers, labels). Field bug origin: msai-v2 retained
+# line-102 tree-diagram and line-212 prose-pointer references after running
+# the v5.17 prompt because the prior wording only addressed the @-import line.
+# Lock in the broader scope so it cannot silently regress.
 assert_contains "$SETUP_SH"  "Reconcile my CLAUDE.md against" \
     "setup.sh soft tip includes Variant B 'Reconcile my CLAUDE.md against' prompt"
-assert_contains "$SETUP_SH"  "@CONTINUITY.md line on top" \
-    "setup.sh soft tip includes @CONTINUITY.md dangling-import cleanup clause"
+assert_contains "$SETUP_SH"  "@CONTINUITY.md import lines" \
+    "setup.sh soft tip includes @CONTINUITY.md cleanup clause (5.18 wording)"
 assert_contains "$SETUP_SH"  "dangling" \
-    "setup.sh soft tip explains the @CONTINUITY.md line is a dangling import"
+    "setup.sh soft tip describes leftover CONTINUITY refs as dangling"
+assert_contains "$SETUP_SH"  "scan the ENTIRE file" \
+    "setup.sh soft tip instructs full-file scan (5.18)"
+assert_contains "$SETUP_SH"  "File-tree diagrams" \
+    "setup.sh soft tip names tree-diagram references as a target (5.18)"
+assert_contains "$SETUP_SH"  "stale infrastructure references" \
+    "setup.sh soft tip frames CONTINUITY refs as not-user-content (5.18)"
 assert_contains "$SETUP_PS1" "Reconcile my CLAUDE.md against" \
     "setup.ps1 soft tip includes Variant B 'Reconcile my CLAUDE.md against' prompt"
-assert_contains "$SETUP_PS1" "@CONTINUITY.md line on top" \
-    "setup.ps1 soft tip includes @CONTINUITY.md dangling-import cleanup clause"
+assert_contains "$SETUP_PS1" "@CONTINUITY.md import lines" \
+    "setup.ps1 soft tip includes @CONTINUITY.md cleanup clause (5.18 wording)"
 assert_contains "$SETUP_PS1" "dangling" \
-    "setup.ps1 soft tip explains the @CONTINUITY.md line is a dangling import"
+    "setup.ps1 soft tip describes leftover CONTINUITY refs as dangling"
+assert_contains "$SETUP_PS1" "scan the ENTIRE file" \
+    "setup.ps1 soft tip instructs full-file scan (5.18)"
+assert_contains "$SETUP_PS1" "File-tree diagrams" \
+    "setup.ps1 soft tip names tree-diagram references as a target (5.18)"
+assert_contains "$SETUP_PS1" "stale infrastructure references" \
+    "setup.ps1 soft tip frames CONTINUITY refs as not-user-content (5.18)"
 
 # (v) "Full guide" reference uses absolute path semantics ($SCRIPT_DIR / $ScriptDir)
 # so the link resolves to the Forge clone's docs/guides/upgrading.md, not the

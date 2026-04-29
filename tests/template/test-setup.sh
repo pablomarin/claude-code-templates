@@ -287,8 +287,19 @@ assert_contains "$LOG8b" "ask Claude to reconcile your CLAUDE.md" \
     "UC1: --upgrade shows soft reconcile tip (5.17)"
 assert_contains "$LOG8b" "Reconcile my CLAUDE.md against" \
     "UC1: --upgrade soft tip includes full Variant B prompt"
-assert_contains "$LOG8b" "@CONTINUITY.md line on top" \
-    "UC1: --upgrade soft tip includes @CONTINUITY.md cleanup clause"
+assert_contains "$LOG8b" "@CONTINUITY.md import lines" \
+    "UC1: --upgrade soft tip includes @CONTINUITY.md cleanup clause (5.18 wording)"
+# 5.18: tightened prompt asks Claude to scan the whole file for ALL leftover
+# CONTINUITY references (tree diagrams, prose pointers, labels) -- not just
+# the @-import line. Lock in the new tokens so the broader scope cannot
+# silently regress. Field bug origin: msai-v2 retained line-102 tree-diagram
+# and line-212 prose pointer after running the v5.17 prompt.
+assert_contains "$LOG8b" "scan the ENTIRE file" \
+    "UC1: --upgrade soft tip instructs full-file scan (5.18)"
+assert_contains "$LOG8b" "File-tree diagrams" \
+    "UC1: --upgrade soft tip names tree-diagram references (5.18)"
+assert_contains "$LOG8b" "stale infrastructure references" \
+    "UC1: --upgrade soft tip frames CONTINUITY refs as not-user-content (5.18)"
 assert_contains "$LOG8b" "Full guide:" \
     "UC1: --upgrade soft tip includes 'Full guide:' reference"
 assert_contains "$LOG8b" "/docs/guides/upgrading.md" \

@@ -930,14 +930,29 @@ if [[ "$UPGRADE" == true ]]; then
     # including the @CONTINUITY.md dangling-import cleanup clause. The "Full
     # guide" reference uses an absolute path to the Forge clone so it resolves
     # correctly when users run setup.sh --upgrade from inside their project.
+    # 5.18: prompt expanded to enumerate ALL CONTINUITY reference types
+    # (tree diagrams, prose pointers, labels) -- field bug where msai-v2
+    # leftover refs at line 102 (tree) and line 212 (prose) survived because
+    # the prior single-clause prompt only addressed the @-import line.
     if [[ "$had_claude_md" == true ]]; then
         echo ""
         echo -e "${BLUE}Tip:${NC} ask Claude to reconcile your CLAUDE.md against the latest template:"
         echo ""
         echo "  \"Reconcile my CLAUDE.md against $SCRIPT_DIR/CLAUDE.template.md."
         echo "   Port any new template sections, preserving my project-specific content."
-        echo "   If you see an @CONTINUITY.md line on top, remove it -- it's a dangling"
-        echo "   import from before the 5.15 migration.\""
+        echo ""
+        echo "   Then scan the ENTIRE file and remove every dangling reference to"
+        echo "   CONTINUITY.md left over from before the 5.15 migration. Look for:"
+        echo "     - @CONTINUITY.md import lines (usually at the top)"
+        echo "     - File-tree diagrams that list CONTINUITY.md as a project file"
+        echo "     - Prose pointers like 'see CONTINUITY', 'in CONTINUITY.md', '(CONTINUITY)'"
+        echo "     - Comments or labels that reference CONTINUITY.md as a location"
+        echo ""
+        echo "   CONTINUITY.md no longer exists -- its content moved to CLAUDE.md"
+        echo "   (durable), docs/adr/ (decisions), and .claude/local/state.md"
+        echo "   (volatile). Remove these references; the 'preserve project-specific"
+        echo "   content' rule does NOT apply to CONTINUITY pointers -- they are"
+        echo "   stale infrastructure references.\""
         echo ""
         echo "  (Full guide: $SCRIPT_DIR/docs/guides/upgrading.md)"
         echo ""
