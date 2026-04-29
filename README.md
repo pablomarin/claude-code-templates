@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green?style=flat-square"></a>
-  <a href="#version-history"><img alt="Version" src="https://img.shields.io/badge/version-5.18-blue?style=flat-square"></a>
+  <a href="#version-history"><img alt="Version" src="https://img.shields.io/badge/version-5.19-blue?style=flat-square"></a>
   <a href="docs/getting-started.md"><img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square"></a>
   <a href="https://code.claude.com"><img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-enabled-purple?style=flat-square"></a>
   <a href="https://developers.openai.com/codex/"><img alt="Codex CLI" src="https://img.shields.io/badge/Codex_CLI-required-orange?style=flat-square"></a>
@@ -143,6 +143,7 @@ Recent releases:
 
 | Version | Date       | Highlights                                                                                                                     |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 5.19    | 2026-04-29 | Allow `Write`/`Edit` on `.claude/local/**` without prompting (workaround for Claude Code v2.1.80+ bare-tool regression)        |
 | 5.18    | 2026-04-28 | Tighten reconcile prompt — enumerate all CONTINUITY reference types (tree diagrams, prose pointers, labels)                    |
 | 5.17    | 2026-04-28 | Drop per-file template-drift cry-wolf hint; soft "ask Claude to reconcile" tip                                                 |
 | 5.16    | 2026-04-28 | Migration UX — consolidated "ask Claude" reconcile message; dropped cry-wolf drift hint                                        |
