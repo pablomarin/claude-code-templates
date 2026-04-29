@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green?style=flat-square"></a>
-  <a href="#version-history"><img alt="Version" src="https://img.shields.io/badge/version-5.16-blue?style=flat-square"></a>
+  <a href="#version-history"><img alt="Version" src="https://img.shields.io/badge/version-5.17-blue?style=flat-square"></a>
   <a href="docs/getting-started.md"><img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square"></a>
   <a href="https://code.claude.com"><img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-enabled-purple?style=flat-square"></a>
   <a href="https://developers.openai.com/codex/"><img alt="Codex CLI" src="https://img.shields.io/badge/Codex_CLI-required-orange?style=flat-square"></a>
@@ -143,6 +143,7 @@ Recent releases:
 
 | Version | Date       | Highlights                                                                                                                     |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 5.17    | 2026-04-28 | Drop per-file template-drift cry-wolf hint; soft "ask Claude to reconcile" tip                                                 |
 | 5.16    | 2026-04-28 | Migration UX — consolidated "ask Claude" reconcile message; dropped cry-wolf drift hint                                        |
 | 5.15    | 2026-04-28 | CONTINUITY split — durable facts to CLAUDE.md, decisions to `docs/adr/`, volatile state to gitignored `.claude/local/state.md` |
 | 5.14    | 2026-04-27 | Drift hygiene — SessionStart `git fetch` warning + worktree from `origin/<default>`                                            |

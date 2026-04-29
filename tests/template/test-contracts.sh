@@ -182,42 +182,78 @@ assert_file_exists "$REPO_ROOT/docs/guides/multi-project-isolation.md" \
     "canonical isolation guide exists"
 
 # ---------------------------------------------------------------------------
-# Contract 7: Template-drift hint + upgrade-summary parity
+# Contract 7: Soft "ask Claude to reconcile" tip + upgrade-summary parity
 #
-# Both installers must ship the same drift hint helper AND the same four
+# Both installers must ship the same end-of-summary soft tip AND the same four
 # boolean-gated final-summary variants. Without this contract, setup.ps1 can
 # silently diverge from setup.sh (bash tests don't execute PowerShell).
+#
+# 5.17: replaced the per-file inline "Template may have drifted ... git diff
+# --no-index" hint (cry-wolf — fired every upgrade regardless of actual drift)
+# with a single end-of-summary soft tip that recommends the full Variant B
+# "ask Claude to reconcile" prompt (matches the migration script's wording,
+# including the @CONTINUITY.md dangling-import cleanup clause).
 # ---------------------------------------------------------------------------
-start_test "Template-drift hint + upgrade-summary parity"
+start_test "Soft reconcile tip + upgrade-summary parity"
 
 SETUP_SH="$REPO_ROOT/setup.sh"
 SETUP_PS1="$REPO_ROOT/setup.ps1"
 
-# (i) User-facing drift-hint string
-DRIFT_MSG="Template may have drifted"
-assert_contains "$SETUP_SH"  "$DRIFT_MSG" "setup.sh contains drift-hint message"
-assert_contains "$SETUP_PS1" "$DRIFT_MSG" "setup.ps1 contains drift-hint message"
+# (i) Legacy cry-wolf drift-hint string MUST be absent from both installers
+# (5.17 regression guard). The literal "Template may have drifted" must not
+# appear anywhere in setup.{sh,ps1} — including comments — to make the regression
+# guard unambiguous. Comments referencing the legacy hint use a paraphrased form.
+assert_not_contains "$SETUP_SH"  "Template may have drifted" \
+    "setup.sh does NOT contain legacy 'Template may have drifted' cry-wolf hint (5.17)"
+assert_not_contains "$SETUP_PS1" "Template may have drifted" \
+    "setup.ps1 does NOT contain legacy 'Template may have drifted' cry-wolf hint (5.17)"
+
+# (i-bis) Drift-hint helpers must be removed (no orphaned definitions or callsites)
+assert_not_contains "$SETUP_SH"  "print_template_drift_hint" \
+    "setup.sh does NOT contain print_template_drift_hint helper or callsites (5.17)"
+assert_not_contains "$SETUP_PS1" "Write-TemplateDriftHint" \
+    "setup.ps1 does NOT contain Write-TemplateDriftHint helper or callsites (5.17)"
 
 # (ii) Template filenames referenced
 # Post PR #2: CONTINUITY.template.md no longer ships, so it must NOT be
 # referenced from setup.{sh,ps1}. CLAUDE.template.md remains the source for
-# the preserved-CLAUDE drift hint.
+# the preserved-CLAUDE soft reconcile tip.
 assert_contains     "$SETUP_SH"  "CLAUDE.template.md"      "setup.sh references CLAUDE.template.md"
 assert_not_contains "$SETUP_SH"  "CONTINUITY.template.md"  "setup.sh does NOT reference CONTINUITY.template.md (deleted in PR #2)"
 assert_contains     "$SETUP_PS1" "CLAUDE.template.md"      "setup.ps1 references CLAUDE.template.md"
 assert_not_contains "$SETUP_PS1" "CONTINUITY.template.md"  "setup.ps1 does NOT reference CONTINUITY.template.md (deleted in PR #2)"
 
-# (iii) git diff --no-index suggested (cross-platform, works in Git Bash)
-assert_contains "$SETUP_SH"  "git diff --no-index" "setup.sh suggests git diff --no-index"
-assert_contains "$SETUP_PS1" "git diff --no-index" "setup.ps1 suggests git diff --no-index"
+# (iii) Soft tip is present in both installers (5.17). The "Tip:" prefix +
+# "ask Claude to reconcile" anchor are the user-visible identity of the new tip.
+assert_contains "$SETUP_SH"  "ask Claude to reconcile your CLAUDE.md against the latest template" \
+    "setup.sh contains soft 'ask Claude to reconcile' tip (5.17)"
+assert_contains "$SETUP_PS1" "ask Claude to reconcile your CLAUDE.md against the latest template" \
+    "setup.ps1 contains soft 'ask Claude to reconcile' tip (5.17)"
 
-# (iv) Exact call-site fingerprints — prove the CLAUDE.md drift-hint helper
-# is invoked, not dead. The CONTINUITY drift-hint call site is removed in
-# PR #2 (the file is gone); migration prompt replaces it.
-assert_contains "$SETUP_SH" 'print_template_drift_hint "CLAUDE.template.md" "CLAUDE.md"' \
-    "setup.sh calls drift-hint helper for CLAUDE.md"
-assert_contains "$SETUP_PS1" 'Write-TemplateDriftHint "CLAUDE.template.md" "CLAUDE.md"' \
-    "setup.ps1 calls drift-hint helper for CLAUDE.md"
+# (iv) Soft tip MUST include the full Variant B prompt with the @CONTINUITY.md
+# dangling-import cleanup clause (matches migration script wording from 5.16).
+# Codex-flagged P2 #1 from the v1 attempt: dropping this clause leaves users on
+# a non-migrate path without instructions to remove the dangling import.
+assert_contains "$SETUP_SH"  "Reconcile my CLAUDE.md against" \
+    "setup.sh soft tip includes Variant B 'Reconcile my CLAUDE.md against' prompt"
+assert_contains "$SETUP_SH"  "@CONTINUITY.md line on top" \
+    "setup.sh soft tip includes @CONTINUITY.md dangling-import cleanup clause"
+assert_contains "$SETUP_SH"  "dangling" \
+    "setup.sh soft tip explains the @CONTINUITY.md line is a dangling import"
+assert_contains "$SETUP_PS1" "Reconcile my CLAUDE.md against" \
+    "setup.ps1 soft tip includes Variant B 'Reconcile my CLAUDE.md against' prompt"
+assert_contains "$SETUP_PS1" "@CONTINUITY.md line on top" \
+    "setup.ps1 soft tip includes @CONTINUITY.md dangling-import cleanup clause"
+assert_contains "$SETUP_PS1" "dangling" \
+    "setup.ps1 soft tip explains the @CONTINUITY.md line is a dangling import"
+
+# (v) "Full guide" reference uses absolute path semantics ($SCRIPT_DIR / $ScriptDir)
+# so the link resolves to the Forge clone's docs/guides/upgrading.md, not the
+# user's project (where the guide doesn't exist). Codex-flagged P2 #2 from v1.
+assert_contains "$SETUP_SH"  '(Full guide: $SCRIPT_DIR/docs/guides/upgrading.md)' \
+    "setup.sh 'Full guide' reference uses \$SCRIPT_DIR absolute path (5.17)"
+assert_contains "$SETUP_PS1" '(Full guide: $ScriptDir/docs/guides/upgrading.md)' \
+    "setup.ps1 'Full guide' reference uses \$ScriptDir absolute path (5.17)"
 
 # (iv-bis) Migration prompt — both installers must surface --migrate (sh) /
 # -Migrate (ps1) when a legacy CONTINUITY.md is detected.

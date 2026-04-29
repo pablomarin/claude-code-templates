@@ -233,11 +233,13 @@ assert_file_exists "$S8/.claude/commands/new-feature.md" \
 assert_file_exists "$S8/docs/CHANGELOG.md" \
     "initial install created docs/CHANGELOG.md"
 
-# First-install drift-notice regression guard: LOG8a is the initial-install
+# First-install soft-tip regression guard: LOG8a is the initial-install
 # log from above. CLAUDE.md/CONTINUITY.md did not exist before that run, so
-# no drift hint should have fired.
+# no soft tip (or legacy drift notice) should have fired.
 assert_not_contains "$LOG8a" "Template may have drifted" \
-    "first install does NOT show drift notice (UC3 regression guard)"
+    "first install does NOT show legacy drift notice (UC3 regression guard)"
+assert_not_contains "$LOG8a" "ask Claude to reconcile" \
+    "first install does NOT show soft reconcile tip (5.17 regression guard)"
 
 # Simulate the user actually using CHANGELOG and CLAUDE.md — they add their
 # own release entries and project notes. This is the content that MUST NOT
@@ -272,15 +274,25 @@ assert_hash_equals "$S8/CLAUDE.md" "$HASH_CLAUDE" \
 assert_hash_equals "$S8/CONTINUITY.md" "$HASH_CONTINUITY" \
     "--upgrade does not touch CONTINUITY.md at all"
 
-# UC1 drift notice: --upgrade with BOTH user files present → per-file hints,
-# consolidated reminder, both-preserved final summary.
-# Post PR #2: CONTINUITY.template.md no longer exists, so the per-file diff
-# hint only applies to CLAUDE.md. Legacy CONTINUITY.md gets a migration prompt
-# instead, and the both-preserved final summary now points at --migrate.
-assert_contains "$LOG8b" "Template may have drifted" \
-    "UC1: --upgrade shows drift notice"
-assert_contains "$LOG8b" "git diff --no-index" \
-    "UC1: --upgrade suggests git diff --no-index"
+# UC1 soft tip: --upgrade with CLAUDE.md preserved → end-of-summary soft tip
+# with full Variant B prompt, both-preserved final summary, migration prompt
+# for legacy CONTINUITY.md.
+# Post PR #2: CONTINUITY.template.md no longer exists. Legacy CONTINUITY.md gets
+# a migration prompt, and the both-preserved final summary points at --migrate.
+# 5.17: per-file inline drift hint dropped; soft tip fires once at end of summary
+# when CLAUDE.md was preserved.
+assert_not_contains "$LOG8b" "Template may have drifted" \
+    "UC1: --upgrade does NOT contain legacy 'Template may have drifted' hint (5.17)"
+assert_contains "$LOG8b" "ask Claude to reconcile your CLAUDE.md" \
+    "UC1: --upgrade shows soft reconcile tip (5.17)"
+assert_contains "$LOG8b" "Reconcile my CLAUDE.md against" \
+    "UC1: --upgrade soft tip includes full Variant B prompt"
+assert_contains "$LOG8b" "@CONTINUITY.md line on top" \
+    "UC1: --upgrade soft tip includes @CONTINUITY.md cleanup clause"
+assert_contains "$LOG8b" "Full guide:" \
+    "UC1: --upgrade soft tip includes 'Full guide:' reference"
+assert_contains "$LOG8b" "/docs/guides/upgrading.md" \
+    "UC1: --upgrade soft tip 'Full guide:' uses absolute path to Forge clone"
 assert_contains "$LOG8b" "CLAUDE.template.md" \
     "UC1: --upgrade references CLAUDE.template.md"
 assert_not_contains "$LOG8b" "CONTINUITY.template.md" \
@@ -304,11 +316,11 @@ assert_hash_equals "$S8/CLAUDE.md" "$HASH_CLAUDE" \
 assert_hash_equals "$S8/CONTINUITY.md" "$HASH_CONTINUITY" \
     "-f does not touch CONTINUITY.md"
 
-# UC2 drift notice: -f also fires the per-file hint.
-assert_contains "$LOG8c" "Template may have drifted" \
-    "UC2: -f shows drift notice"
-assert_contains "$LOG8c" "git diff --no-index" \
-    "UC2: -f suggests git diff --no-index"
+# UC2 soft tip: -f path runs the install branch (not the --upgrade branch),
+# which does NOT emit the soft tip. Confirm legacy drift hint is absent and
+# that the -f path is silent on the reconcile tip (which is upgrade-mode-only).
+assert_not_contains "$LOG8c" "Template may have drifted" \
+    "UC2: -f does NOT contain legacy 'Template may have drifted' hint (5.17)"
 
 # ===========================================================================
 # Test 9: runtime preflight — warns but never blocks
@@ -447,6 +459,10 @@ assert_not_contains "$S10a/.upgrade.log" "Your CLAUDE.md and CONTINUITY.md were 
     "Scenario A: final summary is NOT the both-preserved variant"
 assert_not_contains "$S10a/.upgrade.log" "were not modified" \
     "Scenario A: final summary does NOT contain legacy string"
+# 5.17: soft tip is gated on had_claude_md=true. Scenario A removed CLAUDE.md
+# before --upgrade, so the soft tip must NOT fire.
+assert_not_contains "$S10a/.upgrade.log" "ask Claude to reconcile" \
+    "Scenario A: no soft reconcile tip when CLAUDE.md was not preserved (5.17)"
 
 # Scenario B — user deleted CONTINUITY.md, kept CLAUDE.md.
 # Mirror of Scenario A.
@@ -459,7 +475,11 @@ rm -f "$S10b/CONTINUITY.md"
 run_setup "$S10b" "$S10b/.upgrade.log" --upgrade
 assert_equals "$?" "0" "Scenario B: --upgrade exits 0"
 assert_contains "$S10b/.upgrade.log" "CLAUDE.template.md" \
-    "Scenario B: drift hint references CLAUDE.template.md"
+    "Scenario B: soft tip references CLAUDE.template.md"
+assert_contains "$S10b/.upgrade.log" "ask Claude to reconcile your CLAUDE.md" \
+    "Scenario B: soft tip fires when CLAUDE.md is preserved (5.17)"
+assert_not_contains "$S10b/.upgrade.log" "Template may have drifted" \
+    "Scenario B: legacy drift hint is gone (5.17)"
 assert_contains "$S10b/.upgrade.log" "Your CLAUDE.md was preserved (user content)" \
     "Scenario B: final summary = only-CLAUDE variant"
 assert_not_contains "$S10b/.upgrade.log" "Your CLAUDE.md and CONTINUITY.md were preserved" \
@@ -478,7 +498,9 @@ rm -f "$S10c/CLAUDE.md" "$S10c/CONTINUITY.md"
 run_setup "$S10c" "$S10c/.upgrade.log" --upgrade
 assert_equals "$?" "0" "Scenario C: --upgrade exits 0"
 assert_not_contains "$S10c/.upgrade.log" "Template may have drifted" \
-    "Scenario C: no drift block when nothing was preserved"
+    "Scenario C: no legacy drift block when nothing was preserved"
+assert_not_contains "$S10c/.upgrade.log" "ask Claude to reconcile" \
+    "Scenario C: no soft reconcile tip when CLAUDE.md was not preserved (5.17)"
 assert_not_contains "$S10c/.upgrade.log" "was preserved" \
     "Scenario C: final summary does NOT claim 'was preserved'"
 assert_not_contains "$S10c/.upgrade.log" "were preserved" \
