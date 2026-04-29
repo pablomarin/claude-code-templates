@@ -1006,6 +1006,10 @@ if ($Upgrade) {
     # including the @CONTINUITY.md dangling-import cleanup clause. The "Full
     # guide" reference uses an absolute path to the Forge clone so it resolves
     # correctly when users run setup.ps1 -Upgrade from inside their project.
+    # 5.18: prompt expanded to enumerate ALL CONTINUITY reference types
+    # (tree diagrams, prose pointers, labels) -- field bug where msai-v2
+    # leftover refs at line 102 (tree) and line 212 (prose) survived because
+    # the prior single-clause prompt only addressed the @-import line.
     if ($hadClaude) {
         Write-Host ""
         Write-Host "Tip:" -ForegroundColor Blue -NoNewline
@@ -1013,8 +1017,19 @@ if ($Upgrade) {
         Write-Host ""
         Write-Host "  `"Reconcile my CLAUDE.md against $ScriptDir/CLAUDE.template.md."
         Write-Host "   Port any new template sections, preserving my project-specific content."
-        Write-Host "   If you see an @CONTINUITY.md line on top, remove it -- it's a dangling"
-        Write-Host "   import from before the 5.15 migration.`""
+        Write-Host ""
+        Write-Host "   Then scan the ENTIRE file and remove every dangling reference to"
+        Write-Host "   CONTINUITY.md left over from before the 5.15 migration. Look for:"
+        Write-Host "     - @CONTINUITY.md import lines (usually at the top)"
+        Write-Host "     - File-tree diagrams that list CONTINUITY.md as a project file"
+        Write-Host "     - Prose pointers like 'see CONTINUITY', 'in CONTINUITY.md', '(CONTINUITY)'"
+        Write-Host "     - Comments or labels that reference CONTINUITY.md as a location"
+        Write-Host ""
+        Write-Host "   CONTINUITY.md no longer exists -- its content moved to CLAUDE.md"
+        Write-Host "   (durable), docs/adr/ (decisions), and .claude/local/state.md"
+        Write-Host "   (volatile). Remove these references; the 'preserve project-specific"
+        Write-Host "   content' rule does NOT apply to CONTINUITY pointers -- they are"
+        Write-Host "   stale infrastructure references.`""
         Write-Host ""
         Write-Host "  (Full guide: $ScriptDir/docs/guides/upgrading.md)"
         Write-Host ""
