@@ -40,7 +40,7 @@ Run via `codex exec` with:
 
 ```bash
 codex exec \
-  -m "gpt-5.4" \
+  -m "gpt-5.5" \
   -c model_reasoning_effort="high" \
   -c service_tier="fast" \
   --sandbox read-only \
@@ -59,7 +59,7 @@ After all advisors complete, construct the chairman prompt:
 
 ```bash
 codex exec \
-  -m "gpt-5.4" \
+  -m "gpt-5.5" \
   -c model_reasoning_effort="xhigh" \
   -c service_tier="fast" \
   --sandbox read-only \
@@ -113,7 +113,7 @@ Before firing the full council, the Contrarian/Codex validates the "default wins
 
 ```bash
 codex exec \
-  -m "gpt-5.4" \
+  -m "gpt-5.5" \
   -c model_reasoning_effort="high" \
   -c service_tier="fast" \
   --sandbox read-only \

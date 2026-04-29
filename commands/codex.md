@@ -46,7 +46,7 @@ Use `AskUserQuestion` with these options:
 
 ```bash
 codex exec review \
-  -m "gpt-5.4" \
+  -m "gpt-5.5" \
   -c model_reasoning_effort="xhigh" \
   -c service_tier="fast" \
   -c developer_instructions="Focus on: correctness, security vulnerabilities, performance bottlenecks, error handling gaps, and maintainability. Flag anything that could break in production." \
@@ -58,7 +58,7 @@ codex exec review \
 
 ```bash
 codex exec review \
-  -m "gpt-5.4" \
+  -m "gpt-5.5" \
   -c model_reasoning_effort="xhigh" \
   -c service_tier="fast" \
   -c developer_instructions="Focus on: correctness, security vulnerabilities, performance bottlenecks, error handling gaps, and maintainability. Flag anything that could break in production." \
@@ -95,7 +95,7 @@ Also check if there's a plan in the current conversation context. If the user sp
 
 ```bash
 codex exec \
-  -m "gpt-5.4" \
+  -m "gpt-5.5" \
   -c model_reasoning_effort="xhigh" \
   -c service_tier="fast" \
   --sandbox read-only \
@@ -143,7 +143,7 @@ Construct the prompt by combining the user's instruction with the gathered conte
 
 ```bash
 codex exec \
-  -m "gpt-5.4" \
+  -m "gpt-5.5" \
   -c model_reasoning_effort="xhigh" \
   -c service_tier="fast" \
   --sandbox read-only \
@@ -200,11 +200,11 @@ These work on **both** `codex exec` and `codex exec review`:
 
 | Config key                | Purpose                                                    | Example                                                                 |
 | ------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `model`                   | Override the session model                                 | `-c model="gpt-5.4"`                                                    |
+| `model`                   | Override the session model                                 | `-c model="gpt-5.5"`                                                    |
 | `model_reasoning_effort`  | Depth of reasoning                                         | `-c model_reasoning_effort="xhigh"` (minimal\|low\|medium\|high\|xhigh) |
 | `model_reasoning_summary` | Reasoning output detail                                    | `-c model_reasoning_summary="detailed"` (auto\|concise\|detailed\|none) |
 | `developer_instructions`  | Inject guidance (works WITH preset review flags)           | `-c developer_instructions="Focus on SQL injection"`                    |
-| `review_model`            | Model override just for `/review`                          | `-c review_model="gpt-5.4"`                                             |
+| `review_model`            | Model override just for `/review`                          | `-c review_model="gpt-5.5"`                                             |
 | `web_search`              | Allow live docs lookup during review                       | `-c web_search=live` (disabled\|cached\|live)                           |
 | `service_tier`            | Processing tier                                            | `-c service_tier="fast"` (flex\|fast)                                   |
 | `approval_policy`         | When to pause for confirmation (plain `exec` only)         | `-c approval_policy="on-request"` (untrusted\|on-request\|never)        |

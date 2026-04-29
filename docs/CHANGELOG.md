@@ -2,6 +2,20 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.20 — 2026-04-29 · Bump Codex CLI model gpt-5.4 → gpt-5.5
+
+OpenAI shipped GPT-5.5 on 2026-04-23 and Codex CLI now accepts it as a model identifier (`developers.openai.com/codex/models` lists it as the recommended choice). Codex CLI's default is still `gpt-5.4` as of `rust-v0.125.0`, so the upgrade requires an explicit model-string swap — automation doesn't get gpt-5.5 by accident.
+
+Researched the CLI release notes (`rust-v0.124.0` → `rust-v0.125.0`) for any breaking changes — there are none. All flags and config keys we use (`-m`/`--model`, `-c key=value`, `--sandbox`, `--ephemeral`, `--uncommitted`, `--base`, `--commit`, `--full-auto`, `--skip-git-repo-check`, `model`, `review_model`, `model_reasoning_effort`) remain supported on the same subcommands. The `xhigh` reasoning level is still valid and inherits onto gpt-5.5 per the model catalog.
+
+So this is a pure model-name swap.
+
+- `commands/codex.md` — 5 invocation strings updated (`-m "gpt-5.4"` → `-m "gpt-5.5"`, plus `-c model=` and `-c review_model=` config-key examples in the reference table).
+- `skills/council/references/peer-review-protocol.md` — 3 council-advisor invocation strings updated.
+- `README.md` — version badge bump 5.19 → 5.20, prepend version-history row.
+
+**Existing installs:** the new model lands on next `setup.sh --upgrade` (commands and skills are refreshed; user customizations in `settings.json` are preserved).
+
 ## 5.19 — 2026-04-29 · Allow Write/Edit on .claude/local/\*\* without prompting
 
 Field bug from msai-v2: `/new-feature` workflow prompted the user for permission to use `Write(.claude/local/state.md)` despite `"Write"` being in the project's `permissions.allow` list. Three converging causes:
