@@ -126,28 +126,6 @@ function Copy-TemplateFile {
     Write-Host " Created $Description"
 }
 
-# Template-drift hint: fired when a user-owned file is preserved and the
-# harness template may have evolved since the user's last upgrade. Points
-# the user at the canonical diff command (git diff --no-index works in
-# Git Bash on Windows, no bash prerequisite beyond git).
-#
-# Paths are wrapped in single-quotes in the emitted command so they survive
-# copy-paste regardless of shell metachars in the path. The local file is
-# absolutized against Get-Location so the suggestion still works if the user
-# cd's elsewhere before pasting.
-function Write-TemplateDriftHint {
-    param(
-        [string]$TemplateName,  # e.g., CLAUDE.template.md
-        [string]$LocalName      # e.g., CLAUDE.md
-    )
-    Write-Host "    " -NoNewline
-    Write-Color "!" "Yellow"
-    Write-Host "  Template may have drifted. To review:"
-    $templatePath = Join-Path $ScriptDir $TemplateName
-    $localAbs = Join-Path (Get-Location).Path $LocalName
-    Write-Host "         git diff --no-index -- '$templatePath' '$localAbs'"
-}
-
 # ============================================================================
 # GLOBAL SETUP (-Global flag)
 # ============================================================================
@@ -534,7 +512,6 @@ $hadContinuity = Test-Path "CONTINUITY.md"
 
 if ($hadClaude) {
     Write-Host "  " -NoNewline; Write-Color "o" "Blue"; Write-Host " CLAUDE.md already exists (never overwritten - user content)"
-    Write-TemplateDriftHint "CLAUDE.template.md" "CLAUDE.md"
 } else {
     Copy-TemplateFile (Join-Path $ScriptDir "CLAUDE.template.md") "CLAUDE.md" "CLAUDE.md"
 }
@@ -990,10 +967,12 @@ if ($Upgrade) {
     Write-Host "   git commit -m `"chore: upgrade Claude Code automation templates`""
     Write-Host "   git push"
     Write-Host ""
-    # 5.16: dropped the "Template may have drifted" cry-wolf preamble that
-    # fired on every --upgrade regardless of actual drift. The migration
-    # script's Variant B "ask Claude to reconcile" message handles drift
-    # reconciliation when it actually matters (during --migrate).
+    # 5.16: dropped the consolidated cry-wolf drift preamble that fired on
+    # every --upgrade regardless of actual drift. The migration script's
+    # Variant B "ask Claude to reconcile" message handles drift reconciliation
+    # when it actually matters (during --migrate). 5.17: also dropped the
+    # per-file inline drift hint at the same layer; replaced by the soft tip
+    # at end of upgrade summary below.
     # PR #2 (continuity-split): legacy CONTINUITY.md migration prompt.
     if ($hadContinuity) {
         Write-Color "! Legacy CONTINUITY.md detected." "Yellow"
@@ -1018,6 +997,27 @@ if ($Upgrade) {
         Write-Color "Upgrade done! Your CONTINUITY.md was preserved (run -Migrate to move content to the new structure)." "Green"
     } else {
         Write-Color "Upgrade done!" "Green"
+    }
+
+    # 5.17: soft tip recommending Claude-driven CLAUDE.md reconciliation when
+    # the user's CLAUDE.md was preserved. Replaces the per-file inline drift
+    # hint (cry-wolf -- fired every upgrade regardless of actual drift). Uses
+    # the full Variant B prompt from the migration script for consistency,
+    # including the @CONTINUITY.md dangling-import cleanup clause. The "Full
+    # guide" reference uses an absolute path to the Forge clone so it resolves
+    # correctly when users run setup.ps1 -Upgrade from inside their project.
+    if ($hadClaude) {
+        Write-Host ""
+        Write-Host "Tip:" -ForegroundColor Blue -NoNewline
+        Write-Host " ask Claude to reconcile your CLAUDE.md against the latest template:"
+        Write-Host ""
+        Write-Host "  `"Reconcile my CLAUDE.md against $ScriptDir/CLAUDE.template.md."
+        Write-Host "   Port any new template sections, preserving my project-specific content."
+        Write-Host "   If you see an @CONTINUITY.md line on top, remove it -- it's a dangling"
+        Write-Host "   import from before the 5.15 migration.`""
+        Write-Host ""
+        Write-Host "  (Full guide: $ScriptDir/docs/guides/upgrading.md)"
+        Write-Host ""
     }
 } else {
     Write-Color "============================================" "Green"

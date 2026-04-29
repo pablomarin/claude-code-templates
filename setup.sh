@@ -135,22 +135,6 @@ copy_file() {
     echo -e "  ${GREEN}✓${NC} Created $desc"
 }
 
-# Template-drift hint: fired when a user-owned file is preserved and the
-# harness template may have evolved since the user's last upgrade. The user
-# has to reconcile manually — we point them at the canonical diff command.
-#
-# Paths are wrapped in single-quotes in the emitted command so they survive
-# copy-paste regardless of shell metachars in the path (a path containing
-# '$USER' would otherwise re-expand on paste). The local file is absolutized
-# against $(pwd) so the suggestion still works if the user cd's elsewhere
-# before pasting.
-print_template_drift_hint() {
-    local template_name="$1"  # e.g., CLAUDE.template.md
-    local local_name="$2"     # e.g., CLAUDE.md
-    echo -e "    ${YELLOW}⚠${NC}  Template may have drifted. To review:"
-    echo -e "         git diff --no-index -- '$SCRIPT_DIR/$template_name' '$(pwd)/$local_name'"
-}
-
 # ============================================================================
 # GLOBAL SETUP (--global flag)
 # ============================================================================
@@ -519,7 +503,6 @@ if [[ -f "CONTINUITY.md" ]]; then had_continuity_md=true; else had_continuity_md
 
 if [[ "$had_claude_md" == true ]]; then
     echo -e "  ${BLUE}○${NC} CLAUDE.md already exists (never overwritten — user content)"
-    print_template_drift_hint "CLAUDE.template.md" "CLAUDE.md"
 else
     copy_file "$SCRIPT_DIR/CLAUDE.template.md" "CLAUDE.md" "CLAUDE.md"
 fi
@@ -908,10 +891,12 @@ if [[ "$UPGRADE" == true ]]; then
     echo "   git commit -m \"chore: upgrade Claude Code automation templates\""
     echo "   git push"
     echo ""
-    # 5.16: dropped the "Template may have drifted" cry-wolf preamble that
-    # fired on every --upgrade regardless of actual drift. The migration
-    # script's Variant B "ask Claude to reconcile" message handles drift
-    # reconciliation when it actually matters (during --migrate).
+    # 5.16: dropped the consolidated cry-wolf drift preamble that fired on
+    # every --upgrade regardless of actual drift. The migration script's
+    # Variant B "ask Claude to reconcile" message handles drift reconciliation
+    # when it actually matters (during --migrate). 5.17: also dropped the
+    # per-file inline drift hint at the same layer; replaced by the soft tip
+    # at end of upgrade summary below.
     # PR #2 (continuity-split): legacy CONTINUITY.md migration prompt.
     if [[ "$had_continuity_md" == true ]]; then
         echo -e "${YELLOW}⚠ Legacy CONTINUITY.md detected.${NC}"
@@ -936,6 +921,26 @@ if [[ "$UPGRADE" == true ]]; then
         echo -e "${GREEN}Upgrade done! Your CONTINUITY.md was preserved (run --migrate to move content to the new structure).${NC}"
     else
         echo -e "${GREEN}Upgrade done!${NC}"
+    fi
+
+    # 5.17: soft tip recommending Claude-driven CLAUDE.md reconciliation when
+    # the user's CLAUDE.md was preserved. Replaces the per-file inline drift
+    # hint (cry-wolf — fired every upgrade regardless of actual drift). Uses
+    # the full Variant B prompt from the migration script for consistency,
+    # including the @CONTINUITY.md dangling-import cleanup clause. The "Full
+    # guide" reference uses an absolute path to the Forge clone so it resolves
+    # correctly when users run setup.sh --upgrade from inside their project.
+    if [[ "$had_claude_md" == true ]]; then
+        echo ""
+        echo -e "${BLUE}Tip:${NC} ask Claude to reconcile your CLAUDE.md against the latest template:"
+        echo ""
+        echo "  \"Reconcile my CLAUDE.md against $SCRIPT_DIR/CLAUDE.template.md."
+        echo "   Port any new template sections, preserving my project-specific content."
+        echo "   If you see an @CONTINUITY.md line on top, remove it -- it's a dangling"
+        echo "   import from before the 5.15 migration.\""
+        echo ""
+        echo "  (Full guide: $SCRIPT_DIR/docs/guides/upgrading.md)"
+        echo ""
     fi
 else
     echo -e "${GREEN}============================================${NC}"

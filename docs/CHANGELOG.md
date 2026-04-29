@@ -2,6 +2,19 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.17 — 2026-04-28 · Drop per-file template-drift cry-wolf hint; soft "ask Claude to reconcile" tip
+
+Removes the per-file inline `Template may have drifted. To review: git diff --no-index ...` hint that fired every time CLAUDE.md was preserved during `--upgrade`. Same cry-wolf problem as the consolidated preamble dropped in 5.16, just at a different layer.
+
+Replaced with a single soft tip at end of upgrade summary recommending the full Variant B "ask Claude to reconcile" prompt (matches the migration script's wording from 5.16, including the `@CONTINUITY.md` dangling-import cleanup clause for consistency). Fires once per upgrade (when CLAUDE.md was preserved), not per-file. Soft `Tip:` prefix in blue, no warning glyph.
+
+The "Full guide" reference uses the absolute path to the Forge clone (`$SCRIPT_DIR/docs/guides/upgrading.md` on bash, `$ScriptDir/docs/guides/upgrading.md` on PowerShell) so it resolves correctly when users run `setup.sh --upgrade` from inside their project (the harness guides aren't shipped to downstream installs).
+
+This is a fix-up of an earlier attempt that Codex flagged with two P2 issues: the soft tip dropped the `@CONTINUITY.md` cleanup clause (inconsistent with Variant B), and the "Full guide" reference used a relative path that resolved under the user's project. Both addressed here.
+
+- `setup.sh` + `setup.ps1` — removed inline `print_template_drift_hint` / `Write-TemplateDriftHint` helpers + invocations; added soft tip at end of upgrade summary with full Variant B prompt and absolute-path guide reference
+- `tests/template/test-setup.sh` + `test-contracts.sh` — updated assertions: legacy "Template may have drifted" string banned in installers, soft tip + `@CONTINUITY.md` clause present, absolute path used for "Full guide"
+
 ## 5.16 — 2026-04-28 · Migration UX — consolidated "ask Claude" reconcile message; dropped cry-wolf drift hint
 
 Replaces two separate warnings with one consolidated instruction:
