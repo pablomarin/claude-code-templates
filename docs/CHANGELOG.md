@@ -2,6 +2,22 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.19 — 2026-04-29 · Allow Write/Edit on .claude/local/\*\* without prompting
+
+Field bug from msai-v2: `/new-feature` workflow prompted the user for permission to use `Write(.claude/local/state.md)` despite `"Write"` being in the project's `permissions.allow` list. Three converging causes:
+
+1. **`.claude/` directory has elevated protection** — per the [official Claude Code permissions docs](https://code.claude.com/docs/en/permissions#permission-modes), writes to `.claude/` prompt even in `bypassPermissions` mode (anti-corruption guard). `.claude/commands`, `.claude/agents`, `.claude/skills` are documented as exempt; `.claude/local/` is NOT.
+2. **Bare-tool-name regression** — [GitHub issue #36593](https://github.com/anthropics/claude-code/issues/36593) documents Claude Code v2.1.80+ failing to auto-approve under blanket `"Write"` / `"Edit"` allow rules. Workaround per docs: pair the bare entry with explicit `Tool(path)` patterns.
+3. **State.md is the only `.claude/local/` artifact today** but the canonical workflow file is written to on every `/new-feature`, `/fix-bug`, and Phase update — frequent prompting kills the workflow's "feel autonomous" goal.
+
+Fix adds two explicit allow rules per template, sitting alongside the bare entries so behavior degrades gracefully on older Claude Code versions where bare worked.
+
+- `settings/settings.template.json` — added `Write(./.claude/local/**)` and `Edit(./.claude/local/**)` to `allow`.
+- `settings/settings-windows.template.json` — same two additions for parity.
+- `README.md` — version badge bump 5.18 → 5.19, prepend version-history row.
+
+**Existing installs:** the new rules land on next `setup.sh --upgrade` (settings.json gets merged; user customizations preserved).
+
 ## 5.18 — 2026-04-28 · Tighten reconcile prompt — enumerate all CONTINUITY reference types
 
 The 5.17 soft tip and 5.16 migration warning shipped a single-clause prompt that only addressed the `@CONTINUITY.md` dangling-import line at the top of CLAUDE.md. Field bug from msai-v2: leftover references at line 102 (file-tree diagram listing CONTINUITY.md as a project file) and line 212 (`(see CONTINUITY)` deferred-followup pointer) survived running the v5.17 prompt because the wording only covered the @-import case AND the "preserving my project-specific content" clause actively pushed Claude to keep them.
