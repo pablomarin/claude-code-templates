@@ -11,6 +11,8 @@
       "Write",
       "Write(./.claude/local/**)",
       "Edit(./.claude/local/**)",
+      "Write(**/.claude/local/**)",
+      "Edit(**/.claude/local/**)",
       "Bash",
       "Bash(codex:*)",
       "Skill",

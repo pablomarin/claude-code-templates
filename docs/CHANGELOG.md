@@ -2,6 +2,28 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.21 — 2026-04-30 · Allow Write/Edit on .claude/local/\*\* from worktrees too
+
+Field bug from msai-v2 (follow-up to PR #574 / v5.19): `/new-feature` invoked from inside a `.worktrees/<name>/` directory still prompted the user for permission to use `Write(.claude/local/state.md)` despite the v5.19 patterns being present.
+
+Root cause is path-pattern scope, not the v2.1.80+ bare-tool regression that PR #574 addressed:
+
+1. **Claude Code's permission patterns are gitignore-style.** Per the [permissions docs](https://code.claude.com/docs/en/permissions#read-and-edit), `path` or `./path` is matched against the **current working directory**, while `**/path` matches at any depth. v5.19's `Write(./.claude/local/**)` only covers the project-root case — when Claude Code resolves the canonical absolute path of a worktree-root state.md, it falls outside the cwd-scoped pattern.
+2. **Worktrees nest under `.worktrees/<name>/`** so the file path becomes `.worktrees/<name>/.claude/local/state.md` — same `.claude/local/**` segment, different depth.
+3. **The `/new-feature` and `/fix-bug` STATE-INIT script copies the canonical template into the worktree's `.claude/local/state.md`** during Pre-Flight, then writes the `## Workflow` section. That Write call runs against the worktree path and fired the prompt.
+
+Fix adds two gitignore-style "any depth" patterns that match `.claude/local/**` regardless of where it sits in the tree (project root, worktree, nested checkout). Existing v5.19 cwd-relative patterns are kept as belt-and-suspenders for older Claude Code versions.
+
+**Why not broaden to all of `.claude/`?** The narrow `.claude/local/**` scope is intentional. `.claude/settings.json`, `.claude/hooks/*`, `.claude/rules/*` are settings and code that Claude Code's docs specifically protect from accidental tampering. Opening Write to all of `.claude/` would let a poisoned tool output rewrite hooks or settings without prompting.
+
+**Why not Bash patterns?** Field transcripts confirm bare `"Bash"` already covers `mkdir -p` / `cp` operations into `.claude/local/`. The Bash side was never the prompting tool — the v5.19 retrospective mis-attributed the prompt to Bash; the actual prompter was the Write tool overwriting state.md with the populated `## Workflow` section.
+
+- `settings/settings.template.json` — added `Write(**/.claude/local/**)` and `Edit(**/.claude/local/**)` to `allow`.
+- `settings/settings-windows.template.json` — same two additions for parity.
+- `README.md` — version badge bump 5.20 → 5.21, prepend version-history row.
+
+**Existing installs:** the new rules land on next `setup.sh --upgrade` (settings.json gets merged; user customizations preserved).
+
 ## 5.20 — 2026-04-29 · Bump Codex CLI model gpt-5.4 → gpt-5.5
 
 OpenAI shipped GPT-5.5 on 2026-04-23 and Codex CLI now accepts it as a model identifier (`developers.openai.com/codex/models` lists it as the recommended choice). Codex CLI's default is still `gpt-5.4` as of `rust-v0.125.0`, so the upgrade requires an explicit model-string swap — automation doesn't get gpt-5.5 by accident.
