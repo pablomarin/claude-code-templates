@@ -11,6 +11,8 @@
       "Write",
       "Write(./.claude/local/**)",
       "Edit(./.claude/local/**)",
+      "Write(**/.claude/local/**)",
+      "Edit(**/.claude/local/**)",
       "Bash",
       "Bash(codex:*)",
       "Skill",
@@ -110,6 +112,17 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/check-workflow-gates.sh"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/auto-approve-local-writes.sh"
           }
         ]
       }

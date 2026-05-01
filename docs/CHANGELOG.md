@@ -2,6 +2,33 @@
 
 All notable changes to claude-codex-forge.
 
+## 5.21 — 2026-04-30 · PermissionRequest hook auto-approves writes to .claude/local/\*\*
+
+Field-confirmed bug from msai-v2 (Claude Code v2.1.123): `/new-feature` invoked from inside a `.worktrees/<name>/` directory prompted the user for permission to use `Edit(.claude/local/state.md)` despite **all four path-scoped allow rules** (v5.19 `./.claude/local/**` pair plus v5.21 `**/.claude/local/**` pair) being loaded into the session — confirmed via `/permissions`. The settings.json fix didn't actually fix the user-visible problem.
+
+Root cause is the broader [v2.1.80+ permission regression](https://github.com/anthropics/claude-code/issues/36593): both bare and path-scoped Write/Edit allow rules fail to auto-approve in recent Claude Code versions. PR #574 (v5.19) addressed it with explicit path-scoped patterns; this release accepts that the regression hits both bare AND path-scoped rules and pivots to the documented escape hatch — a hook.
+
+**The fix: a PermissionRequest hook** that auto-approves Write/Edit on `.claude/local/**`. PermissionRequest fires only when Claude Code is about to show a permission dialog (narrower than PreToolUse, which fires on every tool call) and emits `hookSpecificOutput.decision.behavior=allow` to skip the prompt. Hooks bypass the broken permission engine entirely.
+
+**Path validation, per Codex design review:**
+
+- Substring match would be exploitable (`.claude/local/../../etc/passwd`). The hook normalizes separators (Windows `\` → `/`), rejects any `..` path segment, resolves relative paths against hook-provided `cwd`, lexically collapses `.` and empty segments, then segment-matches `*/.claude/local/*` (requires `/` boundary on both sides — rejects substring spoofs like `/foo.claude/localbar/`).
+- **Fail-open by design**: parse failures, missing `jq`, malformed paths, traversal attempts, empty paths, and unknown tools all exit silently with no allow JSON — Claude Code falls back to its default permission flow and prompts the user. The hook is a UX improvement, not a security boundary.
+- **Opt-out** via `CLAUDE_FORGE_AUTO_APPROVE_LOCAL_WRITES=0` env var.
+
+**Why PermissionRequest, not PreToolUse?** PermissionRequest fires only when CC is about to show a dialog — the hook adds zero overhead to Write/Edit calls that are already auto-approved by other rules. PreToolUse would run on every Write/Edit, which is unnecessary work.
+
+**v5.21 also keeps the v5.19 + v5.21 patterns in `permissions.allow`** as belt-and-suspenders. They're not effective today (regression), but they're correct gitignore-style patterns that will start working the day Anthropic resolves [#36593](https://github.com/anthropics/claude-code/issues/36593) — at which point the hook becomes redundant fallback.
+
+- `hooks/auto-approve-local-writes.sh` + `.ps1` — new PermissionRequest hook scripts (cross-platform parity).
+- `settings/settings.template.json` — added `PermissionRequest` event with `Write|Edit` matcher; kept the v5.21 `**/.claude/local/**` allow patterns alongside v5.19's.
+- `settings/settings-windows.template.json` — same two additions for parity.
+- `setup.sh` + `setup.ps1` — copy the new hook scripts on install/upgrade.
+- `CLAUDE.md` — file-tree comment + Hook Design section updated.
+- `README.md` — version badge bump 5.20 → 5.21, prepend version-history row.
+
+**Existing installs:** run `setup.sh --upgrade`. The new hook script lands in `.claude/hooks/`; settings.json gets merged (PermissionRequest event added; user customizations preserved). **Restart any running Claude Code session in the project** — settings.json loads at session start, so a mid-session upgrade doesn't take effect until you exit and re-launch.
+
 ## 5.20 — 2026-04-29 · Bump Codex CLI model gpt-5.4 → gpt-5.5
 
 OpenAI shipped GPT-5.5 on 2026-04-23 and Codex CLI now accepts it as a model identifier (`developers.openai.com/codex/models` lists it as the recommended choice). Codex CLI's default is still `gpt-5.4` as of `rust-v0.125.0`, so the upgrade requires an explicit model-string swap — automation doesn't get gpt-5.5 by accident.

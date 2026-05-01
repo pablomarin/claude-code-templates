@@ -564,6 +564,7 @@ Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "pre-compact-memory.
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-config-change.ps1") ".claude\hooks\check-config-change.ps1" ".claude\hooks\check-config-change.ps1"
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-bash-safety.ps1") ".claude\hooks\check-bash-safety.ps1" ".claude\hooks\check-bash-safety.ps1"
 Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "check-workflow-gates.ps1") ".claude\hooks\check-workflow-gates.ps1" ".claude\hooks\check-workflow-gates.ps1"
+Copy-TemplateFile (Join-Path (Join-Path $ScriptDir "hooks") "auto-approve-local-writes.ps1") ".claude\hooks\auto-approve-local-writes.ps1" ".claude\hooks\auto-approve-local-writes.ps1"
 
 # Hook lib helpers
 # Install BOTH the .ps1 and .sh helpers on Windows because:
