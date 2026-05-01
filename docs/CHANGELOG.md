@@ -2,27 +2,32 @@
 
 All notable changes to claude-codex-forge.
 
-## 5.21 — 2026-04-30 · Allow Write/Edit on .claude/local/\*\* from worktrees too
+## 5.21 — 2026-04-30 · PermissionRequest hook auto-approves writes to .claude/local/\*\*
 
-Field bug from msai-v2 (follow-up to PR #574 / v5.19): `/new-feature` invoked from inside a `.worktrees/<name>/` directory still prompted the user for permission to use `Write(.claude/local/state.md)` despite the v5.19 patterns being present.
+Field-confirmed bug from msai-v2 (Claude Code v2.1.123): `/new-feature` invoked from inside a `.worktrees/<name>/` directory prompted the user for permission to use `Edit(.claude/local/state.md)` despite **all four path-scoped allow rules** (v5.19 `./.claude/local/**` pair plus v5.21 `**/.claude/local/**` pair) being loaded into the session — confirmed via `/permissions`. The settings.json fix didn't actually fix the user-visible problem.
 
-Root cause is path-pattern scope, not the v2.1.80+ bare-tool regression that PR #574 addressed:
+Root cause is the broader [v2.1.80+ permission regression](https://github.com/anthropics/claude-code/issues/36593): both bare and path-scoped Write/Edit allow rules fail to auto-approve in recent Claude Code versions. PR #574 (v5.19) addressed it with explicit path-scoped patterns; this release accepts that the regression hits both bare AND path-scoped rules and pivots to the documented escape hatch — a hook.
 
-1. **Claude Code's permission patterns are gitignore-style.** Per the [permissions docs](https://code.claude.com/docs/en/permissions#read-and-edit), `path` or `./path` is matched against the **current working directory**, while `**/path` matches at any depth. v5.19's `Write(./.claude/local/**)` only covers the project-root case — when Claude Code resolves the canonical absolute path of a worktree-root state.md, it falls outside the cwd-scoped pattern.
-2. **Worktrees nest under `.worktrees/<name>/`** so the file path becomes `.worktrees/<name>/.claude/local/state.md` — same `.claude/local/**` segment, different depth.
-3. **The `/new-feature` and `/fix-bug` STATE-INIT script copies the canonical template into the worktree's `.claude/local/state.md`** during Pre-Flight, then writes the `## Workflow` section. That Write call runs against the worktree path and fired the prompt.
+**The fix: a PermissionRequest hook** that auto-approves Write/Edit on `.claude/local/**`. PermissionRequest fires only when Claude Code is about to show a permission dialog (narrower than PreToolUse, which fires on every tool call) and emits `hookSpecificOutput.decision.behavior=allow` to skip the prompt. Hooks bypass the broken permission engine entirely.
 
-Fix adds two gitignore-style "any depth" patterns that match `.claude/local/**` regardless of where it sits in the tree (project root, worktree, nested checkout). Existing v5.19 cwd-relative patterns are kept as belt-and-suspenders for older Claude Code versions.
+**Path validation, per Codex design review:**
 
-**Why not broaden to all of `.claude/`?** The narrow `.claude/local/**` scope is intentional. `.claude/settings.json`, `.claude/hooks/*`, `.claude/rules/*` are settings and code that Claude Code's docs specifically protect from accidental tampering. Opening Write to all of `.claude/` would let a poisoned tool output rewrite hooks or settings without prompting.
+- Substring match would be exploitable (`.claude/local/../../etc/passwd`). The hook normalizes separators (Windows `\` → `/`), rejects any `..` path segment, resolves relative paths against hook-provided `cwd`, lexically collapses `.` and empty segments, then segment-matches `*/.claude/local/*` (requires `/` boundary on both sides — rejects substring spoofs like `/foo.claude/localbar/`).
+- **Fail-open by design**: parse failures, missing `jq`, malformed paths, traversal attempts, empty paths, and unknown tools all exit silently with no allow JSON — Claude Code falls back to its default permission flow and prompts the user. The hook is a UX improvement, not a security boundary.
+- **Opt-out** via `CLAUDE_FORGE_AUTO_APPROVE_LOCAL_WRITES=0` env var.
 
-**Why not Bash patterns?** Field transcripts confirm bare `"Bash"` already covers `mkdir -p` / `cp` operations into `.claude/local/`. The Bash side was never the prompting tool — the v5.19 retrospective mis-attributed the prompt to Bash; the actual prompter was the Write tool overwriting state.md with the populated `## Workflow` section.
+**Why PermissionRequest, not PreToolUse?** PermissionRequest fires only when CC is about to show a dialog — the hook adds zero overhead to Write/Edit calls that are already auto-approved by other rules. PreToolUse would run on every Write/Edit, which is unnecessary work.
 
-- `settings/settings.template.json` — added `Write(**/.claude/local/**)` and `Edit(**/.claude/local/**)` to `allow`.
+**v5.21 also keeps the v5.19 + v5.21 patterns in `permissions.allow`** as belt-and-suspenders. They're not effective today (regression), but they're correct gitignore-style patterns that will start working the day Anthropic resolves [#36593](https://github.com/anthropics/claude-code/issues/36593) — at which point the hook becomes redundant fallback.
+
+- `hooks/auto-approve-local-writes.sh` + `.ps1` — new PermissionRequest hook scripts (cross-platform parity).
+- `settings/settings.template.json` — added `PermissionRequest` event with `Write|Edit` matcher; kept the v5.21 `**/.claude/local/**` allow patterns alongside v5.19's.
 - `settings/settings-windows.template.json` — same two additions for parity.
+- `setup.sh` + `setup.ps1` — copy the new hook scripts on install/upgrade.
+- `CLAUDE.md` — file-tree comment + Hook Design section updated.
 - `README.md` — version badge bump 5.20 → 5.21, prepend version-history row.
 
-**Existing installs:** the new rules land on next `setup.sh --upgrade` (settings.json gets merged; user customizations preserved).
+**Existing installs:** run `setup.sh --upgrade`. The new hook script lands in `.claude/hooks/`; settings.json gets merged (PermissionRequest event added; user customizations preserved). **Restart any running Claude Code session in the project** — settings.json loads at session start, so a mid-session upgrade doesn't take effect until you exit and re-launch.
 
 ## 5.20 — 2026-04-29 · Bump Codex CLI model gpt-5.4 → gpt-5.5
 

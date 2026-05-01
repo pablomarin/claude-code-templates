@@ -143,7 +143,7 @@ Recent releases:
 
 | Version | Date       | Highlights                                                                                                                     |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| 5.21    | 2026-04-30 | Allow `Write`/`Edit` on `.claude/local/**` from worktrees too — gitignore-style `**/.claude/local/**` covers any depth         |
+| 5.21    | 2026-04-30 | PermissionRequest hook auto-approves writes to `.claude/local/**` (workaround for CC v2.1.80+ regression on path-scoped rules) |
 | 5.20    | 2026-04-29 | Bump Codex CLI model `gpt-5.4` → `gpt-5.5` in `/codex` and `/council` (OpenAI released GPT-5.5 on 2026-04-23)                  |
 | 5.19    | 2026-04-29 | Allow `Write`/`Edit` on `.claude/local/**` without prompting (workaround for Claude Code v2.1.80+ bare-tool regression)        |
 | 5.18    | 2026-04-28 | Tighten reconcile prompt — enumerate all CONTINUITY reference types (tree diagrams, prose pointers, labels)                    |

@@ -61,6 +61,7 @@ claude-codex-forge/
 │   ├── check-state-updated.sh/.ps1  # Stop: advisory state reminder + CHANGELOG threshold gate
 │   ├── check-bash-safety.sh/.ps1    # PreToolUse: audit log + block dangerous patterns
 │   ├── check-workflow-gates.sh/.ps1 # PreToolUse: block commit/push/PR if quality gates incomplete
+│   ├── auto-approve-local-writes.sh/.ps1  # PermissionRequest: auto-approve Write/Edit on .claude/local/** (workaround for CC v2.1.80+ regression)
 │   ├── post-tool-format.sh/.ps1     # PostToolUse: auto-format on save
 │   ├── pre-compact-memory.sh/.ps1   # PreCompact: save learnings before compression
 │   └── check-config-change.sh/.ps1  # ConfigChange: log config modifications
@@ -193,6 +194,7 @@ Every hook has both `.sh` (Unix) and `.ps1` (Windows) versions. **Always update 
 - **SessionStart hooks** (`session-start.sh`): Output JSON with `hookSpecificOutput.additionalContext` for silent context injection. Source-gated: drift-detection fetch fires only on `startup`/`resume` subtypes, not `clear`/`compact`. Cannot block (exit 2 is advisory) — drift surfaces as a warning string in additionalContext only.
 - **Stop hooks** (`check-state-updated.sh`): Use `exit 2` + stderr message to block
 - **PreToolUse hooks** (`check-bash-safety.sh`): Audit log + `exit 2` to block dangerous Bash patterns
+- **PermissionRequest hooks** (`auto-approve-local-writes.sh`): Output `hookSpecificOutput.decision.behavior=allow` to skip prompt; fires only when CC is about to show a permission dialog. Used to work around CC v2.1.80+ regression on path-scoped allow rules. Fail-open: print nothing on parse error or path-validation failure. Opt-out via `CLAUDE_FORGE_AUTO_APPROVE_LOCAL_WRITES=0`.
 - **PostToolUse hooks**: Match file extensions, run formatters, `exit 0` always
 - **PreCompact hooks**: Use `exit 0` (non-blocking) — just reminders
 - **ConfigChange hooks** (`check-config-change.sh`): Log config changes, optional `exit 2` strict mode
